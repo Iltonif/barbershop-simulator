@@ -42,6 +42,62 @@ misma red WiFi:
 3. En el navegador del móvil/tablet, abre `http://<esa-ip>:8000/`
    (ej. `http://192.168.1.23:8000/`).
 
+## Despliegue en la nube (para que una peluquería lo use en su tablet)
+
+Para uso interno rápido en el mismo local, `--host 0.0.0.0` + la IP local
+(sección de arriba) funciona, pero depende de que el ordenador de la
+peluquería esté siempre encendido, de la misma WiFi para todos los
+dispositivos, y de que no haya firewall/aislamiento de red por medio — en
+la práctica da bastantes problemas. Para una instalación real en una
+tablet de peluquería, lo robusto es desplegar el backend en la nube con
+HTTPS: la tablet simplemente abre una URL fija (`https://...`) desde
+cualquier WiFi o datos móviles, sin tocar IPs ni firewalls.
+
+Este repo ya está preparado para desplegarse en [Railway](https://railway.app)
+sin Docker:
+
+- `requirements-prod.txt`: dependencias reales en producción (sin
+  `diffusers`/`transformers`/`accelerate`/`controlnet-aux`/`gdown`, que
+  solo hacen falta para la Fase 2 del generador — todavía no implementada,
+  ver `generator.py` — sin esto el despliegue sería mucho más pesado y
+  lento sin ningún beneficio real ahora mismo).
+- `railway.json`: le dice a Railway cómo instalar (`pip install -r
+  requirements-prod.txt`) y arrancar (`cd backend && uvicorn app.main:app
+  --host 0.0.0.0 --port $PORT`) la app, y usa `/health` como healthcheck.
+- Los pesos de BiSeNet (`79999_iter.pth`) van incluidos directamente en el
+  repo en vez de descargarse con `gdown` en cada despliegue (Google Drive
+  no es fiable desde IPs de datacenter).
+- `frontend/manifest.webmanifest` + `frontend/sw.js` + `frontend/assets/icons/`:
+  hacen que la web se pueda "Añadir a pantalla de inicio" en la tablet
+  (iOS y Android) y se abra como una app con icono propio, sin la barra
+  del navegador — para esto hace falta que la web esté servida por HTTPS,
+  cosa que Railway (y cualquier hosting serio) da automáticamente.
+
+Pasos para desplegar:
+
+1. Sube este repo a GitHub (repositorio privado si prefieres que el
+   código no sea público).
+2. Entra en [railway.app](https://railway.app) y crea una cuenta
+   (puedes registrarte con la propia cuenta de GitHub).
+3. "New Project" → "Deploy from GitHub repo" → elige este repositorio.
+   Railway detecta `railway.json` solo y usa esos comandos de instalación
+   y arranque.
+4. En la configuración del servicio, añade un **Volume** (disco
+   persistente) montado en `/app/backend/data` — así la base de datos de
+   clientes (`clients.db`) y las fotos guardadas (si algún cliente dio su
+   consentimiento) sobreviven a los redespliegues en vez de borrarse cada
+   vez que subas un cambio.
+5. En "Settings" → "Networking", genera un dominio público (algo como
+   `https://tu-proyecto.up.railway.app`).
+6. Abre esa URL en la tablet de la peluquería. En Safari (iPad): botón de
+   compartir → "Añadir a pantalla de inicio". En Chrome (Android): menú →
+   "Instalar app" o "Añadir a pantalla de inicio". Queda un icono propio
+   (las tijeras) como cualquier otra app.
+
+El primer despliegue tarda unos minutos (instala OpenCV + PyTorch), y el
+coste depende del plan de Railway vigente en el momento — conviene mirar
+su página de precios antes de confirmar, porque puede cambiar.
+
 ## Nota sobre requisitos
 
 - El análisis facial (OpenCV/LBF) y la segmentación de pelo con BiSeNet (usando la GPU de Apple Silicon vía MPS si está disponible) funcionan bien en un Mac normal.

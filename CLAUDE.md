@@ -75,6 +75,32 @@ Las fotos de clientes son datos sensibles (biométricos) en España/UE. Antes de
 
 Desde que existe el perfil de cliente (ver sección siguiente) esto ya no es solo teórico: `POST /api/clients` guarda tipo de pelo/forma de cara/remolinos de forma persistente y por eso EXIGE `consent_history=true` para crear el perfil (la API lo rechaza si no). `consent_model_improvement` (usar los datos para mejorar el sistema) y `consent_save_photo` (guardar la foto en sí, no solo los rasgos derivados) son consentimientos separados y opcionales a propósito: son tres finalidades de tratamiento distintas y el RGPD exige un consentimiento específico por finalidad, no uno genérico que valga para todo. Cómo se recoge ese consentimiento en el mostrador de la barbería (checkbox en tablet, papel firmado, verbal registrado) es una decisión de producto todavía pendiente — la API solo modela que el consentimiento tiene que existir, no cómo se obtiene. No lanzar esto con clientes reales sin que alguien con conocimiento de RGPD revise el flujo completo.
 
+## Despliegue en la nube (Railway)
+
+Preparado para desplegarse sin Docker en Railway (ver sección "Despliegue
+en la nube" del README para los pasos completos): `requirements-prod.txt`
+(sin `diffusers`/`transformers`/`accelerate`/`controlnet-aux`/`gdown` —
+Fase 2 del generador aún no implementada, ver `generate_haircut_preview`
+en `generator.py`, así que esas dependencias pesadas no se usan en
+producción todavía), `railway.json` (build/start command), y los pesos de
+BiSeNet incluidos directamente en el repo (`backend/app/pipeline/bisenet/weights/79999_iter.pth`,
+NO gitignored a propósito, a diferencia de otros `.pt`/`.ckpt` — ver
+`.gitignore`) en vez de descargarlos con `gdown` en cada despliegue.
+
+⚠️ Importante para RGPD (ver sección de arriba): desplegar en un hosting
+externo significa que, si en algún momento se usa con clientes reales
+(perfil + historial, `consent_history=true`), esos datos biométricos
+viajarían y se guardarían fuera del propio local de la peluquería, en la
+infraestructura del proveedor de hosting elegido. Añade un **Volume**
+persistente montado en `/app/backend/data` (si no, `clients.db` se borra
+en cada redespliegue) y revisa la política de privacidad/retención del
+proveedor antes de usarlo con clientes reales, no solo en pruebas.
+
+`frontend/manifest.webmanifest`, `frontend/sw.js` y `frontend/assets/icons/`
+hacen la web instalable como PWA ("Añadir a pantalla de inicio") en tablets
+iOS/Android — requiere HTTPS, por eso solo funciona bien una vez desplegado
+en la nube, no en `http://192.168.x.x:8000` en local.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).
