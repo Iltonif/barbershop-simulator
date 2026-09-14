@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+uploads/
+*.pt
+*.ckpt
+*.safetensors
+.DS_Store
+
+# Imágenes de depuración generadas por routes.py (máscara de pelo)
+backend/debug_output/
+
+# Perfil de cliente + historial (datos biométricos reales si se usa con clientes)
+backend/data/clients.db
+backend/data/client_photos/

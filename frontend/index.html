@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Simulador de Cortes de Pelo</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  .form-card { max-width: 640px; padding: 24px 26px 30px; margin-bottom: 24px; }
+  #result-image { max-width: 100%; margin-top: 16px; display: block; }
+  #result-meta { font-size: 14px; color: var(--text-dim); }
+  #result-meta a { color: var(--accent-cyan); }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="inicio.html">← Inicio</a>
+    <a href="growth-map.html">Mapa de remolinos y dirección del pelo</a>
+    <a href="catalogo.html">Catálogo de cortes</a>
+  </nav>
+  <h1 class="page-title">Simulador de Cortes de Pelo/Barba</h1>
+  <p class="page-lead">Prueba local del pipeline. El backend debe estar corriendo en <code>http://localhost:8000</code>.</p>
+
+  <form id="simulate-form" class="glass-card form-card">
+    <label for="photo">Foto del cliente</label>
+    <input type="file" id="photo" accept="image/*" required />
+
+    <label for="style">Corte</label>
+    <select id="style" required></select>
+
+    <label for="hair-texture">Tipo de pelo del cliente</label>
+    <select id="hair-texture">
+      <option value="">Detectar automáticamente (puede fallar, revisa el resultado)</option>
+      <option value="liso">Liso</option>
+      <option value="ondulado">Ondulado</option>
+      <option value="rizado">Rizado</option>
+      <option value="afro">Afro</option>
+    </select>
+
+    <label for="color">Nuevo color de pelo (opcional)</label>
+    <input type="color" id="color" />
+    <label class="checkbox-row"><input type="checkbox" id="use-color" /> Aplicar cambio de color</label>
+
+    <label for="client-name">Nombre del cliente (opcional)</label>
+    <input type="text" id="client-name" placeholder="Ej: Pedro Gómez Martínez" />
+    <label class="checkbox-row">
+      <input type="checkbox" id="save-history" />
+      <span>Guardar tipo de pelo, forma de cara y remolinos de este cliente para próximas visitas
+      (requiere su consentimiento explícito — es dato biométrico)</span>
+    </label>
+
+    <button type="submit">Generar simulación</button>
+  </form>
+
+  <div id="result-meta"></div>
+  <img id="result-image" alt="" />
+</div>
+
+  <script>
+    const API_BASE = "http://localhost:8000/api";
+
+    async function loadStyles() {
+      const res = await fetch(`${API_BASE}/styles`);
+      const styles = await res.json();
+      const select = document.getElementById("style");
+      select.innerHTML = styles
+        .map((s) => `<option value="${s.id}">${s.name}</option>`)
+        .join("");
+    }
+
+    document.getElementById("simulate-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const photoInput = document.getElementById("photo");
+      const styleId = document.getElementById("style").value;
+      const useColor = document.getElementById("use-color").checked;
+      const colorHex = document.getElementById("color").value;
+      const clientName = document.getElementById("client-name").value.trim();
+      const saveHistory = document.getElementById("save-history").checked;
+      const hairTexture = document.getElementById("hair-texture").value;
+
+      const resultMeta = document.getElementById("result-meta");
+
+      // Si se pide guardar historial, busca un cliente existente con ese
+      // nombre (comparación simple, no distingue mayúsculas/acentos) o crea
+      // uno nuevo. Sin marcar la casilla, la simulación es anónima aunque
+      // se escriba un nombre: no se crea ni se toca ningún perfil.
+      let clientId = null;
+      if (saveHistory && clientName) {
+        resultMeta.textContent = "Buscando perfil del cliente...";
+        try {
+          const listRes = await fetch(`${API_BASE}/clients`);
+          const clients = await listRes.json();
+          const match = clients.find(
+            (c) => (c.display_name || "").trim().toLowerCase() === clientName.toLowerCase()
+          );
+
+          if (match) {
+            clientId = match.id;
+          } else {
+            const createRes = await fetch(`${API_BASE}/clients`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ display_name: clientName, consent_history: true }),
+            });
+            if (!createRes.ok) {
+              const err = await createRes.json();
+              resultMeta.textContent = `No se pudo crear el perfil del cliente: ${err.detail || createRes.statusText}`;
+              return;
+            }
+            const created = await createRes.json();
+            clientId = created.id;
+          }
+        } catch (e) {
+          resultMeta.textContent = `Error de red buscando/creando el cliente: ${e.message}`;
+          return;
+        }
+      }
+
+      const formData = new FormData();
+      formData.append("photo", photoInput.files[0]);
+      formData.append("style_id", styleId);
+      if (useColor) formData.append("target_hair_color_hex", colorHex);
+      if (clientId) formData.append("client_id", clientId);
+      if (hairTexture) formData.append("manual_hair_texture", hairTexture);
+
+      resultMeta.textContent = "Generando...";
+
+      try {
+        const res = await fetch(`${API_BASE}/simulate`, { method: "POST", body: formData });
+        if (!res.ok) {
+          const err = await res.json();
+          resultMeta.textContent = `Error: ${err.detail || res.statusText}`;
+          return;
+        }
+        const data = await res.json();
+
+        document.getElementById("result-image").src = `data:image/jpeg;base64,${data.image_base64}`;
+        const warningsHtml = data.warnings.map((w) => `<div class="warning">⚠️ ${w}</div>`).join("");
+        const recommendationsHtml = clientId
+          ? `<div style="margin-top: 8px;"><a href="recomendaciones.html?client_id=${encodeURIComponent(clientId)}">Ver recomendaciones de corte para este cliente →</a></div>`
+          : "";
+        resultMeta.innerHTML = `
+          <div>Tipo de pelo detectado: ${data.detected_hair_texture}</div>
+          <div>Forma de cara detectada: ${data.detected_face_shape}</div>
+          ${warningsHtml}
+          ${recommendationsHtml}
+        `;
+      } catch (e) {
+        resultMeta.textContent = `Error de red: ${e.message}`;
+      }
+    });
+
+    loadStyles();
+  </script>
+</body>
+</html>

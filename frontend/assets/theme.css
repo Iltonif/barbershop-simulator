@@ -1,0 +1,211 @@
+/* Tema oscuro compartido — Simulador de Cortes de Pelo/Barba.
+   Enlazado desde todas las páginas de frontend/ para que compartan el
+   mismo aspecto (fondo oscuro, tarjetas de cristal, tipografía con
+   degradado, controles de formulario). Cambios aquí afectan a toda la
+   web de una vez. */
+
+:root {
+  --bg-deep: #05060f;
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --accent-blue: #4f7cff;
+  --accent-pink: #ff4fd8;
+  --accent-cyan: #4fe3ff;
+  --text-main: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.64);
+  --text-faint: rgba(255, 255, 255, 0.4);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.12);
+  --warning-border: rgba(251, 191, 36, 0.35);
+  --ok: #34d399;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg-deep);
+  color: var(--text-main);
+  font-family: -apple-system, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+}
+
+body { position: relative; }
+
+/* Resplandor ambiental de fondo, puramente CSS (sin JS ni canvas) para
+   que toda página lo tenga gratis con solo enlazar esta hoja de estilos. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(79, 124, 255, 0.22), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 90%, rgba(255, 79, 216, 0.14), transparent 60%),
+    radial-gradient(ellipse 40% 40% at 5% 85%, rgba(79, 227, 255, 0.1), transparent 60%);
+}
+
+.page-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+a { color: var(--accent-cyan); }
+
+/* Navegación */
+nav.top-nav {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+nav.top-nav a {
+  display: inline-block;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+nav.top-nav a:hover {
+  color: #fff;
+  background: var(--glass-strong);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Tipografía */
+h1.page-title {
+  font-size: clamp(26px, 4.5vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  background: linear-gradient(120deg, #ffffff 30%, #b9c8ff 60%, #ff9fee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+p.page-lead {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin: 0 0 28px;
+  max-width: 640px;
+}
+
+/* Tarjetas de cristal reutilizables */
+.glass-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Formularios */
+label {
+  display: block;
+  margin: 18px 0 6px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+input[type="text"],
+input[type="file"],
+input[type="color"],
+select,
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-size: 14px;
+  font-family: inherit;
+}
+input[type="text"]::placeholder { color: var(--text-faint); }
+input[type="text"]:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.25);
+}
+select option { background: #10131f; color: #fff; }
+
+button, input[type="submit"] {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(120deg, var(--accent-blue), #7a5cff);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  /* Evita el resaltado gris azulado que algunos navegadores móviles
+     pintan al tocar un elemento (queda raro sobre el fondo oscuro). */
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+button:hover, input[type="submit"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(79, 124, 255, 0.35);
+}
+button:active { transform: translateY(0); }
+button.secondary, button[type="button"].secondary {
+  background: var(--glass);
+  color: var(--text-main);
+}
+button.toolbar-btn {
+  width: auto;
+  min-height: 44px;
+  background: var(--glass);
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 12px 16px;
+}
+button.toolbar-btn.active {
+  background: linear-gradient(120deg, var(--accent-blue), #7a5cff);
+  border-color: transparent;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 10px 0 4px;
+  font-weight: normal;
+  line-height: 1.5;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.checkbox-row input[type="checkbox"] {
+  width: auto;
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: var(--accent-blue);
+}
+
+.warning { color: var(--warning); }
+.ok { color: var(--ok); }
+.hint { font-size: 12.5px; color: var(--text-faint); }
+
+img { border-radius: 8px; }

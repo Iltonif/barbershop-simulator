@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Catálogo de cortes</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  .page-shell { max-width: 1100px; }
+  #subtitle { color: var(--text-dim); margin-top: 0; max-width: 640px; font-size: 14px; }
+  #status { font-size: 14px; color: var(--text-dim); margin: 16px 0; }
+
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 16px; margin: 20px 0;
+    padding: 16px 18px; border-radius: 14px;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-group label { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-dim); }
+  .filter-group select { padding: 8px 10px; font-size: 13px; width: auto; min-width: 160px; }
+  .filters button { align-self: flex-end; width: auto; padding: 9px 16px; font-size: 13px; margin: 0; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 8px;
+    align-items: start;
+  }
+  .card {
+    border: 1px solid var(--glass-border); border-radius: 14px; overflow: hidden;
+    display: flex; flex-direction: column; background: var(--glass);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .card img { width: 100%; height: 220px; object-fit: cover; display: block; background: rgba(255,255,255,0.05); border-radius: 0; }
+  .no-photo {
+    width: 100%; height: 220px; display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.04); color: var(--text-faint); font-size: 13px; text-align: center; padding: 12px; box-sizing: border-box;
+  }
+  .card-body { padding: 14px 16px 18px; }
+  .card-body h3 { margin: 0 0 2px; font-size: 16px; color: var(--text-main); }
+  .family-hint { margin: 0 0 12px; font-size: 12px; color: var(--text-faint); }
+  .cut-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .cut-item { border-top: 1px solid var(--glass-border); padding-top: 10px; }
+  .cut-item:first-child { border-top: none; padding-top: 0; }
+  .cut-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
+  .cut-desc { margin: 0 0 6px; font-size: 12px; color: var(--text-dim); }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .badge {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px; background: rgba(79, 124, 255, 0.18); color: #c7d4ff;
+    white-space: nowrap;
+  }
+  .badge.fade { background: rgba(52, 211, 153, 0.15); color: #86e6c4; }
+  .source { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+  details > summary { cursor: pointer; font-size: 12px; color: var(--accent-cyan); padding-top: 8px; }
+  details[open] > summary { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="inicio.html">← Inicio</a>
+    <a href="index.html">Simulación de cortes</a>
+    <a href="growth-map.html">Mapa de remolinos y dirección del pelo</a>
+  </nav>
+
+  <h1 class="page-title">Catálogo de cortes</h1>
+  <p id="subtitle">Todos los cortes disponibles en la barbería, para que explores estilos antes de tu cita. Usa los filtros si buscas algo concreto.</p>
+
+  <div class="filters glass-card">
+    <div class="filter-group">
+      <label for="filter-hair">Tipo de pelo</label>
+      <select id="filter-hair">
+        <option value="">Todos</option>
+        <option value="liso">Liso</option>
+        <option value="ondulado">Ondulado</option>
+        <option value="rizado">Rizado</option>
+        <option value="afro">Afro</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="filter-length">Longitud</label>
+      <select id="filter-length">
+        <option value="">Todas</option>
+        <option value="corto">Corto</option>
+        <option value="medio">Medio</option>
+        <option value="largo">Largo</option>
+        <option value="extra_largo">Extra largo</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="filter-fade">Degradado</label>
+      <select id="filter-fade">
+        <option value="">Todos</option>
+        <option value="ninguno">Sin degradado</option>
+        <option value="bajo">Fade bajo</option>
+        <option value="medio">Fade medio</option>
+        <option value="alto">Fade alto</option>
+        <option value="skin">Fade a piel</option>
+      </select>
+    </div>
+    <button id="clear-filters" type="button" class="secondary">Quitar filtros</button>
+  </div>
+
+  <div id="status"></div>
+  <div id="grid" class="grid"></div>
+</div>
+
+  <script>
+    const API_BASE = "http://localhost:8000/api";
+    const statusEl = document.getElementById("status");
+    const gridEl = document.getElementById("grid");
+    const hairSelect = document.getElementById("filter-hair");
+    const lengthSelect = document.getElementById("filter-length");
+    const fadeSelect = document.getElementById("filter-fade");
+
+    const FADE_LABELS = {
+      ninguno: "sin degradado", bajo: "fade bajo", medio: "fade medio",
+      alto: "fade alto", skin: "fade a piel",
+    };
+    const LENGTH_LABELS = {
+      corto: "corto", medio: "medio", largo: "largo", extra_largo: "extra largo",
+    };
+    // Mismas "familias visuales" que en recomendaciones.html — varios
+    // cortes del catálogo comparten una misma foto de referencia por ser
+    // visualmente muy similares (ver backend/app/pipeline/style_catalog.py).
+    const FAMILY_LABELS = {
+      mullet: "Mullet",
+      fade_undercut_textura: "Fade / undercut con textura",
+      tupe_pompadour_clasico: "Tupé / pompadour clásico",
+      buzz_corto_uniforme: "Buzz cut / corte corto uniforme",
+      corte_texturizado_general: "Corte corto texturizado",
+      clasico_raya_lateral: "Clásico con raya lateral",
+      rastas_trenzas_locs: "Rastas / trenzas",
+      recogido_mono_coleta: "Moño / coleta recogida",
+      melena_larga: "Melena larga",
+      afro_rizado_voluminoso: "Afro / rizado voluminoso",
+      corte_tazon_bowl_liso: "Corte tazón (bowl cut) — pelo liso/ondulado",
+      corte_tazon_bowl_rizado: "Corte tazón (bowl cut) — pelo rizado",
+    };
+
+    const MAX_VISIBLE_PER_FAMILY = 4;
+    let allStyles = [];
+
+    function cutBadgesHtml(s) {
+      const badges = [];
+      if (s.length_category) badges.push(`<span class="badge">${LENGTH_LABELS[s.length_category] || s.length_category}</span>`);
+      badges.push(`<span class="badge fade">${FADE_LABELS[s.fade_type] || s.fade_type}</span>`);
+      for (const t of s.suitable_hair_types || []) {
+        badges.push(`<span class="badge">${t}</span>`);
+      }
+      return `<div class="badges">${badges.join("")}</div>`;
+    }
+
+    function cutItemHtml(s) {
+      const sourceHtml = s.source ? `<div class="source">${s.source}</div>` : "";
+      return `
+        <li class="cut-item">
+          <div class="cut-name">${s.name}</div>
+          ${cutBadgesHtml(s)}
+          <p class="cut-desc">${s.description || ""}</p>
+          ${sourceHtml}
+        </li>
+      `;
+    }
+
+    function renderFamilyCard(family) {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const photoHtml = family.referenceImage
+        ? `<img src="${family.referenceImage}" alt="Foto de referencia: ${family.label}" loading="lazy" />`
+        : `<div class="no-photo">No encontramos una foto de stock que representara bien este estilo todavía</div>`;
+
+      const visible = family.items.slice(0, MAX_VISIBLE_PER_FAMILY);
+      const rest = family.items.slice(MAX_VISIBLE_PER_FAMILY);
+
+      const hintText = family.items.length === 1
+        ? "1 corte de este estilo"
+        : `${family.items.length} cortes de este estilo — comparten esta foto de referencia por ser visualmente muy similares`;
+
+      const visibleHtml = visible.map(cutItemHtml).join("");
+      const restHtml = rest.length
+        ? `<details><summary>Ver ${rest.length} corte${rest.length === 1 ? "" : "s"} más de este estilo</summary>
+             <ul class="cut-list">${rest.map(cutItemHtml).join("")}</ul>
+           </details>`
+        : "";
+
+      card.innerHTML = `
+        ${photoHtml}
+        <div class="card-body">
+          <h3>${family.label}</h3>
+          <p class="family-hint">${hintText}</p>
+          <ul class="cut-list">${visibleHtml}</ul>
+          ${restHtml}
+        </div>
+      `;
+      return card;
+    }
+
+    function groupByFamily(styles) {
+      const families = new Map();
+      for (const s of styles) {
+        const key = s.style_family || s.id;
+        if (!families.has(key)) {
+          families.set(key, {
+            key,
+            label: FAMILY_LABELS[key] || s.style_family || s.name,
+            referenceImage: s.reference_image,
+            items: [],
+          });
+        }
+        families.get(key).items.push(s);
+      }
+      return Array.from(families.values());
+    }
+
+    function applyFiltersAndRender() {
+      const hair = hairSelect.value;
+      const length = lengthSelect.value;
+      const fade = fadeSelect.value;
+
+      const filtered = allStyles.filter((s) => {
+        if (hair && !(s.suitable_hair_types || []).includes(hair)) return false;
+        if (length && s.length_category !== length) return false;
+        if (fade && s.fade_type !== fade) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        statusEl.textContent = "Ningún corte del catálogo coincide con estos filtros.";
+        gridEl.innerHTML = "";
+        return;
+      }
+
+      const families = groupByFamily(filtered);
+      statusEl.textContent = `${filtered.length} cortes, agrupados en ${families.length} estilos.`;
+      gridEl.innerHTML = "";
+      for (const family of families) {
+        gridEl.appendChild(renderFamilyCard(family));
+      }
+    }
+
+    async function load() {
+      statusEl.textContent = "Cargando catálogo...";
+      try {
+        const res = await fetch(`${API_BASE}/styles`);
+        if (!res.ok) {
+          statusEl.innerHTML = `<span class="warning">Error al cargar el catálogo: ${res.statusText}</span>`;
+          return;
+        }
+        allStyles = await res.json();
+        applyFiltersAndRender();
+      } catch (e) {
+        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}. Comprueba que el backend esté corriendo en ${API_BASE}.</span>`;
+      }
+    }
+
+    hairSelect.addEventListener("change", applyFiltersAndRender);
+    lengthSelect.addEventListener("change", applyFiltersAndRender);
+    fadeSelect.addEventListener("change", applyFiltersAndRender);
+    document.getElementById("clear-filters").addEventListener("click", () => {
+      hairSelect.value = "";
+      lengthSelect.value = "";
+      fadeSelect.value = "";
+      applyFiltersAndRender();
+    });
+
+    load();
+  </script>
+</body>
+</html>

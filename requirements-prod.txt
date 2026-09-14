@@ -1,0 +1,23 @@
+# Dependencias de producción (despliegue en la nube).
+#
+# A propósito NO incluye diffusers/transformers/accelerate/controlnet-aux
+# ni gdown: generate_haircut_preview() (app/pipeline/generator.py) todavía
+# lanza NotImplementedError -- Fase 2 del roadmap, ver CLAUDE.md -- así que
+# esas librerías (varios GB, requieren GPU para ir a una velocidad
+# razonable) no se usan en ninguna petición real todavía. Cuando se
+# implemente la Fase 2, añadirlas aquí también.
+#
+# gdown tampoco hace falta en producción: los pesos de BiSeNet
+# (79999_iter.pth) se suben ya descargados como parte del despliegue en
+# vez de descargarse en cada arranque desde Google Drive (poco fiable
+# desde IPs de datacenter, ver README "Despliegue en la nube").
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+pydantic>=2.6
+opencv-contrib-python>=4.9
+numpy>=1.26
+pillow>=10.2
+certifi>=2024.2.2
+torch>=2.2
+torchvision>=0.17

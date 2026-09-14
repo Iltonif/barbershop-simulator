@@ -1,0 +1,105 @@
+id,nombre,longitud,fade,tipos_de_pelo,familia_actual,tiene_foto
+fade-bajo-textura,Fade bajo con textura arriba,,bajo,liso/ondulado/rizado,buzz_corto_uniforme,si
+buzz-cut,Buzz cut,,ninguno,liso/ondulado/rizado/afro,buzz_corto_uniforme,si
+clasico-raya,Corte clásico con raya lateral,,medio,liso/ondulado,clasico_raya_lateral,si
+undercut-flequillo,Undercut con flequillo texturizado,,alto,liso/ondulado/rizado,fade_undercut_textura,si
+esq2023-001-rastas-en-coleta-alta,Rastas en coleta alta,largo,ninguno,rizado/afro,rastas_trenzas_locs,si
+esq2023-002-mullet-clasico-de-los-80-con-pelo-rizado,Mullet clásico de los 80 con pelo rizado,medio,bajo,rizado,mullet,si
+esq2023-003-peinado-con-mechas-con-textura,Peinado con mechas con textura,medio,ninguno,liso/ondulado/rizado,corte_texturizado_general,si
+esq2023-004-corte-tazon-con-la-parte-trasera-larga,Corte tazón con la parte trasera larga,medio,ninguno,liso/ondulado,corte_tazon_bowl,no
+esq2023-005-melena-larga-con-mechas-delanteras-escalonadas,Melena larga con mechas delanteras escalonadas,largo,ninguno,liso/ondulado,melena_larga,si
+esq2023-006-melena-corta-pegada-en-la-parte-superior-de-la-cabeza-y-con,Melena corta pegada en la parte superior de la cabeza y con raya en medio,corto,ninguno,liso/ondulado,clasico_raya_lateral,si
+esq2023-007-corte-mullet-con-flequillo-tazon-y-patilla-larga,Corte mullet con flequillo tazón y patilla larga,medio,bajo,liso/ondulado/rizado,mullet,si
+esq2023-008-rastas-peinadas-en-mono-alto,Rastas peinadas en moño alto,largo,ninguno,rizado/afro,rastas_trenzas_locs,si
+esq2023-009-corte-tazon-con-pelo-rizado,Corte tazón con pelo rizado,corto,ninguno,rizado,corte_tazon_bowl,no
+esq2023-010-melena-corta-peinada-hacia-detras,Melena corta peinada hacia detrás,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-011-peinado-hacia-delante-con-patilla-corta,Peinado hacia delante con patilla corta,corto,ninguno,liso/ondulado/rizado,buzz_corto_uniforme,si
+esq2023-012-flequillo-corto-con-textura-y-laterales-rapados,Flequillo corto con textura y laterales rapados,corto,alto,liso/ondulado/rizado,fade_undercut_textura,si
+esq2023-013-corte-de-pelo-semilargo-con-rastas,Corte de pelo semilargo con rastas,medio,ninguno,rizado/afro,rastas_trenzas_locs,si
+esq2023-014-melena-corta-lisa-con-raya-en-medio,Melena corta lisa con raya en medio,corto,ninguno,liso,clasico_raya_lateral,si
+esq2023-015-melena-degradada-con-raya-en-medio,Melena degradada con raya en medio,medio,ninguno,liso/ondulado,corte_texturizado_general,si
+esq2023-016-corte-de-pelo-tazon-con-textura,Corte de pelo tazón con textura,corto,ninguno,liso/ondulado/rizado,corte_tazon_bowl,no
+esq2023-017-flequillo-corto-casi-a-mitad-de-frente,Flequillo corto casi a mitad de frente,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-018-corte-degradado-con-pelo-rizado,Corte degradado con pelo rizado,corto,alto,rizado,fade_undercut_textura,si
+esq2023-019-peinado-hacia-atras-generando-algo-de-volumen-en-la-zona-sup,Peinado hacia atrás generando algo de volumen en la zona superior,medio,ninguno,liso/ondulado,corte_texturizado_general,si
+esq2023-020-pelo-engominado-con-raya-a-un-lado,Pelo engominado con raya a un lado,corto,ninguno,liso,clasico_raya_lateral,si
+esq2023-021-melena-peinada-con-efecto-mojado,Melena peinada con efecto mojado,largo,ninguno,liso/ondulado,melena_larga,si
+esq2023-022-flequillo-corto-cortado-con-las-puntas-desfiladas,Flequillo corto cortado con las puntas desfiladas,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-023-flequillo-semilargo-peinado-hacia-delante,Flequillo semilargo peinado hacia delante,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-024-tupe-mini-con-raya-al-lado,Tupé mini con raya al lado,corto,bajo,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-025-peinado-de-efecto-recien-levantado,"Peinado de efecto ""recién levantado""",corto,ninguno,liso/ondulado/rizado,buzz_corto_uniforme,si
+esq2023-026-tupe-extra-largo-de-lado,Tupé extra largo de lado,medio,medio,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-027-peinado-con-textura-efecto-nido,Peinado con textura efecto nido,corto,ninguno,liso/ondulado/rizado,buzz_corto_uniforme,si
+esq2023-028-corte-desfilado-que-enmarca-el-rostro,Corte desfilado que enmarca el rostro,medio,ninguno,liso/ondulado,corte_texturizado_general,si
+esq2023-029-flequillo-largo-rizado-y-corto-en-laterales-y-parte-de-atras,Flequillo largo rizado y corto en laterales y parte de atrás,medio,alto,rizado,fade_undercut_textura,si
+esq2023-030-rastas-con-pelo-corto-y-coleta,Rastas con pelo corto y coleta,corto,ninguno,rizado/afro,rastas_trenzas_locs,si
+esq2023-031-peinado-con-gomina-hacia-detras-manteniendo-cierto-volumen,Peinado con gomina hacia detrás manteniendo cierto volumen,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-032-pelo-engominado-con-mono-bajo-deshecho,Pelo engominado con moño bajo deshecho,largo,ninguno,liso/ondulado,recogido_mono_coleta,si
+esq2023-033-melena-extra-larga-con-raya-en-medio-y-puntas-decoloradas,Melena extra larga con raya en medio y puntas decoloradas,extra_largo,ninguno,liso/ondulado,melena_larga,si
+esq2023-034-tupe-retro,Tupé retro,corto,bajo,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-035-melena-corta-con-raya-en-medio,Melena corta con raya en medio,corto,ninguno,liso/ondulado,clasico_raya_lateral,si
+esq2023-036-con-raya-en-diagonal-y-rubio-platino,Con raya en diagonal y rubio platino,medio,ninguno,liso,corte_texturizado_general,si
+esq2023-037-pelo-corto-peinado-hacia-delante-con-textura,Pelo corto peinado hacia delante con textura,corto,ninguno,liso/ondulado/rizado,buzz_corto_uniforme,si
+esq2023-038-pelo-corto-con-zona-superior-mas-larga-de-efecto-trasquilon,Pelo corto con zona superior más larga de efecto trasquilón,corto,bajo,liso/ondulado/rizado,buzz_corto_uniforme,si
+esq2023-039-pelo-corto-peinado-con-efecto-mojado,Pelo corto peinado con efecto mojado,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-040-pelo-muy-rizado-de-peinado-casi-afro,"Pelo muy rizado de peinado casi ""afro""",medio,ninguno,rizado/afro,afro_rizado_voluminoso,si
+esq2023-041-melena-corta-peinada-hacia-atras-de-efecto-despeinado,Melena corta peinada hacia atrás de efecto despeinado,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-042-pelo-corto-peinado-hacia-atras-con-volumen,Pelo corto peinado hacia atrás con volumen,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-043-tupe-con-mechon-de-inspiracion-rockabilly,Tupé con mechón de inspiración rockabilly,corto,bajo,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-044-melena-larga-peinada-hacia-atras-con-algo-de-volumen,Melena larga peinada hacia atrás con algo de volumen,largo,ninguno,liso/ondulado,melena_larga,si
+esq2023-045-melena-media-desfilada-peinada-hacia-delante-con-raya-en-med,Melena media desfilada peinada hacia delante con raya en medio,medio,ninguno,liso/ondulado,corte_texturizado_general,si
+esq2023-046-melena-corta-con-flequillo-recto,Melena corta con flequillo recto,corto,ninguno,liso,buzz_corto_uniforme,si
+esq2023-047-flequillo-xl-peinado-a-un-lado-por-encima-del-ojo-y-laterale,Flequillo XL peinado a un lado por encima del ojo y laterales y parte de atrás corta,medio,bajo,liso/ondulado,fade_undercut_textura,si
+esq2023-048-flequillo-extra-largo-peinado-hacia-delante,Flequillo extra largo peinado hacia delante,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-049-flequillo-largo-hacia-delante-y-un-lado,Flequillo largo hacia delante y un lado,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-050-flequillo-largo-en-forma-de-uve,Flequillo largo en forma de uve,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-051-flequillo-corto-abierto-en-medio,Flequillo corto abierto en medio,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-052-corte-de-pelo-estilo-querubin,Corte de pelo estilo querubín,corto,ninguno,ondulado/rizado,buzz_corto_uniforme,si
+esq2023-053-flequillo-muy-largo-abierto-con-mechas-desiguales,"Flequillo muy largo abierto, con mechas desiguales",medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-054-corte-de-pelo-tazon-con-pelo-rizado,Corte de pelo tazón con pelo rizado,corto,ninguno,rizado,corte_tazon_bowl,no
+esq2023-055-recogido-mitad-mono-mitad-coleta,"Recogido mitad moño, mitad coleta",largo,ninguno,liso/ondulado/rizado,recogido_mono_coleta,si
+esq2023-056-peinado-de-efecto-despeinado-con-flequillo-largo-y-liso,Peinado de efecto despeinado con flequillo largo y liso,medio,ninguno,liso,fade_undercut_textura,si
+esq2023-057-corte-de-pelo-degradado-con-volumen-en-la-parte-superior,Corte de pelo degradado con volumen en la parte superior,corto,alto,liso/ondulado/rizado,fade_undercut_textura,si
+esq2023-058-corte-de-pelo-cuadrado-con-flequillo-muy-corto,Corte de pelo cuadrado con flequillo muy corto,corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-059-corte-de-pelo-asimetrico-con-flequillo-abierto-en-medio,Corte de pelo asimétrico con flequillo abierto en medio,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-060-mullet-con-pelo-liso,Mullet con pelo liso,medio,bajo,liso,mullet,si
+esq2023-061-hibrido-de-corte-tazon-y-mullet-con-flequillo-tupido,Híbrido de corte tazón y mullet con flequillo tupido,medio,ninguno,liso/ondulado,mullet,si
+esq2023-062-semirrecogido-con-mono,Semirrecogido con moño,largo,ninguno,liso/ondulado/rizado,recogido_mono_coleta,si
+esq2023-063-flequillo-tazon-muy-largo-desfilado,Flequillo tazón muy largo desfilado,medio,ninguno,liso/ondulado,corte_tazon_bowl,no
+esq2023-064-tupe-cuadrado,Tupé cuadrado,corto,bajo,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-065-pelo-rizado-hacia-atras-de-longitud-media,Pelo rizado hacia atrás de longitud media,medio,ninguno,rizado,afro_rizado_voluminoso,si
+esq2023-066-pelo-corto-sin-flequillo-de-forma-cuadrada-y-laterales-rapad,Pelo corto sin flequillo de forma cuadrada y laterales rapados,corto,alto,liso/ondulado/rizado,fade_undercut_textura,si
+esq2023-067-flequillo-largo-con-mechones-de-efecto-despeinado,Flequillo largo con mechones de efecto despeinado,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-068-peinado-con-raya-al-lado-y-medio-tupe,Peinado con raya al lado y medio tupé,corto,bajo,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-069-flequillo-cuadrado-a-mitad-de-frente,Flequillo cuadrado a mitad de frente,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-070-flequillo-largo-que-nace-de-la-raiz-superior-de-la-cabeza,Flequillo largo que nace de la raíz superior de la cabeza,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-071-tupe-hacia-atras-y-un-lado,Tupé hacia atrás y un lado,corto,bajo,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-072-rastas-largas-en-mono-alto,Rastas largas en moño alto,largo,ninguno,rizado/afro,rastas_trenzas_locs,si
+esq2023-073-tupe-al-estilo-tintin,Tupé al estilo Tintín,corto,bajo,liso,tupe_pompadour_clasico,si
+esq2023-074-corte-mullet-con-volumen-en-la-parte-superior,Corte mullet con volumen en la parte superior,medio,bajo,liso/ondulado/rizado,mullet,si
+esq2023-075-melena-corta-con-raya-en-medio-y-zona-baja-rizada,Melena corta con raya en medio y zona baja rizada,corto,ninguno,ondulado/rizado,buzz_corto_uniforme,si
+esq2023-076-rapado-con-acabado-en-pico,Rapado con acabado en pico,corto,skin,liso/ondulado/rizado/afro,fade_undercut_textura,si
+esq2023-077-melena-corta-lisa-con-raya-en-medio-y-puntas-delanteras-un-p,Melena corta lisa con raya en medio y puntas delanteras un poco más largas,corto,ninguno,liso,clasico_raya_lateral,si
+esq2023-078-corte-mitad-mullet-mitad-tazon,"Corte mitad mullet, mitad tazón",medio,ninguno,liso/ondulado,mullet,si
+esq2023-079-corte-tazon-con-pelo-rizado-y-efecto-despeinado,Corte tazón con pelo rizado y efecto despeinado,corto,ninguno,rizado,corte_tazon_bowl,no
+esq2023-080-rapado-por-toda-la-cabeza-excepto-la-superior-que-va-peinada,"Rapado por toda la cabeza, excepto la superior que va peinada con trenzas y coleta alta",largo,skin,rizado/afro,rastas_trenzas_locs,si
+esq2023-081-pelo-rizado-con-flequillo-largo-y-patillas,Pelo rizado con flequillo largo y patillas,medio,ninguno,rizado,fade_undercut_textura,si
+esq2023-082-peinado-con-volumen-de-efecto-despeinado,Peinado con volumen de efecto despeinado,medio,ninguno,liso/ondulado/rizado,corte_texturizado_general,si
+esq2023-083-mono-alto-con-pelo-rizado,Moño alto con pelo rizado,largo,ninguno,rizado,recogido_mono_coleta,si
+esq2023-084-flequillo-desigual-imitando-el-efecto-trasquilon,"Flequillo desigual, imitando el efecto trasquilón",corto,ninguno,liso/ondulado,buzz_corto_uniforme,si
+esq2023-085-peinado-hacia-atras-con-textura,Peinado hacia atrás con textura,corto,ninguno,liso/ondulado/rizado,buzz_corto_uniforme,si
+esq2023-086-semirrecogido-con-mono,Semirrecogido con moño,largo,ninguno,liso/ondulado/rizado,recogido_mono_coleta,si
+esq2023-087-peinado-hacia-atras-sin-raya,Peinado hacia atrás sin raya,corto,ninguno,liso/ondulado,clasico_raya_lateral,si
+esq2023-088-flequillo-extra-largo-abierto-con-raya-medio-de-lado,"Flequillo extra largo, abierto con raya medio de lado",medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-089-tupe-ladeado,Tupé ladeado,corto,bajo,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-090-pelo-corto-peinado-hacia-atras-con-mechones-con-textura,Pelo corto peinado hacia atrás con mechones con textura,corto,ninguno,liso/ondulado/rizado,buzz_corto_uniforme,si
+esq2023-091-pelo-corto-hiper-rizado-al-natural,Pelo corto híper rizado al natural,corto,ninguno,rizado/afro,afro_rizado_voluminoso,si
+esq2023-092-flequillo-largo-peinado-con-raya-al-lado-y-volumen,"Flequillo largo, peinado con raya al lado y volumen",medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-093-corte-estilo-mohicano-con-rastas-largas-en-la-parte-inferior,"Corte estilo mohicano, con rastas largas en la parte inferior",largo,skin,rizado/afro,rastas_trenzas_locs,si
+esq2023-094-media-melena-con-raya-en-medio,Media melena con raya en medio,medio,ninguno,liso/ondulado,corte_texturizado_general,si
+esq2023-095-flequillo-extralargo-con-caida-hacia-atras-y-un-lado,Flequillo extralargo con caída hacia atrás y un lado,medio,ninguno,liso/ondulado,fade_undercut_textura,si
+esq2023-096-pelo-largo-con-laterales-rapados-peinado-con-gomina-y-medio,Pelo largo con laterales rapados peinado con gomina y medio moño bajo,largo,alto,liso/ondulado,recogido_mono_coleta,si
+esq2023-097-peinado-con-tupe-clasico-y-patillas-anchas,Peinado con tupé clásico y patillas anchas,corto,bajo,liso/ondulado,tupe_pompadour_clasico,si
+esq2023-098-peinado-de-efecto-recien-levantado,Peinado de efecto recién levantado,corto,ninguno,liso/ondulado/rizado,buzz_corto_uniforme,si
+esq2023-099-pelo-desfilado-con-patillas-largas-y-finas,Pelo desfilado con patillas largas y finas,medio,ninguno,liso/ondulado,corte_texturizado_general,si
+esq2023-100-melena-con-ondas-estilo-surfero,Melena con ondas estilo surfero,largo,ninguno,ondulado,melena_larga,si

@@ -1,0 +1,25 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+pydantic>=2.6
+
+# Análisis facial (Haar cascade + Facemark LBF, ver face_analysis.py).
+# NO usar mediapipe aquí: en macOS, mediapipe 1.0.1 revienta con un crash
+# nativo de Metal/GPU al detectar la cara. opencv-contrib-python trae el
+# módulo cv2.face que hace falta (a diferencia de opencv-python a secas).
+opencv-contrib-python>=4.9
+numpy>=1.26
+pillow>=10.2
+certifi>=2024.2.2
+
+# Segmentación de pelo (BiSeNet, ver app/pipeline/bisenet/) — ya se usa
+# desde la Fase 1, no solo en generación.
+torch>=2.2
+torchvision>=0.17
+gdown>=5.1
+
+# Generación (pesados, solo necesarios a partir de la Fase 2 del roadmap)
+diffusers>=0.27
+transformers>=4.39
+accelerate>=0.28
+controlnet-aux>=0.0.9

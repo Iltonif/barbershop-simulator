@@ -1,0 +1,1769 @@
+[
+  {
+    "id": "fade-bajo-textura",
+    "name": "Fade bajo con textura arriba",
+    "description": "Degradado bajo en laterales/nuca, largo texturizado en la parte superior.",
+    "length_top_mm": 40,
+    "length_sides_mm": 3,
+    "length_back_mm": 3,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "buzz-cut",
+    "name": "Buzz cut",
+    "description": "Corte muy corto y uniforme en toda la cabeza, longitud única.",
+    "length_top_mm": 6,
+    "length_sides_mm": 6,
+    "length_back_mm": 6,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "clasico-raya",
+    "name": "Corte clásico con raya lateral",
+    "description": "Corte tradicional peinado con raya, laterales cortos y arriba con más longitud.",
+    "length_top_mm": 50,
+    "length_sides_mm": 10,
+    "length_back_mm": 10,
+    "fade_type": "medio",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/raya_lateral.jpg",
+    "style_family": "clasico_raya_lateral"
+  },
+  {
+    "id": "undercut-flequillo",
+    "name": "Undercut con flequillo texturizado",
+    "description": "Laterales muy cortos o rapados, contraste marcado con volumen y flequillo arriba.",
+    "length_top_mm": 60,
+    "length_sides_mm": 2,
+    "length_back_mm": 2,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-001-rastas-en-coleta-alta",
+    "name": "Rastas en coleta alta",
+    "description": "Rastas en coleta alta",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/rastas_trenzas.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #1 del ranking",
+    "style_family": "rastas_trenzas_locs"
+  },
+  {
+    "id": "esq2023-002-mullet-clasico-de-los-80-con-pelo-rizado",
+    "name": "Mullet clásico de los 80 con pelo rizado",
+    "description": "Mullet clásico de los 80 con pelo rizado",
+    "length_top_mm": 95,
+    "length_sides_mm": 45,
+    "length_back_mm": 45,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/mullet.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #2 del ranking",
+    "style_family": "mullet"
+  },
+  {
+    "id": "esq2023-003-peinado-con-mechas-con-textura",
+    "name": "Peinado con mechas con textura",
+    "description": "Peinado con mechas con textura",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #3 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-004-corte-tazon-con-la-parte-trasera-larga",
+    "name": "Corte tazón con la parte trasera larga",
+    "description": "Corte tazón con la parte trasera larga",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/bowl_straight.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #4 del ranking",
+    "style_family": "corte_tazon_bowl_liso"
+  },
+  {
+    "id": "esq2023-005-melena-larga-con-mechas-delanteras-escalonadas",
+    "name": "Melena larga con mechas delanteras escalonadas",
+    "description": "Melena larga con mechas delanteras escalonadas",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/melena_larga.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #5 del ranking",
+    "style_family": "melena_larga"
+  },
+  {
+    "id": "esq2023-006-melena-corta-pegada-en-la-parte-superior-de-la-cabeza-y-con",
+    "name": "Melena corta pegada en la parte superior de la cabeza y con raya en medio",
+    "description": "Melena corta pegada en la parte superior de la cabeza y con raya en medio",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/raya_lateral.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #6 del ranking",
+    "style_family": "clasico_raya_lateral"
+  },
+  {
+    "id": "esq2023-007-corte-mullet-con-flequillo-tazon-y-patilla-larga",
+    "name": "Corte mullet con flequillo tazón y patilla larga",
+    "description": "Corte mullet con flequillo tazón y patilla larga",
+    "length_top_mm": 95,
+    "length_sides_mm": 45,
+    "length_back_mm": 45,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/mullet.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #7 del ranking",
+    "style_family": "mullet"
+  },
+  {
+    "id": "esq2023-008-rastas-peinadas-en-mono-alto",
+    "name": "Rastas peinadas en moño alto",
+    "description": "Rastas peinadas en moño alto",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/rastas_trenzas.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #8 del ranking",
+    "style_family": "rastas_trenzas_locs"
+  },
+  {
+    "id": "esq2023-009-corte-tazon-con-pelo-rizado",
+    "name": "Corte tazón con pelo rizado",
+    "description": "Corte tazón con pelo rizado",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/bowl_curly.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #9 del ranking",
+    "style_family": "corte_tazon_bowl_rizado"
+  },
+  {
+    "id": "esq2023-010-melena-corta-peinada-hacia-detras",
+    "name": "Melena corta peinada hacia detrás",
+    "description": "Melena corta peinada hacia detrás",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #10 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-011-peinado-hacia-delante-con-patilla-corta",
+    "name": "Peinado hacia delante con patilla corta",
+    "description": "Peinado hacia delante con patilla corta",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #11 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-012-flequillo-corto-con-textura-y-laterales-rapados",
+    "name": "Flequillo corto con textura y laterales rapados",
+    "description": "Flequillo corto con textura y laterales rapados",
+    "length_top_mm": 50,
+    "length_sides_mm": 4,
+    "length_back_mm": 4,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #12 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-013-corte-de-pelo-semilargo-con-rastas",
+    "name": "Corte de pelo semilargo con rastas",
+    "description": "Corte de pelo semilargo con rastas",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/rastas_trenzas.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #13 del ranking",
+    "style_family": "rastas_trenzas_locs"
+  },
+  {
+    "id": "esq2023-014-melena-corta-lisa-con-raya-en-medio",
+    "name": "Melena corta lisa con raya en medio",
+    "description": "Melena corta lisa con raya en medio",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso"
+    ],
+    "reference_image": "assets/style_photos/raya_lateral.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #14 del ranking",
+    "style_family": "clasico_raya_lateral"
+  },
+  {
+    "id": "esq2023-015-melena-degradada-con-raya-en-medio",
+    "name": "Melena degradada con raya en medio",
+    "description": "Melena degradada con raya en medio",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #15 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-016-corte-de-pelo-tazon-con-textura",
+    "name": "Corte de pelo tazón con textura",
+    "description": "Corte de pelo tazón con textura",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/bowl_straight.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #16 del ranking",
+    "style_family": "corte_tazon_bowl_liso"
+  },
+  {
+    "id": "esq2023-017-flequillo-corto-casi-a-mitad-de-frente",
+    "name": "Flequillo corto casi a mitad de frente",
+    "description": "Flequillo corto casi a mitad de frente",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #17 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-018-corte-degradado-con-pelo-rizado",
+    "name": "Corte degradado con pelo rizado",
+    "description": "Corte degradado con pelo rizado",
+    "length_top_mm": 50,
+    "length_sides_mm": 4,
+    "length_back_mm": 4,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #18 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-019-peinado-hacia-atras-generando-algo-de-volumen-en-la-zona-sup",
+    "name": "Peinado hacia atrás generando algo de volumen en la zona superior",
+    "description": "Peinado hacia atrás generando algo de volumen en la zona superior",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #19 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-020-pelo-engominado-con-raya-a-un-lado",
+    "name": "Pelo engominado con raya a un lado",
+    "description": "Pelo engominado con raya a un lado",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso"
+    ],
+    "reference_image": "assets/style_photos/raya_lateral.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #20 del ranking",
+    "style_family": "clasico_raya_lateral"
+  },
+  {
+    "id": "esq2023-021-melena-peinada-con-efecto-mojado",
+    "name": "Melena peinada con efecto mojado",
+    "description": "Melena peinada con efecto mojado",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/melena_larga.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #21 del ranking",
+    "style_family": "melena_larga"
+  },
+  {
+    "id": "esq2023-022-flequillo-corto-cortado-con-las-puntas-desfiladas",
+    "name": "Flequillo corto cortado con las puntas desfiladas",
+    "description": "Flequillo corto cortado con las puntas desfiladas",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #22 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-023-flequillo-semilargo-peinado-hacia-delante",
+    "name": "Flequillo semilargo peinado hacia delante",
+    "description": "Flequillo semilargo peinado hacia delante",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #23 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-024-tupe-mini-con-raya-al-lado",
+    "name": "Tupé mini con raya al lado",
+    "description": "Tupé mini con raya al lado",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #24 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-025-peinado-de-efecto-recien-levantado",
+    "name": "Peinado de efecto \"recién levantado\"",
+    "description": "Peinado de efecto \"recién levantado\"",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #25 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-026-tupe-extra-largo-de-lado",
+    "name": "Tupé extra largo de lado",
+    "description": "Tupé extra largo de lado",
+    "length_top_mm": 95,
+    "length_sides_mm": 25,
+    "length_back_mm": 25,
+    "fade_type": "medio",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #26 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-027-peinado-con-textura-efecto-nido",
+    "name": "Peinado con textura efecto nido",
+    "description": "Peinado con textura efecto nido",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #27 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-028-corte-desfilado-que-enmarca-el-rostro",
+    "name": "Corte desfilado que enmarca el rostro",
+    "description": "Corte desfilado que enmarca el rostro",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #28 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-029-flequillo-largo-rizado-y-corto-en-laterales-y-parte-de-atras",
+    "name": "Flequillo largo rizado y corto en laterales y parte de atrás",
+    "description": "Flequillo largo rizado y corto en laterales y parte de atrás",
+    "length_top_mm": 95,
+    "length_sides_mm": 10,
+    "length_back_mm": 10,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #29 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-030-rastas-con-pelo-corto-y-coleta",
+    "name": "Rastas con pelo corto y coleta",
+    "description": "Rastas con pelo corto y coleta",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/rastas_trenzas.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #30 del ranking",
+    "style_family": "rastas_trenzas_locs"
+  },
+  {
+    "id": "esq2023-031-peinado-con-gomina-hacia-detras-manteniendo-cierto-volumen",
+    "name": "Peinado con gomina hacia detrás manteniendo cierto volumen",
+    "description": "Peinado con gomina hacia detrás manteniendo cierto volumen",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #31 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-032-pelo-engominado-con-mono-bajo-deshecho",
+    "name": "Pelo engominado con moño bajo deshecho",
+    "description": "Pelo engominado con moño bajo deshecho",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/recogido_mono.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #32 del ranking",
+    "style_family": "recogido_mono_coleta"
+  },
+  {
+    "id": "esq2023-033-melena-extra-larga-con-raya-en-medio-y-puntas-decoloradas",
+    "name": "Melena extra larga con raya en medio y puntas decoloradas",
+    "description": "Melena extra larga con raya en medio y puntas decoloradas",
+    "length_top_mm": 280,
+    "length_sides_mm": 260,
+    "length_back_mm": 260,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/melena_larga.jpg",
+    "length_category": "extra_largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #33 del ranking",
+    "style_family": "melena_larga"
+  },
+  {
+    "id": "esq2023-034-tupe-retro",
+    "name": "Tupé retro",
+    "description": "Tupé retro",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #34 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-035-melena-corta-con-raya-en-medio",
+    "name": "Melena corta con raya en medio",
+    "description": "Melena corta con raya en medio",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/raya_lateral.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #35 del ranking",
+    "style_family": "clasico_raya_lateral"
+  },
+  {
+    "id": "esq2023-036-con-raya-en-diagonal-y-rubio-platino",
+    "name": "Con raya en diagonal y rubio platino",
+    "description": "Con raya en diagonal y rubio platino",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #36 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-037-pelo-corto-peinado-hacia-delante-con-textura",
+    "name": "Pelo corto peinado hacia delante con textura",
+    "description": "Pelo corto peinado hacia delante con textura",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #37 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-038-pelo-corto-con-zona-superior-mas-larga-de-efecto-trasquilon",
+    "name": "Pelo corto con zona superior más larga de efecto trasquilón",
+    "description": "Pelo corto con zona superior más larga de efecto trasquilón",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #38 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-039-pelo-corto-peinado-con-efecto-mojado",
+    "name": "Pelo corto peinado con efecto mojado",
+    "description": "Pelo corto peinado con efecto mojado",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #39 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-040-pelo-muy-rizado-de-peinado-casi-afro",
+    "name": "Pelo muy rizado de peinado casi \"afro\"",
+    "description": "Pelo muy rizado de peinado casi \"afro\"",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/afro_rizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #40 del ranking",
+    "style_family": "afro_rizado_voluminoso"
+  },
+  {
+    "id": "esq2023-041-melena-corta-peinada-hacia-atras-de-efecto-despeinado",
+    "name": "Melena corta peinada hacia atrás de efecto despeinado",
+    "description": "Melena corta peinada hacia atrás de efecto despeinado",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #41 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-042-pelo-corto-peinado-hacia-atras-con-volumen",
+    "name": "Pelo corto peinado hacia atrás con volumen",
+    "description": "Pelo corto peinado hacia atrás con volumen",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #42 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-043-tupe-con-mechon-de-inspiracion-rockabilly",
+    "name": "Tupé con mechón de inspiración rockabilly",
+    "description": "Tupé con mechón de inspiración rockabilly",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #43 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-044-melena-larga-peinada-hacia-atras-con-algo-de-volumen",
+    "name": "Melena larga peinada hacia atrás con algo de volumen",
+    "description": "Melena larga peinada hacia atrás con algo de volumen",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/melena_larga.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #44 del ranking",
+    "style_family": "melena_larga"
+  },
+  {
+    "id": "esq2023-045-melena-media-desfilada-peinada-hacia-delante-con-raya-en-med",
+    "name": "Melena media desfilada peinada hacia delante con raya en medio",
+    "description": "Melena media desfilada peinada hacia delante con raya en medio",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #45 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-046-melena-corta-con-flequillo-recto",
+    "name": "Melena corta con flequillo recto",
+    "description": "Melena corta con flequillo recto",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #46 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-047-flequillo-xl-peinado-a-un-lado-por-encima-del-ojo-y-laterale",
+    "name": "Flequillo XL peinado a un lado por encima del ojo y laterales y parte de atrás corta",
+    "description": "Flequillo XL peinado a un lado por encima del ojo y laterales y parte de atrás corta",
+    "length_top_mm": 95,
+    "length_sides_mm": 45,
+    "length_back_mm": 45,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #47 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-048-flequillo-extra-largo-peinado-hacia-delante",
+    "name": "Flequillo extra largo peinado hacia delante",
+    "description": "Flequillo extra largo peinado hacia delante",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #48 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-049-flequillo-largo-hacia-delante-y-un-lado",
+    "name": "Flequillo largo hacia delante y un lado",
+    "description": "Flequillo largo hacia delante y un lado",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #49 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-050-flequillo-largo-en-forma-de-uve",
+    "name": "Flequillo largo en forma de uve",
+    "description": "Flequillo largo en forma de uve",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #50 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-051-flequillo-corto-abierto-en-medio",
+    "name": "Flequillo corto abierto en medio",
+    "description": "Flequillo corto abierto en medio",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #51 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-052-corte-de-pelo-estilo-querubin",
+    "name": "Corte de pelo estilo querubín",
+    "description": "Corte de pelo estilo querubín",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #52 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-053-flequillo-muy-largo-abierto-con-mechas-desiguales",
+    "name": "Flequillo muy largo abierto, con mechas desiguales",
+    "description": "Flequillo muy largo abierto, con mechas desiguales",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #53 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-054-corte-de-pelo-tazon-con-pelo-rizado",
+    "name": "Corte de pelo tazón con pelo rizado",
+    "description": "Corte de pelo tazón con pelo rizado",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/bowl_curly.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #54 del ranking",
+    "style_family": "corte_tazon_bowl_rizado"
+  },
+  {
+    "id": "esq2023-055-recogido-mitad-mono-mitad-coleta",
+    "name": "Recogido mitad moño, mitad coleta",
+    "description": "Recogido mitad moño, mitad coleta",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/recogido_mono.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #55 del ranking",
+    "style_family": "recogido_mono_coleta"
+  },
+  {
+    "id": "esq2023-056-peinado-de-efecto-despeinado-con-flequillo-largo-y-liso",
+    "name": "Peinado de efecto despeinado con flequillo largo y liso",
+    "description": "Peinado de efecto despeinado con flequillo largo y liso",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #56 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-057-corte-de-pelo-degradado-con-volumen-en-la-parte-superior",
+    "name": "Corte de pelo degradado con volumen en la parte superior",
+    "description": "Corte de pelo degradado con volumen en la parte superior",
+    "length_top_mm": 50,
+    "length_sides_mm": 4,
+    "length_back_mm": 4,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #57 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-058-corte-de-pelo-cuadrado-con-flequillo-muy-corto",
+    "name": "Corte de pelo cuadrado con flequillo muy corto",
+    "description": "Corte de pelo cuadrado con flequillo muy corto",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #58 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-059-corte-de-pelo-asimetrico-con-flequillo-abierto-en-medio",
+    "name": "Corte de pelo asimétrico con flequillo abierto en medio",
+    "description": "Corte de pelo asimétrico con flequillo abierto en medio",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #59 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-060-mullet-con-pelo-liso",
+    "name": "Mullet con pelo liso",
+    "description": "Mullet con pelo liso",
+    "length_top_mm": 95,
+    "length_sides_mm": 45,
+    "length_back_mm": 45,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso"
+    ],
+    "reference_image": "assets/style_photos/mullet.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #60 del ranking",
+    "style_family": "mullet"
+  },
+  {
+    "id": "esq2023-061-hibrido-de-corte-tazon-y-mullet-con-flequillo-tupido",
+    "name": "Híbrido de corte tazón y mullet con flequillo tupido",
+    "description": "Híbrido de corte tazón y mullet con flequillo tupido",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/mullet.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #61 del ranking",
+    "style_family": "mullet"
+  },
+  {
+    "id": "esq2023-062-semirrecogido-con-mono",
+    "name": "Semirrecogido con moño",
+    "description": "Semirrecogido con moño",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/recogido_mono.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #62 del ranking",
+    "style_family": "recogido_mono_coleta"
+  },
+  {
+    "id": "esq2023-063-flequillo-tazon-muy-largo-desfilado",
+    "name": "Flequillo tazón muy largo desfilado",
+    "description": "Flequillo tazón muy largo desfilado",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/bowl_straight.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #63 del ranking",
+    "style_family": "corte_tazon_bowl_liso"
+  },
+  {
+    "id": "esq2023-064-tupe-cuadrado",
+    "name": "Tupé cuadrado",
+    "description": "Tupé cuadrado",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #64 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-065-pelo-rizado-hacia-atras-de-longitud-media",
+    "name": "Pelo rizado hacia atrás de longitud media",
+    "description": "Pelo rizado hacia atrás de longitud media",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/afro_rizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #65 del ranking",
+    "style_family": "afro_rizado_voluminoso"
+  },
+  {
+    "id": "esq2023-066-pelo-corto-sin-flequillo-de-forma-cuadrada-y-laterales-rapad",
+    "name": "Pelo corto sin flequillo de forma cuadrada y laterales rapados",
+    "description": "Pelo corto sin flequillo de forma cuadrada y laterales rapados",
+    "length_top_mm": 50,
+    "length_sides_mm": 4,
+    "length_back_mm": 4,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #66 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-067-flequillo-largo-con-mechones-de-efecto-despeinado",
+    "name": "Flequillo largo con mechones de efecto despeinado",
+    "description": "Flequillo largo con mechones de efecto despeinado",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #67 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-068-peinado-con-raya-al-lado-y-medio-tupe",
+    "name": "Peinado con raya al lado y medio tupé",
+    "description": "Peinado con raya al lado y medio tupé",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #68 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-069-flequillo-cuadrado-a-mitad-de-frente",
+    "name": "Flequillo cuadrado a mitad de frente",
+    "description": "Flequillo cuadrado a mitad de frente",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #69 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-070-flequillo-largo-que-nace-de-la-raiz-superior-de-la-cabeza",
+    "name": "Flequillo largo que nace de la raíz superior de la cabeza",
+    "description": "Flequillo largo que nace de la raíz superior de la cabeza",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #70 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-071-tupe-hacia-atras-y-un-lado",
+    "name": "Tupé hacia atrás y un lado",
+    "description": "Tupé hacia atrás y un lado",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #71 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-072-rastas-largas-en-mono-alto",
+    "name": "Rastas largas en moño alto",
+    "description": "Rastas largas en moño alto",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/rastas_trenzas.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #72 del ranking",
+    "style_family": "rastas_trenzas_locs"
+  },
+  {
+    "id": "esq2023-073-tupe-al-estilo-tintin",
+    "name": "Tupé al estilo Tintín",
+    "description": "Tupé al estilo Tintín",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #73 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-074-corte-mullet-con-volumen-en-la-parte-superior",
+    "name": "Corte mullet con volumen en la parte superior",
+    "description": "Corte mullet con volumen en la parte superior",
+    "length_top_mm": 95,
+    "length_sides_mm": 45,
+    "length_back_mm": 45,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/mullet.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #74 del ranking",
+    "style_family": "mullet"
+  },
+  {
+    "id": "esq2023-075-melena-corta-con-raya-en-medio-y-zona-baja-rizada",
+    "name": "Melena corta con raya en medio y zona baja rizada",
+    "description": "Melena corta con raya en medio y zona baja rizada",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #75 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-076-rapado-con-acabado-en-pico",
+    "name": "Rapado con acabado en pico",
+    "description": "Rapado con acabado en pico",
+    "length_top_mm": 50,
+    "length_sides_mm": 1,
+    "length_back_mm": 1,
+    "fade_type": "skin",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #76 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-077-melena-corta-lisa-con-raya-en-medio-y-puntas-delanteras-un-p",
+    "name": "Melena corta lisa con raya en medio y puntas delanteras un poco más largas",
+    "description": "Melena corta lisa con raya en medio y puntas delanteras un poco más largas",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso"
+    ],
+    "reference_image": "assets/style_photos/raya_lateral.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #77 del ranking",
+    "style_family": "clasico_raya_lateral"
+  },
+  {
+    "id": "esq2023-078-corte-mitad-mullet-mitad-tazon",
+    "name": "Corte mitad mullet, mitad tazón",
+    "description": "Corte mitad mullet, mitad tazón",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/mullet.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #78 del ranking",
+    "style_family": "mullet"
+  },
+  {
+    "id": "esq2023-079-corte-tazon-con-pelo-rizado-y-efecto-despeinado",
+    "name": "Corte tazón con pelo rizado y efecto despeinado",
+    "description": "Corte tazón con pelo rizado y efecto despeinado",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/bowl_curly.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #79 del ranking",
+    "style_family": "corte_tazon_bowl_rizado"
+  },
+  {
+    "id": "esq2023-080-rapado-por-toda-la-cabeza-excepto-la-superior-que-va-peinada",
+    "name": "Rapado por toda la cabeza, excepto la superior que va peinada con trenzas y coleta alta",
+    "description": "Rapado por toda la cabeza, excepto la superior que va peinada con trenzas y coleta alta",
+    "length_top_mm": 180,
+    "length_sides_mm": 1,
+    "length_back_mm": 1,
+    "fade_type": "skin",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/rastas_trenzas.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #80 del ranking",
+    "style_family": "rastas_trenzas_locs"
+  },
+  {
+    "id": "esq2023-081-pelo-rizado-con-flequillo-largo-y-patillas",
+    "name": "Pelo rizado con flequillo largo y patillas",
+    "description": "Pelo rizado con flequillo largo y patillas",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #81 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-082-peinado-con-volumen-de-efecto-despeinado",
+    "name": "Peinado con volumen de efecto despeinado",
+    "description": "Peinado con volumen de efecto despeinado",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #82 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-083-mono-alto-con-pelo-rizado",
+    "name": "Moño alto con pelo rizado",
+    "description": "Moño alto con pelo rizado",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/recogido_mono.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #83 del ranking",
+    "style_family": "recogido_mono_coleta"
+  },
+  {
+    "id": "esq2023-084-flequillo-desigual-imitando-el-efecto-trasquilon",
+    "name": "Flequillo desigual, imitando el efecto trasquilón",
+    "description": "Flequillo desigual, imitando el efecto trasquilón",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #84 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-085-peinado-hacia-atras-con-textura",
+    "name": "Peinado hacia atrás con textura",
+    "description": "Peinado hacia atrás con textura",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #85 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-086-semirrecogido-con-mono",
+    "name": "Semirrecogido con moño",
+    "description": "Semirrecogido con moño",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/recogido_mono.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #86 del ranking",
+    "style_family": "recogido_mono_coleta"
+  },
+  {
+    "id": "esq2023-087-peinado-hacia-atras-sin-raya",
+    "name": "Peinado hacia atrás sin raya",
+    "description": "Peinado hacia atrás sin raya",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/raya_lateral.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #87 del ranking",
+    "style_family": "clasico_raya_lateral"
+  },
+  {
+    "id": "esq2023-088-flequillo-extra-largo-abierto-con-raya-medio-de-lado",
+    "name": "Flequillo extra largo, abierto con raya medio de lado",
+    "description": "Flequillo extra largo, abierto con raya medio de lado",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #88 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-089-tupe-ladeado",
+    "name": "Tupé ladeado",
+    "description": "Tupé ladeado",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #89 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-090-pelo-corto-peinado-hacia-atras-con-mechones-con-textura",
+    "name": "Pelo corto peinado hacia atrás con mechones con textura",
+    "description": "Pelo corto peinado hacia atrás con mechones con textura",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #90 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-091-pelo-corto-hiper-rizado-al-natural",
+    "name": "Pelo corto híper rizado al natural",
+    "description": "Pelo corto híper rizado al natural",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/afro_rizado.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #91 del ranking",
+    "style_family": "afro_rizado_voluminoso"
+  },
+  {
+    "id": "esq2023-092-flequillo-largo-peinado-con-raya-al-lado-y-volumen",
+    "name": "Flequillo largo, peinado con raya al lado y volumen",
+    "description": "Flequillo largo, peinado con raya al lado y volumen",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #92 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-093-corte-estilo-mohicano-con-rastas-largas-en-la-parte-inferior",
+    "name": "Corte estilo mohicano, con rastas largas en la parte inferior",
+    "description": "Corte estilo mohicano, con rastas largas en la parte inferior",
+    "length_top_mm": 180,
+    "length_sides_mm": 1,
+    "length_back_mm": 1,
+    "fade_type": "skin",
+    "suitable_hair_types": [
+      "rizado",
+      "afro"
+    ],
+    "reference_image": "assets/style_photos/rastas_trenzas.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #93 del ranking",
+    "style_family": "rastas_trenzas_locs"
+  },
+  {
+    "id": "esq2023-094-media-melena-con-raya-en-medio",
+    "name": "Media melena con raya en medio",
+    "description": "Media melena con raya en medio",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #94 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-095-flequillo-extralargo-con-caida-hacia-atras-y-un-lado",
+    "name": "Flequillo extralargo con caída hacia atrás y un lado",
+    "description": "Flequillo extralargo con caída hacia atrás y un lado",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/fade_textura.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #95 del ranking",
+    "style_family": "fade_undercut_textura"
+  },
+  {
+    "id": "esq2023-096-pelo-largo-con-laterales-rapados-peinado-con-gomina-y-medio",
+    "name": "Pelo largo con laterales rapados peinado con gomina y medio moño bajo",
+    "description": "Pelo largo con laterales rapados peinado con gomina y medio moño bajo",
+    "length_top_mm": 180,
+    "length_sides_mm": 8,
+    "length_back_mm": 8,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/recogido_mono.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #96 del ranking",
+    "style_family": "recogido_mono_coleta"
+  },
+  {
+    "id": "esq2023-097-peinado-con-tupe-clasico-y-patillas-anchas",
+    "name": "Peinado con tupé clásico y patillas anchas",
+    "description": "Peinado con tupé clásico y patillas anchas",
+    "length_top_mm": 50,
+    "length_sides_mm": 15,
+    "length_back_mm": 15,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/pompadour.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #97 del ranking",
+    "style_family": "tupe_pompadour_clasico"
+  },
+  {
+    "id": "esq2023-098-peinado-de-efecto-recien-levantado",
+    "name": "Peinado de efecto recién levantado",
+    "description": "Peinado de efecto recién levantado",
+    "length_top_mm": 50,
+    "length_sides_mm": 20,
+    "length_back_mm": 20,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": "assets/style_photos/buzz_corto.jpg",
+    "length_category": "corto",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #98 del ranking",
+    "style_family": "buzz_corto_uniforme"
+  },
+  {
+    "id": "esq2023-099-pelo-desfilado-con-patillas-largas-y-finas",
+    "name": "Pelo desfilado con patillas largas y finas",
+    "description": "Pelo desfilado con patillas largas y finas",
+    "length_top_mm": 95,
+    "length_sides_mm": 70,
+    "length_back_mm": 70,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/corte_texturizado.jpg",
+    "length_category": "medio",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #99 del ranking",
+    "style_family": "corte_texturizado_general"
+  },
+  {
+    "id": "esq2023-100-melena-con-ondas-estilo-surfero",
+    "name": "Melena con ondas estilo surfero",
+    "description": "Melena con ondas estilo surfero",
+    "length_top_mm": 180,
+    "length_sides_mm": 160,
+    "length_back_mm": 160,
+    "fade_type": "ninguno",
+    "suitable_hair_types": [
+      "ondulado"
+    ],
+    "reference_image": "assets/style_photos/melena_larga.jpg",
+    "length_category": "largo",
+    "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #100 del ranking",
+    "style_family": "melena_larga"
+  }
+]
