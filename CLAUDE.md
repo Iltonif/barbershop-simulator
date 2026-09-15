@@ -109,6 +109,21 @@ hacen la web instalable como PWA ("Añadir a pantalla de inicio") en tablets
 iOS/Android — requiere HTTPS, por eso solo funciona bien una vez desplegado
 en la nube, no en `http://192.168.x.x:8000` en local.
 
+⚠️ **Caché del navegador tras cada despliegue (detectado al verificar el
+despliegue de la v3 del modelo de cabeza)**: `StaticFiles` no manda cabecera
+`Cache-Control`, así que el navegador cachea `growth-map.html`/`head.glb`
+por heurística (basada en `Last-Modified`) y puede seguir sirviendo una
+copia vieja después de un `git push` + redespliegue en Railway, incluso con
+recarga forzada (Ctrl+Shift+R / Cmd+Shift+R): el `fetch(event.request)` de
+`frontend/sw.js` no siempre hereda el "ignora caché" de esa recarga. Se
+arregló con un middleware en `backend/app/main.py` (`_no_stale_cache`) que
+añade `Cache-Control: no-cache` a todo lo que no sea `/api/*`: el navegador
+sigue guardando copia local pero SIEMPRE revalida con el servidor
+(`If-None-Match`) antes de usarla, así que un despliegue nuevo se ve al
+momento sin perder los 304 baratos cuando no ha cambiado nada. Importante
+en tablets de peluquería que se quedan con la pestaña/PWA abierta días
+enteros entre despliegues.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

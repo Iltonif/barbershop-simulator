@@ -32,6 +32,30 @@ app.include_router(api_router, prefix="/api")
 app.include_router(clients_router, prefix="/api")
 
 
+@app.middleware("http")
+async def _no_stale_cache(request, call_next):
+    """Evita servir versiones viejas de la web tras cada despliegue.
+
+    StaticFiles no manda Cache-Control por defecto, así que el navegador
+    aplica cacheo heurístico basado en Last-Modified y puede reutilizar
+    una copia vieja de growth-map.html/head.glb sin volver a preguntar
+    al servidor, incluso con Ctrl+Shift+R en algunos casos (el
+    service-worker de frontend/sw.js reenvía la petición con
+    fetch(event.request), que no siempre hereda el "ignora caché" de la
+    recarga forzada). Con "no-cache" el navegador sigue guardando una
+    copia local, pero SIEMPRE revalida con el servidor (If-None-Match)
+    antes de usarla, así que un despliegue nuevo se ve de inmediato sin
+    perder los 304 baratos cuando no ha cambiado nada.
+
+    No se toca /api/* ni /health: esas respuestas ya gestionan su propio
+    cacheo (o ninguno) y no queremos interferir.
+    """
+    response = await call_next(request)
+    if not request.url.path.startswith("/api"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 @app.on_event("startup")
 def _on_startup() -> None:
     # Crea las tablas de clients/visits si no existen. No falla si ya
