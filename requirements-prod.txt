@@ -15,7 +15,12 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 python-multipart>=0.0.9
 pydantic>=2.6
-opencv-contrib-python>=4.9
+# -headless: la build normal de opencv-contrib-python trae bindings de
+# GUI (imshow/namedWindow) que dependen de libGL/libxcb, ausentes en la
+# imagen de Railway -> ImportError: libxcb.so.1 al arrancar. No usamos
+# ninguna funcion de GUI (solo cv2.face para Facemark LBF), asi que la
+# variante headless trae lo mismo sin esa dependencia del sistema.
+opencv-contrib-python-headless>=4.9
 numpy>=1.26
 pillow>=10.2
 certifi>=2024.2.2
