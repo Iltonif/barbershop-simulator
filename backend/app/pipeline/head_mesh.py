@@ -42,10 +42,20 @@ class GrowthStroke:
     """Un trazo que indica la dirección de crecimiento del pelo en una
     zona: de `start` a `end`. Ver nota de coordenadas arriba — z=0.0 en el
     mapa por defecto (2D sobre la foto), z real en el mapa dibujado a mano
-    (3D sobre la cabeza genérica)."""
+    (3D sobre la cabeza genérica).
+
+    `zone`: nombre de una de las zonas fijas de HEAD_ZONES (ver más abajo),
+    o None para un trazo "libre" antiguo, de antes de que
+    `frontend/growth-map.html` pasara del dibujo a mano alzada al sistema
+    de una única dirección dominante por zona — se mantiene el campo
+    opcional en vez de migrar los datos ya guardados, así que un perfil de
+    cliente guardado con la versión anterior de la herramienta se sigue
+    leyendo sin romperse (simplemente no se puede editar zona a zona hasta
+    que el barbero vuelva a dibujar su mapa)."""
 
     start: tuple[float, float, float]
     end: tuple[float, float, float]
+    zone: str | None = None
 
 
 @dataclass
@@ -76,6 +86,36 @@ _DEFAULT_STROKE_TEMPLATE = [
     ("laterales_izq", -0.18, 0.0, 180, 0.16),
     ("laterales_der", 0.18, 0.0, 0, 0.16),
     ("nuca", 0.0, 0.20, 270, 0.14),
+]
+
+# Zonas fijas para el sistema de "una dirección dominante por zona" de
+# frontend/growth-map.html (sustituye al dibujo de flechas libres a mano
+# alzada de antes). Los nombres coinciden a propósito con
+# _DEFAULT_STROKE_TEMPLATE de arriba, para que el mapa por defecto y el
+# dibujado a mano por el barbero hablen de las mismas zonas.
+#
+# `direction` es un vector (no normalizado) desde el centro de la cabeza
+# 3D genérica hacia fuera, en el mismo sistema de ejes que
+# frontend/assets/head.glb (x: izquierda/derecha, y: abajo/arriba, z:
+# detrás/delante). growth-map.html lo usa para lanzar un rayo desde fuera
+# de la cabeza hacia el centro y así colocar el marcador de cada zona
+# sobre la superficie real del modelo cargado, sea cual sea su forma
+# exacta (incluida la escalada por cliente de head_shape.py) -- en vez de
+# fijar una coordenada 3D absoluta, que se desencuadraría en cuanto la
+# cabeza cambia de proporciones.
+#
+# IMPORTANTE: estos mismos nombres y direcciones están duplicados en
+# frontend/growth-map.html (HEAD_ZONES en el <script>) porque no hay
+# ningún mecanismo en este proyecto para compartir una constante entre
+# Python y JS puro sin build step -- si se cambia aquí, hay que cambiarlo
+# también allí.
+HEAD_ZONES = [
+    # (nombre, etiqueta para el barbero, direction_xyz)
+    ("corona", "Coronilla", (0.0, 1.0, 0.15)),
+    ("flequillo", "Flequillo / frente", (0.0, 0.55, 1.0)),
+    ("laterales_izq", "Lateral izquierdo", (-1.0, 0.05, 0.05)),
+    ("laterales_der", "Lateral derecho", (1.0, 0.05, 0.05)),
+    ("nuca", "Nuca", (0.0, 0.15, -1.0)),
 ]
 
 
@@ -111,13 +151,14 @@ def build_default_growth_map(landmarks: np.ndarray, image_shape: tuple[int, int]
     face_width = float(np.linalg.norm(landmarks[0] - landmarks[16]))  # jaw izq/der
 
     strokes = []
-    for _name, dx_ratio, dy_ratio, direction_deg, length_ratio in _DEFAULT_STROKE_TEMPLATE:
+    for name, dx_ratio, dy_ratio, direction_deg, length_ratio in _DEFAULT_STROKE_TEMPLATE:
         origin = top_of_head + np.array([dx_ratio * face_width, dy_ratio * face_width])
         end = _point_from_angle(origin, direction_deg, length_ratio * face_width)
         strokes.append(
             GrowthStroke(
                 start=_as_3d((float(origin[0] / w), float(origin[1] / h))),
                 end=_as_3d((end[0] / w, end[1] / h)),
+                zone=name,
             )
         )
 
@@ -157,6 +198,10 @@ def apply_custom_growth_map(
         GrowthStroke(
             start=(s["x1"], s["y1"], s.get("z1", 0.0)),
             end=(s["x2"], s["y2"], s.get("z2", 0.0)),
+            # .get(): perfiles guardados antes del sistema de zonas no
+            # traen esta clave -- se leen igual, simplemente sin zona
+            # asociada (ver docstring de GrowthStroke).
+            zone=s.get("zone"),
         )
         for s in strokes
     ]

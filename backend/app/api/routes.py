@@ -8,10 +8,18 @@ import cv2
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from app.api.schemas import SimulationResponse, StyleOut
+from app.api.schemas import HeadShapeOut, SimulationResponse, StyleOut
 from app.config import CLIENT_PHOTOS_DIR
 from app.db import repository
-from app.pipeline import color_transfer, compositor, face_analysis, hair_segmentation, hair_type, head_mesh
+from app.pipeline import (
+    color_transfer,
+    compositor,
+    face_analysis,
+    hair_segmentation,
+    hair_type,
+    head_mesh,
+    head_shape,
+)
 from app.pipeline.generator import GenerationRequest, generate_haircut_preview
 from app.pipeline.style_catalog import get_style_by_id, load_catalog
 
@@ -27,6 +35,37 @@ _DEBUG_DIR = Path(__file__).resolve().parent.parent.parent / "debug_output"
 @router.get("/styles", response_model=list[StyleOut])
 def list_styles():
     return [StyleOut(**style.__dict__) for style in load_catalog()]
+
+
+@router.post("/growth-map/head-shape", response_model=HeadShapeOut)
+async def growth_map_head_shape(photo: UploadFile = File(...)):
+    """Mide el ancho/alto de cara en la foto para que
+    `frontend/growth-map.html` pueda ajustar la silueta del maniquí 3D a
+    este cliente en concreto (ver `pipeline/head_shape.py`).
+
+    A propósito NO guarda la foto ni ningún dato en ningún sitio, ni
+    acepta/usa `client_id`: es un cálculo al vuelo y stateless, coherente
+    con que el resto del pipeline evite guardar datos biométricos por
+    defecto (ver la nota RGPD al principio de `clients_routes.py`) --
+    aquí ni siquiera hay opción de guardar nada, no hace falta ningún
+    consentimiento para usar esta herramienta.
+    """
+    contents = await photo.read()
+    image_array = np.frombuffer(contents, dtype=np.uint8)
+    image_bgr = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+    if image_bgr is None:
+        raise HTTPException(status_code=400, detail="No se pudo leer la imagen enviada")
+
+    face_result = face_analysis.analyze_face(image_bgr)
+    if face_result is None:
+        raise HTTPException(status_code=422, detail="No se detectó ninguna cara en la foto")
+
+    shape = head_shape.derive_head_shape(face_result.landmarks)
+    return HeadShapeOut(
+        scale_x=shape.scale_x,
+        scale_y=shape.scale_y,
+        width_to_height=shape.width_to_height,
+    )
 
 
 @router.post("/simulate", response_model=SimulationResponse)

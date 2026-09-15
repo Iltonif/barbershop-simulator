@@ -97,10 +97,14 @@ class FaceShapeOverrideIn(BaseModel):
 
 
 class GrowthStrokeIn(BaseModel):
-    """Un trazo dibujado a mano sobre la cabeza 3D de
-    `frontend/growth-map.html`: de (x1,y1,z1) a (x2,y2,z2), coordenadas
-    reales sobre la superficie de esa cabeza genérica (no normalizadas
-    0.0-1.0 — ver la nota de coordenadas en `head_mesh.py`)."""
+    """Un trazo sobre la cabeza 3D de `frontend/growth-map.html`: de
+    (x1,y1,z1) a (x2,y2,z2), coordenadas reales sobre la superficie de esa
+    cabeza genérica (no normalizadas 0.0-1.0 — ver la nota de coordenadas
+    en `head_mesh.py`).
+
+    `zone`: nombre de zona de `head_mesh.HEAD_ZONES` (p.ej. "corona"),
+    o None para un trazo libre de antes del sistema de zonas — ver
+    `head_mesh.GrowthStroke`."""
 
     x1: float
     y1: float
@@ -108,6 +112,7 @@ class GrowthStrokeIn(BaseModel):
     x2: float
     y2: float
     z2: float
+    zone: str | None = None
 
 
 class WhorlIn(BaseModel):
@@ -124,3 +129,14 @@ class CustomGrowthMapIn(BaseModel):
 
     strokes: list[GrowthStrokeIn] = []
     whorls: list[WhorlIn] = []
+
+
+class HeadShapeOut(BaseModel):
+    """Respuesta de `POST /api/growth-map/head-shape`: factores de
+    escala por eje para ajustar el maniquí 3D de growth-map.html al
+    ancho/alto de cara reales del cliente (ver `pipeline/head_shape.py`
+    para el porqué no se ajusta también la profundidad)."""
+
+    scale_x: float
+    scale_y: float
+    width_to_height: float
