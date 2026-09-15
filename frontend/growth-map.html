@@ -40,10 +40,23 @@
   .zone-dot.set { background: #4fe3ff; }
   .zone-row .zone-reset { margin-left: auto; font-size: 12px; opacity: 0.75; text-decoration: underline; }
   .photo-shape-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+  #canvas-wrap { position: relative; }
+  .compass-panel {
+    position: absolute; top: 12px; right: 12px; width: 152px; z-index: 5;
+    background: rgba(8, 10, 18, 0.88); border: 1px solid var(--glass-border);
+    border-radius: 14px; padding: 10px; text-align: center;
+  }
+  .compass-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  #compass-svg { touch-action: none; cursor: grab; }
+  #compass-svg:active { cursor: grabbing; }
+  .compass-readout { font-size: 12px; color: var(--text-dim); margin: 4px 0 8px; }
+  .compass-actions { display: flex; gap: 6px; justify-content: center; }
+  .compass-actions button { font-size: 12px; padding: 6px 8px; margin: 0; }
   @media (max-width: 600px) {
     #three-canvas { height: 62vh; min-height: 320px; }
     .toolbar button { flex: 1 1 auto; }
     .zone-legend { grid-template-columns: 1fr; }
+    .compass-panel { top: 8px; right: 8px; width: 128px; padding: 8px; }
   }
 </style>
 </head>
@@ -56,10 +69,11 @@
 
   <h1 class="page-title">Mapa de remolinos y dirección del pelo</h1>
   <p class="page-lead">
-    Toca una zona de la cabeza (o su nombre en la lista) y luego arrastra para
-    fijar hacia dónde crece el pelo ahí. Puedes rotarla arrastrando con un
-    dedo/el ratón en cualquier momento, igual que antes, para ver la nuca, la
-    coronilla o los laterales.
+    Toca una zona de la cabeza (o su nombre en la lista) y gira el disco que
+    aparece sobre la cabeza para fijar hacia dónde crece el pelo ahí — no
+    hace falta acertar con el dedo justo sobre la piel. Puedes rotar la
+    cabeza arrastrando con un dedo/el ratón en cualquier momento, igual que
+    antes, para ver la nuca, la coronilla o los laterales.
   </p>
 
   <label for="client-name">Nombre del cliente</label>
@@ -122,7 +136,24 @@
 
   <div class="zone-legend" id="zone-legend"></div>
 
-  <canvas id="three-canvas"></canvas>
+  <div id="canvas-wrap">
+    <canvas id="three-canvas"></canvas>
+    <div class="compass-panel" id="compass-panel" style="display: none;">
+      <div class="compass-title" id="compass-title">Zona</div>
+      <svg id="compass-svg" width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="rgba(255,255,255,0.05)" stroke="var(--glass-border)" stroke-width="1"></circle>
+        <g id="compass-ticks" stroke="#55607a" stroke-width="2"></g>
+        <line id="compass-default" x1="60" y1="60" x2="60" y2="14" stroke="#55607a" stroke-width="2" stroke-dasharray="3,3"></line>
+        <line id="compass-needle" x1="60" y1="60" x2="60" y2="14" stroke="#4fe3ff" stroke-width="4" stroke-linecap="round"></line>
+        <circle cx="60" cy="60" r="5" fill="#4fe3ff"></circle>
+      </svg>
+      <div class="compass-readout" id="compass-readout">Dirección natural</div>
+      <div class="compass-actions">
+        <button type="button" id="compass-clear-btn" class="toolbar-btn secondary">Quitar</button>
+        <button type="button" id="compass-done-btn" class="toolbar-btn secondary">Listo</button>
+      </div>
+    </div>
+  </div>
   <p class="hint" id="aim-hint" style="min-height: 20px;"></p>
 
   <button id="save-btn" type="button" style="margin-top: 16px;">Guardar mapa de este cliente</button>
@@ -149,20 +180,25 @@
     // JS puro sin build step, así que si se cambia una hay que cambiar la
     // otra a mano.
     const HEAD_ZONES = [
-      { name: "corona", label: "Coronilla", direction: [0.0, 1.0, 0.15] },
-      { name: "flequillo", label: "Flequillo / frente", direction: [0.0, 0.55, 1.0] },
-      { name: "laterales_izq", label: "Lateral izquierdo", direction: [-1.0, 0.05, 0.05] },
-      { name: "laterales_der", label: "Lateral derecho", direction: [1.0, 0.05, 0.05] },
-      { name: "nuca", label: "Nuca", direction: [0.0, 0.15, -1.0] },
+      { name: "corona", label: "Coronilla", direction: [0.0, 1.0, -0.1] },
+      { name: "flequillo", label: "Flequillo / frente", direction: [0.0, 0.9, 0.75] },
+      { name: "laterales_izq", label: "Lateral izquierdo", direction: [-0.9, 0.4, 0.15] },
+      { name: "laterales_der", label: "Lateral derecho", direction: [0.9, 0.4, 0.15] },
+      { name: "nuca", label: "Nuca", direction: [0.0, -0.05, -1.0] },
     ];
 
     // Estado de dibujo: como mucho UNA flecha por zona (se sustituye si se
-    // vuelve a arrastrar sobre la misma zona), en vez de la lista libre de
-    // trazos de antes.
+    // vuelve a fijar la misma zona con la brújula), en vez de la lista
+    // libre de trazos de antes.
     const zoneStrokes = {}; // name -> { start:[x,y,z], end:[x,y,z], arrow: THREE.Object3D }
     const zoneMarkers = {}; // name -> THREE.Sprite (objetivo grande para tocar en tablet)
-    let armedZone = null; // zona esperando un arrastre para fijar su dirección
-    let zoneDragStart = null; // THREE.Vector3, punto donde empezó el arrastre de zona
+    // Marco tangente de cada zona (origen sobre la piel + normal + dos ejes
+    // tangentes dir0/dir90), calculado en placeZoneMarkers(): es lo que
+    // traduce el ángulo de la brújula en un vector 3D real sobre la
+    // superficie de la cabeza. Ver applyZoneAngle()/angleFromDirection().
+    const zoneFrames = {};
+    const zoneAngles = {}; // name -> radianes (0 = dirección natural de la zona)
+    let armedZone = null; // zona con la brújula abierta esperando un ángulo
 
     // Trazos "libres" de perfiles guardados con la versión anterior de esta
     // herramienta (antes del sistema de zonas): no son editables aquí, pero
@@ -173,7 +209,6 @@
     let whorls = []; // { point:[x,y,z], rotation, object }, con "Deshacer" / "Borrar todo"
 
     let mode = "none"; // "none" (solo rotar) | "whorl-cw" | "whorl-ccw"
-    let previewArrow = null;
 
     // --- Escena Three.js ---
     const scene = new THREE.Scene();
@@ -273,8 +308,28 @@
         // Un poco hacia fuera a lo largo de la normal del impacto (o de la
         // propia dirección si no hay normal) para que el marcador flote
         // ligeramente sobre la piel, no se confunda con ella ni haga z-fighting.
-        const outward = hits.length && hits[0].face ? hits[0].face.normal.clone().transformDirection(hits[0].object.matrixWorld) : dir;
+        const outward = (hits.length && hits[0].face ? hits[0].face.normal.clone().transformDirection(hits[0].object.matrixWorld) : dir).normalize();
         worldPoint.add(outward.clone().multiplyScalar(0.06));
+
+        // Marco tangente para la brújula de dirección (ver openCompassFor /
+        // applyZoneAngle más abajo): dir0 es la propia dirección "natural"
+        // de la zona (el `zone.direction` de HEAD_ZONES) proyectada sobre
+        // el plano tangente a la piel en este punto -- así el ángulo 0° de
+        // la brújula siempre coincide con el sentido intuitivo por defecto
+        // de cada zona (hacia arriba en la coronilla, hacia delante en el
+        // flequillo...) en vez de depender de un eje arbitrario del mundo.
+        // dir90 es perpendicular a dir0 dentro del mismo plano.
+        let dir0 = dir.clone().sub(outward.clone().multiplyScalar(dir.dot(outward)));
+        if (dir0.lengthSq() < 1e-6) {
+          // Caso degenerado (dir casi paralelo a la normal, no debería
+          // pasar con las direcciones actuales, pero por si acaso):
+          // cualquier vector tangente sirve como referencia de "0°".
+          dir0 = new THREE.Vector3(1, 0, 0).sub(outward.clone().multiplyScalar(outward.x));
+          if (dir0.lengthSq() < 1e-6) dir0 = new THREE.Vector3(0, 0, 1).sub(outward.clone().multiplyScalar(outward.z));
+        }
+        dir0.normalize();
+        const dir90 = new THREE.Vector3().crossVectors(outward, dir0).normalize();
+        zoneFrames[zone.name] = { origin: worldPoint.clone(), normal: outward, dir0, dir90 };
 
         let marker = zoneMarkers[zone.name];
         if (!marker) {
@@ -284,6 +339,50 @@
         }
         marker.position.copy(worldPoint);
       }
+    }
+
+    // Convierte un ángulo de brújula (radianes, 0 = dirección natural de la
+    // zona, sentido horario visto desde fuera de la cabeza) en un vector 3D
+    // unitario tangente a la piel en esa zona.
+    function directionForAngle(zoneName, angleRad) {
+      const frame = zoneFrames[zoneName];
+      if (!frame) return new THREE.Vector3(0, 0, 1);
+      return frame.dir0
+        .clone()
+        .multiplyScalar(Math.cos(angleRad))
+        .add(frame.dir90.clone().multiplyScalar(Math.sin(angleRad)))
+        .normalize();
+    }
+
+    // Inversa de directionForAngle(): a partir de un vector 3D (p.ej. el de
+    // un trazo ya guardado) recupera el ángulo de brújula correspondiente,
+    // para que al reabrir una zona ya fijada la aguja aparezca donde
+    // corresponde en vez de siempre en 0°.
+    function angleFromDirection(zoneName, dirVec) {
+      const frame = zoneFrames[zoneName];
+      if (!frame) return 0;
+      const projected = dirVec.clone().sub(frame.normal.clone().multiplyScalar(dirVec.dot(frame.normal)));
+      if (projected.lengthSq() < 1e-8) return 0;
+      projected.normalize();
+      let angle = Math.atan2(projected.dot(frame.dir90), projected.dot(frame.dir0));
+      if (angle < 0) angle += Math.PI * 2;
+      return angle;
+    }
+
+    const ZONE_ARROW_LENGTH = 0.32;
+
+    // Aplica un ángulo de brújula a una zona: lo guarda, calcula el
+    // vector 3D correspondiente y (re)dibuja la flecha de esa zona sobre
+    // la cabeza a partir de su marcador. Se llama tanto mientras se
+    // arrastra el disco (vista previa en vivo) como al soltarlo.
+    function applyZoneAngle(zoneName, angleRad) {
+      const frame = zoneFrames[zoneName];
+      if (!frame) return;
+      zoneAngles[zoneName] = angleRad;
+      const dirVec = directionForAngle(zoneName, angleRad);
+      const start = frame.origin.clone();
+      const end = start.clone().add(dirVec.multiplyScalar(ZONE_ARROW_LENGTH));
+      setZoneStroke(zoneName, start, end);
     }
 
     function makeZoneMarkerSprite(zoneName) {
@@ -412,6 +511,7 @@
         scene.remove(existing.arrow);
         delete zoneStrokes[zoneName];
       }
+      delete zoneAngles[zoneName];
       updateZoneMarkerLook(zoneName);
       renderZoneLegend();
     }
@@ -457,16 +557,120 @@
       armedZone = zoneName;
       updateZoneMarkerLook(zoneName);
       renderZoneLegend();
+      openCompassFor(zoneName);
       const zone = HEAD_ZONES.find((z) => z.name === zoneName);
-      aimHintEl.innerHTML = `Zona <strong>${zone.label}</strong> lista: arrastra sobre la cabeza para fijar hacia dónde crece el pelo ahí.`;
+      aimHintEl.innerHTML = `Zona <strong>${zone.label}</strong>: gira el disco de arriba a la derecha de la cabeza para fijar hacia dónde crece el pelo ahí.`;
     }
 
     function disarmZone() {
-      if (armedZone) updateZoneMarkerLook(armedZone);
+      const previous = armedZone;
       armedZone = null;
+      if (previous) updateZoneMarkerLook(previous);
       renderZoneLegend();
+      closeCompass();
       aimHintEl.textContent = "";
     }
+
+    // --- Brújula de dirección ---
+    // Sustituye al arrastre directo sobre la cabeza 3D (difícil de hacer
+    // con precisión en tablet, sobre todo en zonas pequeñas como los
+    // laterales): es un control 2D de tamaño fijo, siempre en el mismo
+    // sitio en pantalla, independiente del ángulo de cámara o de dónde
+    // caiga exactamente el dedo sobre la piel.
+    const compassPanel = document.getElementById("compass-panel");
+    const compassSvg = document.getElementById("compass-svg");
+    const compassNeedle = document.getElementById("compass-needle");
+    const compassTitleEl = document.getElementById("compass-title");
+    const compassReadoutEl = document.getElementById("compass-readout");
+
+    // Marcas cada 45° alrededor del disco, solo de referencia visual (el
+    // imán de angleFromPointer() usa los mismos 8 puntos).
+    (function drawCompassTicks() {
+      const ticksGroup = document.getElementById("compass-ticks");
+      for (let i = 0; i < 8; i++) {
+        const angle = (i * Math.PI) / 4;
+        const x1 = 60 + Math.sin(angle) * 44, y1 = 60 - Math.cos(angle) * 44;
+        const x2 = 60 + Math.sin(angle) * 52, y2 = 60 - Math.cos(angle) * 52;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+        ticksGroup.appendChild(line);
+      }
+    })();
+
+    function updateCompassNeedle(angleRad) {
+      const x = 60 + Math.sin(angleRad) * 46;
+      const y = 60 - Math.cos(angleRad) * 46;
+      compassNeedle.setAttribute("x2", x);
+      compassNeedle.setAttribute("y2", y);
+      const deg = Math.round(((angleRad * 180) / Math.PI + 360) % 360);
+      compassReadoutEl.textContent = deg === 0 ? "Dirección natural (0°)" : `${deg}°`;
+    }
+
+    function openCompassFor(zoneName) {
+      const zone = HEAD_ZONES.find((z) => z.name === zoneName);
+      compassTitleEl.textContent = zone.label;
+      updateCompassNeedle(zoneAngles[zoneName] || 0);
+      compassPanel.style.display = "block";
+    }
+
+    function closeCompass() {
+      compassPanel.style.display = "none";
+    }
+
+    // Convierte la posición del puntero (en coordenadas de pantalla) en un
+    // ángulo de brújula: 0 = arriba, sentido horario. Con imán a los 8
+    // puntos cardinales (cada 45°) si se está a menos de ~7°, para poder
+    // apuntar "justo hacia delante/atrás/al lado" sin necesitar pulso
+    // perfecto -- que era la queja principal del sistema de arrastre
+    // anterior sobre la propia cabeza 3D.
+    function angleFromPointer(event) {
+      const rect = compassSvg.getBoundingClientRect();
+      const scale = 120 / rect.width; // el viewBox del SVG es 120x120
+      const dx = (event.clientX - rect.left) * scale - 60;
+      const dy = (event.clientY - rect.top) * scale - 60;
+      let angle = Math.atan2(dx, -dy);
+      if (angle < 0) angle += Math.PI * 2;
+      const step = Math.PI / 4;
+      const nearest = Math.round(angle / step) * step;
+      if (Math.abs(angle - nearest) < (7 * Math.PI) / 180) angle = nearest % (Math.PI * 2);
+      return angle;
+    }
+
+    let compassDragging = false;
+
+    compassSvg.addEventListener("pointerdown", (event) => {
+      if (!armedZone) return;
+      compassDragging = true;
+      try { compassSvg.setPointerCapture(event.pointerId); } catch (err) { /* no crítico */ }
+      const angle = angleFromPointer(event);
+      updateCompassNeedle(angle);
+      applyZoneAngle(armedZone, angle);
+      event.preventDefault();
+    });
+    compassSvg.addEventListener("pointermove", (event) => {
+      if (!compassDragging || !armedZone) return;
+      const angle = angleFromPointer(event);
+      updateCompassNeedle(angle);
+      applyZoneAngle(armedZone, angle);
+    });
+    function finishCompassDrag(event) {
+      if (!compassDragging) return;
+      compassDragging = false;
+      try { if (compassSvg.hasPointerCapture(event.pointerId)) compassSvg.releasePointerCapture(event.pointerId); } catch (err) { /* no crítico */ }
+      if (armedZone) {
+        aimHintEl.innerHTML = `Dirección de <strong>${HEAD_ZONES.find((z) => z.name === armedZone).label}</strong> guardada. Puedes seguir girando el disco o tocar "Listo".`;
+      }
+    }
+    compassSvg.addEventListener("pointerup", finishCompassDrag);
+    compassSvg.addEventListener("pointercancel", finishCompassDrag);
+
+    document.getElementById("compass-done-btn").addEventListener("click", () => disarmZone());
+    document.getElementById("compass-clear-btn").addEventListener("click", () => {
+      if (!armedZone) return;
+      clearZoneStroke(armedZone);
+      updateCompassNeedle(0);
+    });
 
     // --- Modo remolino (sin cambios de fondo respecto a la versión
     // anterior, solo que ahora conviven con el rotar-siempre por defecto) ---
@@ -481,69 +685,20 @@
     });
 
     // --- Interacción del canvas ---
-    // Con el modo "solo rotar" siendo el comportamiento por defecto de
-    // OrbitControls, aquí solo hace falta interceptar dos casos concretos
-    // ANTES de dejar que OrbitControls rote: (1) empezar a arrastrar sobre
-    // el marcador de una zona armada, para fijar su dirección en vez de
-    // rotar la cámara, y (2) un toque en modo remolino. Para todo lo demás
-    // no se llama a `event.preventDefault()`, así que OrbitControls recibe
-    // el gesto con normalidad.
+    // La dirección de cada zona ya NO se fija arrastrando sobre la propia
+    // cabeza 3D (ver la brújula más arriba), así que aquí solo queda un
+    // caso especial antes de dejar que OrbitControls rote: un toque en
+    // modo remolino. Con una zona armada, tocar la cabeza para rotarla
+    // sigue funcionando con normalidad -- es útil para ver mejor la zona
+    // mientras se gira el disco de dirección.
     canvas.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || !event.isPrimary) return;
-      updateMouseNdc(event);
-
-      if (mode === "whorl-cw" || mode === "whorl-ccw") {
-        const point = raycastHead();
-        if (!point) return;
-        event.preventDefault();
-        addWhorl(point, mode === "whorl-cw" ? "horario" : "antihorario");
-        return;
-      }
-
-      // Con una zona armada, CUALQUIER toque en el lienzo empieza su
-      // arrastre de dirección -- no hace falta acertar al pixel sobre la
-      // malla ni sobre el propio marcador (que además flota un poco fuera
-      // de la piel a propósito, ver placeZoneMarkers). Si el toque inicial
-      // no cae sobre la cabeza (dedo grande, marcador tapado por el pelo
-      // dibujado encima, etc.) se usa la posición del marcador como punto
-      // de partida en su lugar: sigue siendo más predecible que dejar caer
-      // el gesto y que la cámara rote quedándose la zona armada a medias.
-      if (armedZone) {
-        const headPoint = raycastHead();
-        zoneDragStart = headPoint || zoneMarkers[armedZone].position.clone();
-        event.preventDefault();
-        try { canvas.setPointerCapture(event.pointerId); } catch (err) { /* no crítico */ }
-      }
-    });
-
-    canvas.addEventListener("pointermove", (event) => {
-      if (!zoneDragStart || !armedZone || !event.isPrimary) return;
+      if (mode !== "whorl-cw" && mode !== "whorl-ccw") return;
       updateMouseNdc(event);
       const point = raycastHead();
       if (!point) return;
-      if (previewArrow) scene.remove(previewArrow);
-      previewArrow = makeArrow(zoneDragStart, point, 0xffd250);
-      scene.add(previewArrow);
-    });
-
-    canvas.addEventListener("pointerup", (event) => {
-      try { if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); } catch (err) { /* no crítico */ }
-      if (previewArrow) { scene.remove(previewArrow); previewArrow = null; }
-      if (!zoneDragStart || !armedZone) { zoneDragStart = null; return; }
-      updateMouseNdc(event);
-      const point = raycastHead();
-      if (point && zoneDragStart.distanceTo(point) > 0.04) {
-        setZoneStroke(armedZone, zoneDragStart, point);
-        aimHintEl.innerHTML = `Dirección de <strong>${HEAD_ZONES.find((z) => z.name === armedZone).label}</strong> guardada. Toca otra zona para seguir.`;
-      }
-      zoneDragStart = null;
-      disarmZone();
-    });
-
-    canvas.addEventListener("pointercancel", (event) => {
-      try { if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); } catch (err) { /* no crítico */ }
-      if (previewArrow) { scene.remove(previewArrow); previewArrow = null; }
-      zoneDragStart = null;
+      event.preventDefault();
+      addWhorl(point, mode === "whorl-cw" ? "horario" : "antihorario");
     });
 
     document.getElementById("undo-whorl-btn").addEventListener("click", () => {
@@ -625,6 +780,10 @@
           const zoneNames = HEAD_ZONES.map((z) => z.name);
           if (s.zone && zoneNames.includes(s.zone)) {
             setZoneStroke(s.zone, start, end);
+            // Recupera el ángulo de brújula a partir del vector guardado,
+            // para que si el peluquero vuelve a abrir esta zona la aguja
+            // aparezca ya en su sitio en vez de resetearse a 0°.
+            zoneAngles[s.zone] = angleFromDirection(s.zone, end.clone().sub(start));
           } else {
             const arrow = makeArrow(start, end, 0x8891a8);
             scene.add(arrow);

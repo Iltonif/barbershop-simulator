@@ -124,6 +124,39 @@ momento sin perder los 304 baratos cuando no ha cambiado nada. Importante
 en tablets de peluquería que se quedan con la pestaña/PWA abierta días
 enteros entre despliegues.
 
+**Iteración de zonas/brújula (tras feedback de uso real)**: la primera
+versión del sistema por zonas tenía dos problemas detectados al usarlo:
+(1) los marcadores de "flequillo" y "laterales" caían sobre la piel de la
+cara (entre las cejas / en la mejilla, respectivamente) en vez de sobre el
+cuero cabelludo real, porque sus vectores de dirección (usados para
+lanzar un rayo desde el centro de la cabeza) no eran anatómicamente
+correctos aunque fueran simétricos; y (2) fijar la dirección arrastrando
+el dedo directamente sobre la cabeza 3D era difícil de hacer con
+precisión en tablet. Se arreglaron los dos por separado:
+
+- Los vectores de `HEAD_ZONES` (duplicados en `frontend/growth-map.html`
+  y `backend/app/pipeline/head_mesh.py`, ver el aviso ya existente sobre
+  mantenerlos sincronizados a mano) se reajustaron a ojo comparando
+  capturas del maniquí desde varios ángulos hasta que cada marcador cae
+  sobre pelo de verdad: coronilla en la parte más alta, flequillo justo
+  encima de las cejas (línea de nacimiento del pelo), laterales encima de
+  la oreja (sien), nuca en el nacimiento del pelo de la nuca.
+- El arrastre sobre la cabeza 3D para fijar la dirección de cada zona se
+  sustituyó por una brújula 2D (`#compass-panel` / `#compass-svg`, disco
+  con aguja) que aparece siempre en el mismo sitio de la pantalla (encima
+  de la cabeza, a la derecha) al armar una zona: es un control de tamaño
+  fijo, no depende del ángulo de cámara ni de acertar sobre la piel, y
+  tiene imán a los 8 puntos cardinales (cada 45°) para poder apuntar
+  "justo hacia delante/atrás/al lado" sin pulso perfecto. El ángulo 0° de
+  la brújula siempre corresponde a la dirección "natural" de esa zona
+  (el propio `zone.direction` de HEAD_ZONES proyectado sobre el plano
+  tangente a la piel en ese punto), así que gira de forma intuitiva por
+  zona en vez de usar un eje arbitrario del mundo (ver
+  `directionForAngle()`/`angleFromDirection()`/`applyZoneAngle()` en
+  `growth-map.html`). El esquema de guardado no cambió: se sigue mandando
+  un `start`/`end` en 3D por zona, así que no hace falta tocar el backend
+  más allá de los vectores de HEAD_ZONES.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

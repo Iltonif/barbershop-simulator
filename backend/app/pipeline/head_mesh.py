@@ -111,11 +111,19 @@ _DEFAULT_STROKE_TEMPLATE = [
 # también allí.
 HEAD_ZONES = [
     # (nombre, etiqueta para el barbero, direction_xyz)
-    ("corona", "Coronilla", (0.0, 1.0, 0.15)),
-    ("flequillo", "Flequillo / frente", (0.0, 0.55, 1.0)),
-    ("laterales_izq", "Lateral izquierdo", (-1.0, 0.05, 0.05)),
-    ("laterales_der", "Lateral derecho", (1.0, 0.05, 0.05)),
-    ("nuca", "Nuca", (0.0, 0.15, -1.0)),
+    #
+    # Estos vectores se ajustaron a mano (viendo capturas del maniquí desde
+    # varios angulos) porque los originales, aunque simetricos, caian en
+    # zonas equivocadas de la piel: "flequillo" apuntaba entre las cejas y
+    # "laterales" apuntaba a la mejilla/mandibula en vez de al cuero
+    # cabelludo por encima de la oreja. Si se cambia el maniquí (otro
+    # base_mesh o otra normalizacion de altura), hay que volver a revisar
+    # estos valores a ojo, no son una formula general.
+    ("corona", "Coronilla", (0.0, 1.0, -0.1)),
+    ("flequillo", "Flequillo / frente", (0.0, 0.9, 0.75)),
+    ("laterales_izq", "Lateral izquierdo", (-0.9, 0.4, 0.15)),
+    ("laterales_der", "Lateral derecho", (0.9, 0.4, 0.15)),
+    ("nuca", "Nuca", (0.0, -0.05, -1.0)),
 ]
 
 
