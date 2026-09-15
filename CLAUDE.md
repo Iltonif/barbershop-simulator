@@ -157,6 +157,23 @@ precisión en tablet. Se arreglaron los dos por separado:
   un `start`/`end` en 3D por zona, así que no hace falta tocar el backend
   más allá de los vectores de HEAD_ZONES.
 
+**Refinamiento del arreglo de caché (el mismo día, al comprobar el
+despliegue de las zonas/brújula de arriba)**: el middleware
+`_no_stale_cache` de `backend/app/main.py` no bastaba por sí solo.
+`frontend/sw.js` reenviaba cada petición con `fetch(event.request)` a
+secas, y esa llamada puede seguir usando el modo de caché "default" del
+navegador aunque la petición original fuera una recarga forzada del
+usuario -- así que el navegador podía reutilizar una copia ya cacheada
+sin preguntarle nunca al servidor, sin llegar a ver siquiera la cabecera
+`Cache-Control: no-cache`. Se arregló reconstruyendo la petición dentro
+del service worker con `new Request(event.request, { cache: "no-store" })`
+antes de reenviarla, que es lo que de verdad fuerza que cada petición
+vaya a la red sin pasar por la caché HTTP en ningún sentido. Un
+dispositivo que ya hubiera cacheado una copia vieja ANTES de este
+arreglo puede necesitar una recarga forzada (o borrar datos del sitio)
+una única vez para des-atascarse; a partir de ahí ya no debería volver a
+pasar.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).
