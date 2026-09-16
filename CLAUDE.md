@@ -57,6 +57,64 @@ Sistema OPCIONAL (opt-in) para que un cliente que vuelve no tenga que empezar de
 - El historial de cada visita guarda POR SEPARADO `detected_hair_texture` (lo que dijo la heurística automática, sin tocar) y `used_hair_texture` (lo que se usó de verdad, tras aplicar corrección/selección manual) — esa comparación es el dato real que en el futuro podría alimentar un clasificador entrenado.
 - Pendiente: no hay UI en el frontend todavía, solo API. Tampoco hay ningún mecanismo que exporte este historial como dataset de entrenamiento — eso es un paso futuro deliberadamente no implementado aún.
 
+## Motor de reglas de visagismo (`app/pipeline/visagismo_rules.py`)
+
+Capa opcional por encima de `recommend_styles` (ver más arriba) que añade
+un perfil de visagismo mucho más detallado que `face_shape_override`:
+morfología craneal, geometría/proporción facial, forma de nacimiento del
+pelo, remolinos (descripción rápida, sin coordenadas -- no confundir con
+el mapa de crecimiento 3D de `growth-map.html`) y estilo de vida
+(mantenimiento diario, frecuencia de visitas, entorno profesional,
+preferencia de barba). Esquema completo en `VisagismoProfileIn`
+(`app/api/schemas.py`) y persistencia en `ClientProfile.visagismo_profile`
+(columna `visagismo_profile` de `clients`, JSON, migrada igual que
+`custom_growth_map` -- ver `database.py`). Se guarda/lee con
+`PATCH /api/clients/{id}/visagismo-profile`, siempre el perfil completo,
+igual que `.../growth-map`.
+
+Origen: el usuario pegó un JSON con el esquema de perfil y 5 reglas de
+inferencia ya redactadas (morfología craneal, geometría facial, entradas
+en M, mantenimiento diario, frecuencia de visitas). Ese JSON usa conceptos
+de visagismo bastante abstractos y vocabulario en inglés no directamente
+alineado con este catálogo (12 `style_family`, 5 `fade_type`); las 5
+reglas se implementaron en `visagismo_rules.py` traduciendo cada concepto
+abstracto a la combinación concreta de `style_family`/`fade_type`/
+`length_top_mm` más parecida en `data/styles/styles.json`, documentando
+en el propio código cada mapeo y, cuando un término del schema (p.ej.
+"fringe_straight", "slick_back") no tiene ningún equivalente razonable en
+este catálogo de 12 familias, dejando esa mitad de la regla sin
+implementar en vez de inventar un mapeo forzado -- mejor ser honesto en
+el código sobre el límite del catálogo actual que fingir una cobertura
+que no existe.
+
+**Decisión de diseño importante**: el JSON original describe algunas
+reglas con lenguaje de exclusión dura ("bypass", "avoid", "restrict"). Se
+implementaron TODAS como ajuste de orden (puntuación + nota explicativa),
+nunca como descarte real, para mantener la misma filosofía que ya tenía
+`recommend_styles` con remolinos/forma de cara: el barbero decide, la app
+solo sugiere. Las reglas que el JSON expresa como exclusión dura usan una
+puntuación más fuerte (en la práctica casi siempre acaban al final de la
+lista) en vez de desaparecer, para no arriesgarse a dejar a un cliente
+sin ninguna recomendación visible por un fallo de mapeo en este puente
+igualmente heurístico.
+
+Tests: `backend/tests/test_visagismo_rules.py` (stdlib `unittest`, sin
+dependencia nueva -- este proyecto no usa pytest). Es el primer test
+automatizado del repo; se puede ejecutar con
+`cd backend && python3 -m unittest discover -s tests`.
+
+Nota RGPD (ver sección dedicada más abajo): este perfil es un desglose
+más fino de datos biométricos que `face_shape_override`/
+`hair_texture_override`. Vive en la misma fila de `clients` y por tanto
+bajo el mismo `consent_history` que el resto del perfil -- no se añadió
+un consentimiento aparte porque es la misma finalidad de tratamiento
+(recomendar cortes a ESE cliente), pero conviene tenerlo en cuenta al
+decidir cuánto detalle rellenar para un cliente real.
+
+Pendiente: no hay UI en el frontend todavía para rellenar este perfil
+(igual que el resto de `clients_routes.py`, ver nota al final de la
+sección anterior), solo API.
+
 ## Roadmap sugerido (por fases, no lo hagas todo a la vez)
 
 **Fase 1 — Pipeline visible de extremo a extremo (sin generación real todavía)**

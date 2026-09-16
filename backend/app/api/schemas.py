@@ -59,6 +59,82 @@ class ClientCreateIn(BaseModel):
     notes: str | None = None
 
 
+class FacialHorizontalZonesRatioIn(BaseModel):
+    """Proporción de cada tercio horizontal de la cara, a ojo del barbero
+    (no hay ninguna medición automática de esto todavía)."""
+
+    intellectual_zone_forehead: str | None = None  # "proportional" | "prominent" | "narrow"
+    affective_zone_mid_face: str | None = None  # "proportional" | "prominent" | "narrow"
+    sensitive_zone_jaw_chin: str | None = None  # "proportional" | "prominent" | "narrow"
+
+
+class FacialFeaturesProfileIn(BaseModel):
+    profile_type: str | None = None  # "straight" | "convex_prominent_nose" | "concave"
+    ears_projection: str | None = None  # "flat" | "prominent_protruding"
+    neck_proportions: str | None = None  # "short_thick" | "long_thin" | "proportional"
+
+
+class AnatomicalMetricsIn(BaseModel):
+    cranial_morphology: str | None = None  # "mesocephalic" | "brachycephalic" | "dolichocephalic"
+    facial_geometry: str | None = None  # "oval" | "square" | "round" | "rectangular_elongated" | "diamond" | "triangle" | "heart"
+    facial_horizontal_zones_ratio: FacialHorizontalZonesRatioIn = FacialHorizontalZonesRatioIn()
+    facial_features_profile: FacialFeaturesProfileIn = FacialFeaturesProfileIn()
+
+
+class GrowthDirectionsCowlicksIn(BaseModel):
+    """No confundir con los remolinos reales dibujados a mano en
+    `frontend/growth-map.html` (`ClientProfile.custom_growth_map`, con
+    coordenadas 3D exactas sobre la cabeza) — esto es una descripción
+    rápida en la ficha del cliente, sin coordenadas, pensada para rellenar
+    aunque todavía no se haya hecho el mapa de crecimiento detallado."""
+
+    crown_cowlick: str | None = None  # "clockwise" | "counter_clockwise" | "double" | "strong_rebellion"
+    fringe_direction: str | None = None  # "forward" | "lateral_left" | "lateral_right" | "cowlick_present"
+
+
+class HairPhysicalMetricsIn(BaseModel):
+    hair_density: str | None = None  # "low_thinning" | "medium" | "high_dense"
+    hair_texture_thickness: str | None = None  # "fine" | "medium" | "coarse_thick" | "afro"
+    hair_pattern_shape: str | None = None  # "straight" | "wavy" | "curly" | "coily"
+    growth_directions_cowlicks: GrowthDirectionsCowlicksIn = GrowthDirectionsCowlicksIn()
+    frontal_hairline_shape: str | None = None  # "linear_straight" | "m_shaped_receding" | "widows_peak" | "high_forehead"
+
+
+class StylingProductsUsageIn(BaseModel):
+    uses_product: bool = False
+    preferred_finish: str | None = None  # "matte_natural" | "shiny_wet" | "none"
+
+
+class LifestyleAndPreferencesIn(BaseModel):
+    daily_maintenance_commitment: str | None = None  # "zero_minutes" | "low_1_5_mins" | "medium_5_15_mins" | "high_requires_blowdryer"
+    styling_products_usage: StylingProductsUsageIn = StylingProductsUsageIn()
+    barbershop_visit_frequency_days: int | None = None
+    professional_social_environment: str | None = None  # "corporate_formal" | "creative_artistic" | "casual_sporty"
+    beard_preference: str | None = None  # "clean_shaven" | "stubble_short" | "full_long_volume" | "sharp_lined"
+
+
+class VisagismoProfileIn(BaseModel):
+    """Perfil extendido de visagismo: morfología craneal/facial, métricas
+    físicas del pelo y estilo de vida. Todo opcional -- se puede rellenar
+    poco a poco, igual que `hair_texture_override`/`face_shape_override`.
+    Se guarda tal cual (como dict) en `ClientProfile.visagismo_profile` y
+    lo consume `app/pipeline/visagismo_rules.py` para matizar (nunca
+    descartar, ver el docstring de ese módulo) las recomendaciones de
+    `recommend_styles`.
+
+    Nota RGPD: esto es un desglose bastante más fino de datos biométricos
+    (geometría facial, morfología craneal...) que `face_shape_override` /
+    `hair_texture_override` -- se guarda en la misma fila de `clients` y
+    por tanto bajo el mismo `consent_history` que el resto del perfil (ver
+    sección RGPD de CLAUDE.md), no hace falta un consentimiento aparte,
+    pero conviene tenerlo en cuenta al decidir qué tan detallado rellenar
+    esto para un cliente real."""
+
+    anatomical_metrics: AnatomicalMetricsIn = AnatomicalMetricsIn()
+    hair_physical_metrics: HairPhysicalMetricsIn = HairPhysicalMetricsIn()
+    lifestyle_and_preferences: LifestyleAndPreferencesIn = LifestyleAndPreferencesIn()
+
+
 class ClientOut(BaseModel):
     id: str
     created_at: str
@@ -69,6 +145,7 @@ class ClientOut(BaseModel):
     hair_texture_override: str | None = None
     face_shape_override: str | None = None
     custom_growth_map: dict | None = None
+    visagismo_profile: dict | None = None
     notes: str | None = None
 
 

@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS visits (
 # más adelante, en vez de solo cambiar `_SCHEMA`.
 _MIGRATIONS = [
     ("clients", "custom_growth_map", "TEXT"),
+    ("clients", "visagismo_profile", "TEXT"),
 ]
 
 

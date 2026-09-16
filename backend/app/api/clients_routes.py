@@ -24,6 +24,7 @@ from app.api.schemas import (
     RecommendationsOut,
     StyleOut,
     StyleRecommendationOut,
+    VisagismoProfileIn,
     VisitOut,
 )
 from app.db import repository
@@ -100,6 +101,21 @@ def override_growth_map(client_id: str, payload: CustomGrowthMapIn):
     return ClientOut(**client.__dict__)
 
 
+@router.patch("/clients/{client_id}/visagismo-profile", response_model=ClientOut)
+def override_visagismo_profile(client_id: str, payload: VisagismoProfileIn):
+    """Guarda el perfil extendido de visagismo (morfología craneal/facial,
+    métricas físicas del pelo, estilo de vida) que usa `recommend_styles`
+    a través de `app/pipeline/visagismo_rules.py`. Igual que `.../growth-map`,
+    sustituye por completo lo que hubiera guardado antes -- el barbero puede
+    ir rellenando la ficha poco a poco a lo largo de varias visitas, cada
+    `PATCH` manda el estado completo del formulario en ese momento, no solo
+    los campos que cambiaron."""
+    client = repository.update_visagismo_profile(client_id, payload.model_dump())
+    if client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return ClientOut(**client.__dict__)
+
+
 @router.get("/clients/{client_id}/recommendations", response_model=RecommendationsOut)
 def get_recommendations(client_id: str):
     """Cortes recomendados para este cliente según su tipo de cabello
@@ -129,6 +145,7 @@ def get_recommendations(client_id: str):
         client.hair_texture_override,
         whorls=whorls,
         face_shape=client.face_shape_override,
+        visagismo_profile=client.visagismo_profile,
     )
     return RecommendationsOut(
         client_id=client_id,

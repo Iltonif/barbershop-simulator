@@ -37,6 +37,7 @@ def _row_to_client(row) -> ClientProfile:
         hair_texture_override=row["hair_texture_override"],
         face_shape_override=row["face_shape_override"],
         custom_growth_map=json.loads(row["custom_growth_map"]) if row["custom_growth_map"] else None,
+        visagismo_profile=json.loads(row["visagismo_profile"]) if row["visagismo_profile"] else None,
         notes=row["notes"],
     )
 
@@ -149,6 +150,21 @@ def update_custom_growth_map(
         conn.execute(
             "UPDATE clients SET custom_growth_map = ? WHERE id = ?",
             (json.dumps(custom_growth_map), client_id),
+        )
+    return get_client(client_id)
+
+
+def update_visagismo_profile(client_id: str, profile: dict) -> ClientProfile | None:
+    """Sustituye por completo el perfil de visagismo del cliente (igual
+    que `update_custom_growth_map`: el frontend/API manda siempre el
+    perfil completo, no un delta, así que un campo borrado en la ficha
+    debe desaparecer aquí también)."""
+    if get_client(client_id) is None:
+        return None
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE clients SET visagismo_profile = ? WHERE id = ?",
+            (json.dumps(profile), client_id),
         )
     return get_client(client_id)
 

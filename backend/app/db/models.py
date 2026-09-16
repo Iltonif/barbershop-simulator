@@ -23,6 +23,12 @@ class ClientProfile:
     # coordenadas normalizadas 0.0-1.0. None si el barbero no ha dibujado
     # nada todavía para este cliente (se usa el patrón por defecto).
     custom_growth_map: dict | None = None
+    # Perfil extendido de visagismo (morfología craneal/facial, métricas
+    # físicas del pelo, estilo de vida) -- ver `VisagismoProfileIn` en
+    # `app/api/schemas.py` para la forma exacta y `app/pipeline/
+    # visagismo_rules.py` para cómo se usa. None si el barbero no lo ha
+    # rellenado todavía (ninguna regla de visagismo se activa en ese caso).
+    visagismo_profile: dict | None = None
     notes: str | None = None
 
 

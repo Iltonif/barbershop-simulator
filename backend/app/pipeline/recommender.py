@@ -3,8 +3,8 @@ Recomendador de cortes de pelo a partir del perfil del cliente.
 
 Cruza el tipo de cabello (fijado a mano por el barbero, ver
 `ClientProfile.hair_texture_override`) con el catálogo de cortes
-(`style_catalog.load_catalog`), y tiene en cuenta dos señales adicionales
-del perfil, cada una opcional:
+(`style_catalog.load_catalog`), y tiene en cuenta varias señales
+adicionales del perfil, todas opcionales:
 
 - El mapa de crecimiento/remolinos dibujado en `frontend/growth-map.html`:
   avisa cuando un corte muy corto y uniforme (buzz) puede no ser buena idea
@@ -15,10 +15,16 @@ del perfil, cada una opcional:
   por qué no se usa la detección automática sin confirmar): avisa cuando un
   corte no encaja bien con las recomendaciones habituales de barbería para
   esa forma de cara.
+- El perfil de visagismo (`ClientProfile.visagismo_profile`, ver
+  `app/pipeline/visagismo_rules.py`): morfología craneal/facial, forma de
+  nacimiento del pelo y estilo de vida (mantenimiento diario, frecuencia
+  de visitas). Igual que las dos señales anteriores, es un matiz sobre el
+  orden, no un filtro — ver el docstring de `visagismo_rules.py` para el
+  porqué y para el mapeo concreto de cada regla sobre este catálogo.
 
-Ninguna de las dos señales descarta cortes: los avisa y los deja más abajo
-en la lista, con una nota explicando el motivo, para que decida el
-barbero — es una heurística orientativa, no una regla estricta.
+Ninguna señal descarta cortes: todas los avisan/priorizan y los mueven
+arriba o abajo en la lista, con una nota explicando el motivo, para que
+decida el barbero — son heurísticas orientativas, no reglas estrictas.
 
 Las reglas de forma de cara están basadas en varias fuentes de peluquería/
 barbería consultadas en septiembre de 2026 (Llongueras, fabricbarberia.com,
@@ -32,6 +38,7 @@ ahí todas las fuentes consultadas coinciden en la misma dirección.
 
 from dataclasses import dataclass
 
+from app.pipeline import visagismo_rules
 from app.pipeline.style_catalog import HaircutStyle, load_catalog
 
 # Un remolino es más difícil de disimular cuanto más corto es el largo
@@ -114,13 +121,15 @@ def recommend_styles(
     hair_texture: str,
     whorls: list[dict] | None = None,
     face_shape: str | None = None,
+    visagismo_profile: dict | None = None,
 ) -> list[StyleRecommendation]:
     """Devuelve los cortes del catálogo compatibles con `hair_texture`,
     ordenados de más a menos recomendados. `whorls` es la lista tal cual se
-    guarda en `ClientProfile.custom_growth_map["whorls"]`, y `face_shape` es
-    `ClientProfile.face_shape_override` — ambos opcionales (`None`/vacío si
-    el barbero no los ha rellenado; en ese caso simplemente no se aplica esa
-    señal, no es un error)."""
+    guarda en `ClientProfile.custom_growth_map["whorls"]`, `face_shape` es
+    `ClientProfile.face_shape_override`, y `visagismo_profile` es
+    `ClientProfile.visagismo_profile` (ver `visagismo_rules.py`) — los tres
+    opcionales (`None`/vacío si el barbero no los ha rellenado; en ese caso
+    simplemente no se aplica esa señal, no es un error)."""
 
     whorls = whorls or []
 
@@ -135,10 +144,21 @@ def recommend_styles(
             for n in (_nota_remolinos(style, whorls), _nota_forma_cara(style, face_shape))
             if n
         ]
-        note = " ".join(notas) if notas else None
-        recomendaciones.append(StyleRecommendation(style=style, note=note))
+        ajuste_visagismo = visagismo_rules.evaluate_profile(style, visagismo_profile)
+        if ajuste_visagismo.note:
+            notas.append(ajuste_visagismo.note)
 
-    # Los que no tienen ningún aviso van primero; dentro de cada grupo, se
-    # mantiene el orden del catálogo.
-    recomendaciones.sort(key=lambda r: r.note is not None)
-    return recomendaciones
+        note = " ".join(notas) if notas else None
+        # Puntuación de orden: cada nota "clásica" (remolinos/forma de cara)
+        # cuenta como +1 (empujan hacia abajo, igual que antes de añadir
+        # visagismo), más la puntuación con signo del motor de visagismo
+        # (negativa = prioriza, positiva = matiza). Cuanto más bajo, más
+        # arriba aparece el corte en la lista.
+        score = sum(1 for n in (_nota_remolinos(style, whorls), _nota_forma_cara(style, face_shape)) if n)
+        score += ajuste_visagismo.score
+
+        recomendaciones.append((score, StyleRecommendation(style=style, note=note)))
+
+    # Orden estable: a igual puntuación se mantiene el orden del catálogo.
+    recomendaciones.sort(key=lambda par: par[0])
+    return [rec for _score, rec in recomendaciones]
