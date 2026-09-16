@@ -7,7 +7,7 @@ tipo de degradado, y para qué tipos de pelo funciona bien.
 """
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 from app.config import STYLES_CATALOG_PATH
@@ -37,10 +37,23 @@ class HaircutStyle:
     style_family: str | None = None
 
 
+_CAMPOS_VALIDOS = {f.name for f in fields(HaircutStyle)}
+
+
 def load_catalog(path: Path = STYLES_CATALOG_PATH) -> list[HaircutStyle]:
+    """Ignora deliberadamente cualquier clave del JSON que no sea un campo
+    conocido de `HaircutStyle`, en vez de dejar que `TypeError` reviente toda
+    la llamada por una única entrada con una clave inesperada (ver el
+    incidente documentado en `STYLES_CATALOG_PATH`, `app/config.py`): un
+    catálogo con algún campo de más o desactualizado degrada mejor devolviendo
+    ese estilo sin ese dato de más, no tirando abajo `/recommendations`
+    entero para todos los clientes."""
     with open(path, "r", encoding="utf-8") as f:
         raw = json.load(f)
-    return [HaircutStyle(**item) for item in raw]
+    return [
+        HaircutStyle(**{k: v for k, v in item.items() if k in _CAMPOS_VALIDOS})
+        for item in raw
+    ]
 
 
 def get_style_by_id(style_id: str, path: Path = STYLES_CATALOG_PATH) -> HaircutStyle | None:

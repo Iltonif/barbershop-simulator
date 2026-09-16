@@ -4,7 +4,25 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-STYLES_CATALOG_PATH = BASE_DIR / "data" / "styles" / "styles.json"
+# INCIDENTE (producción, sept 2026): este fichero vivía antes en
+# `data/styles/styles.json`, es decir, dentro de la MISMA carpeta `data/`
+# donde vive `clients.db` (ver DB_PATH más abajo). En Railway hay un volumen
+# persistente montado sobre esa carpeta `data/` entera para que la base de
+# datos de clientes sobreviva a cada despliegue -- pero eso significa que
+# CUALQUIER fichero dentro de `data/`, incluido este catálogo (que SÍ está
+# versionado en git y se actualiza con cada commit), queda "tapado" por la
+# instantánea que Railway guardó la primera vez que se creó ese volumen. El
+# resultado: `recommend_styles`/`GET .../recommendations` fallaba con un 500
+# en producción (mientras que en local, sin volumen de por medio, funcionaba
+# perfecto) porque el catálogo que se leía de verdad era una copia antigua
+# desde antes de que existiera el campo `style_family`, con una forma
+# distinta a la que espera hoy `HaircutStyle` -- ver `load_catalog()` en
+# `style_catalog.py`. Se corrigió moviendo el catálogo FUERA de `data/`, a
+# `app/pipeline/catalog_data/`, para que nunca vuelva a quedar bajo un
+# volumen pensado solo para persistir datos de clientes. `load_catalog()`
+# además ahora ignora claves desconocidas del JSON en vez de reventar, como
+# segunda red de seguridad ante este mismo tipo de desajuste en el futuro.
+STYLES_CATALOG_PATH = Path(__file__).resolve().parent / "pipeline" / "catalog_data" / "styles.json"
 
 # Si se activa, el pipeline puede guardar imágenes intermedias en disco (debug).
 # Por defecto en False: no persistir fotos de clientes (ver sección RGPD en CLAUDE.md).

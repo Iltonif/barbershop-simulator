@@ -289,6 +289,37 @@ persistente montado en `/app/backend/data` (si no, `clients.db` se borra
 en cada redespliegue) y revisa la política de privacidad/retención del
 proveedor antes de usarlo con clientes reales, no solo en pruebas.
 
+⚠️ **El Volume de arriba tapa TODO lo que haya dentro de `backend/data/`,
+no solo `clients.db` (incidente real en producción, sept 2026)**: el
+catálogo de cortes vivía antes en `backend/data/styles/styles.json` --
+versionado en git, se actualiza con cada commit -- pero al estar DENTRO
+de la misma carpeta que el Volume monta para persistir `clients.db`,
+Railway lo "tapaba" con la instantánea que guardó la primera vez que se
+creó ese Volume, ignorando cualquier actualización posterior del fichero
+por mucho que se subiera a git y se desplegara. Sintoma real: `GET
+/api/clients/{id}/recommendations` devolvía 500 en producción (mientras
+que en local, sin Volume de por medio, funcionaba perfecto) porque
+`load_catalog()` (`style_catalog.py`) intentaba construir `HaircutStyle`
+a partir de una copia del catálogo de antes de que existiera el campo
+`style_family`, con una forma distinta a la que espera el dataclass hoy.
+Se corrigió por dos vías:
+1. Se movió el catálogo FUERA de `data/`, a
+   `app/pipeline/catalog_data/styles.json` (`STYLES_CATALOG_PATH` en
+   `app/config.py`) -- cualquier fichero que deba actualizarse con cada
+   despliegue no puede vivir dentro de una carpeta cubierta por un Volume
+   persistente, solo lo que debe SOBREVIVIR a los despliegues (aquí,
+   únicamente `clients.db` y `client_photos/`) debería estar ahí.
+2. `load_catalog()` ahora ignora claves del JSON que no sean un campo
+   conocido de `HaircutStyle` en vez de reventar con `TypeError` -- una
+   sola entrada con forma inesperada ya no puede tirar abajo la lista de
+   recomendaciones para TODOS los clientes; ver
+   `backend/tests/test_style_catalog.py`.
+
+Lección para el futuro: antes de guardar cualquier fichero nuevo dentro
+de `backend/data/`, pensar primero si ese fichero debe persistir entre
+despliegues (va ahí) o si viene de git y se actualiza con cada uno (va
+en otro sitio, como `app/pipeline/catalog_data/`).
+
 `frontend/manifest.webmanifest`, `frontend/sw.js` y `frontend/assets/icons/`
 hacen la web instalable como PWA ("Añadir a pantalla de inicio") en tablets
 iOS/Android — requiere HTTPS, por eso solo funciona bien una vez desplegado
