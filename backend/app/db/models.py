@@ -17,6 +17,13 @@ class ClientProfile:
     consent_history: bool
     consent_model_improvement: bool
     consent_save_photo: bool
+    # Consentimiento SEPARADO para enviar el perfil de visagismo a un
+    # servicio externo de pago (API de Claude, ver
+    # `app/pipeline/visagismo_ai_advisor.py`) -- distinto de
+    # `consent_history`/`consent_model_improvement`/`consent_save_photo`
+    # porque implica una finalidad de tratamiento distinta (transferencia
+    # a un tercero), no solo guardar el dato en el propio servidor.
+    consent_ai_analysis: bool
     hair_texture_override: str | None = None
     face_shape_override: str | None = None
     # {"strokes": [{"x1","y1","z1","x2","y2","z2"}, ...], "whorls": [{"x","y","z","rotation"}, ...]},

@@ -24,10 +24,13 @@ from app.api.schemas import (
     RecommendationsOut,
     StyleOut,
     StyleRecommendationOut,
+    VisagismoAIReportOut,
     VisagismoProfileIn,
     VisitOut,
 )
+from app.config import ANTHROPIC_MODEL
 from app.db import repository
+from app.pipeline import visagismo_ai_advisor
 from app.pipeline.recommender import recommend_styles
 
 router = APIRouter()
@@ -48,6 +51,7 @@ def create_client(payload: ClientCreateIn):
         consent_history=payload.consent_history,
         consent_model_improvement=payload.consent_model_improvement,
         consent_save_photo=payload.consent_save_photo,
+        consent_ai_analysis=payload.consent_ai_analysis,
         notes=payload.notes,
     )
     return ClientOut(**client.__dict__)
@@ -114,6 +118,47 @@ def override_visagismo_profile(client_id: str, payload: VisagismoProfileIn):
     if client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return ClientOut(**client.__dict__)
+
+
+@router.post("/clients/{client_id}/visagismo-ai-report", response_model=VisagismoAIReportOut)
+def generate_visagismo_ai_report(client_id: str):
+    """Genera un informe de visagismo con IA (API de Claude) a partir del
+    perfil de visagismo ya guardado del cliente -- ver
+    `app/pipeline/visagismo_ai_advisor.py` para qué se envía exactamente
+    (nunca la foto ni datos identificables) y por qué es una finalidad de
+    tratamiento distinta al resto del perfil.
+
+    Requiere `consent_ai_analysis=true` en el perfil del cliente (422 si
+    no), igual que `create_client` exige `consent_history=true` -- pero
+    aquí el motivo es más fuerte todavía: esto envía datos a un tercero
+    (Anthropic), no solo los guarda en el propio servidor.
+
+    Cada llamada tiene coste real de tokens y NO se persiste (no se guarda
+    historial de informes) -- ver nota "pendiente" en CLAUDE.md."""
+    client = repository.get_client(client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    if not client.consent_ai_analysis:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Este cliente no tiene consent_ai_analysis=true: no se puede "
+                "enviar su perfil de visagismo a un servicio externo (API de "
+                "Claude) sin ese consentimiento explícito y separado "
+                "(ver sección RGPD de CLAUDE.md)."
+            ),
+        )
+    try:
+        report = visagismo_ai_advisor.generate_ai_report(client)
+    except visagismo_ai_advisor.AIAdvisorNotConfigured as exc:
+        # 503: el servicio no está disponible EN ESTE DESPLIEGUE (falta la
+        # API key), no un error del cliente ni del propio informe.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except visagismo_ai_advisor.AIAdvisorError as exc:
+        # 502: la llamada al servicio externo falló (red, cuota, respuesta
+        # inválida...) -- el problema está "río arriba", no en esta API.
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return VisagismoAIReportOut(client_id=client_id, model=ANTHROPIC_MODEL, report=report)
 
 
 @router.get("/clients/{client_id}/recommendations", response_model=RecommendationsOut)

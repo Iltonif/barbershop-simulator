@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS clients (
     consent_model_improvement_at TEXT,
     consent_save_photo INTEGER NOT NULL DEFAULT 0,
     consent_save_photo_at TEXT,
+    consent_ai_analysis INTEGER NOT NULL DEFAULT 0,
+    consent_ai_analysis_at TEXT,
     hair_texture_override TEXT,
     face_shape_override TEXT,
     custom_growth_map TEXT,
@@ -58,6 +60,11 @@ CREATE TABLE IF NOT EXISTS visits (
 _MIGRATIONS = [
     ("clients", "custom_growth_map", "TEXT"),
     ("clients", "visagismo_profile", "TEXT"),
+    # Consentimiento separado para el informe de visagismo por IA (API de
+    # Claude, ver `app/pipeline/visagismo_ai_advisor.py`) -- una base de
+    # datos ya creada con un esquema anterior no tiene estas columnas.
+    ("clients", "consent_ai_analysis", "INTEGER NOT NULL DEFAULT 0"),
+    ("clients", "consent_ai_analysis_at", "TEXT"),
 ]
 
 

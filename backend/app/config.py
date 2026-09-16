@@ -1,5 +1,6 @@
 """Configuración global del proyecto."""
 
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,3 +26,18 @@ CLIENT_PHOTOS_DIR = BASE_DIR / "data" / "client_photos"
 # cambiarlo sin tocar generator.py.
 DIFFUSION_MODEL_ID = "runwayml/stable-diffusion-v1-5"  # placeholder, revisar alternativas
 CONTROLNET_MODEL_ID = "lllyasviel/sd-controlnet-canny"  # placeholder
+
+
+# Informe de visagismo por IA (app/pipeline/visagismo_ai_advisor.py):
+# primera llamada del proyecto a un servicio EXTERNO de pago (API de
+# Claude). Sin ANTHROPIC_API_KEY configurada, ese endpoint devuelve un
+# error claro en vez de intentar la llamada -- el resto de la app
+# funciona igual sin esta variable, no es obligatoria para arrancar.
+# En Railway: Settings -> Variables -> añadir ANTHROPIC_API_KEY con una
+# clave de https://console.anthropic.com/ (cuenta de pago del propio
+# usuario, cada informe generado tiene coste real de tokens).
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+# Configurable por si cambia el modelo disponible en el futuro sin tener
+# que tocar código -- ver "Modelos" en la documentación de la API de
+# Claude para el identificador vigente.
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")

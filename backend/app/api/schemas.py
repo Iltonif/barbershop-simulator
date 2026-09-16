@@ -48,14 +48,20 @@ class SimulationResponse(BaseModel):
 class ClientCreateIn(BaseModel):
     """Alta de un perfil de cliente. `consent_history` es obligatorio: sin
     él, la API rechaza la creación (ver `clients_routes.create_client`).
-    `consent_model_improvement` y `consent_save_photo` son opcionales y
-    van por separado a propósito — cada finalidad de tratamiento necesita
-    su propio consentimiento, no vale uno genérico para todo."""
+    `consent_model_improvement`, `consent_save_photo` y `consent_ai_analysis`
+    son opcionales y van por separado a propósito — cada finalidad de
+    tratamiento necesita su propio consentimiento, no vale uno genérico
+    para todo. `consent_ai_analysis` es el más delicado de los tres: sin
+    él no se puede generar el informe de visagismo por IA (ver
+    `app/pipeline/visagismo_ai_advisor.py`), porque esa finalidad implica
+    enviar el perfil de visagismo a un servicio externo (API de Claude),
+    no solo guardarlo en el propio servidor."""
 
     display_name: str | None = None
     consent_history: bool
     consent_model_improvement: bool = False
     consent_save_photo: bool = False
+    consent_ai_analysis: bool = False
     notes: str | None = None
 
 
@@ -72,6 +78,8 @@ class FacialFeaturesProfileIn(BaseModel):
     profile_type: str | None = None  # "straight" | "convex_prominent_nose" | "concave"
     ears_projection: str | None = None  # "flat" | "prominent_protruding"
     neck_proportions: str | None = None  # "short_thick" | "long_thin" | "proportional"
+    eye_spacing: str | None = None  # "close_set" | "proportional" | "wide_set"
+    eyebrow_type: str | None = None  # "straight_low" | "arched" | "prominent_ridge"
 
 
 class AnatomicalMetricsIn(BaseModel):
@@ -142,6 +150,7 @@ class ClientOut(BaseModel):
     consent_history: bool
     consent_model_improvement: bool
     consent_save_photo: bool
+    consent_ai_analysis: bool
     hair_texture_override: str | None = None
     face_shape_override: str | None = None
     custom_growth_map: dict | None = None
@@ -217,3 +226,18 @@ class HeadShapeOut(BaseModel):
     scale_x: float
     scale_y: float
     width_to_height: float
+
+
+class VisagismoAIReportOut(BaseModel):
+    """Respuesta de `POST /api/clients/{id}/visagismo-ai-report`. No hay un
+    `AIReportIn` porque el endpoint no recibe payload -- toma los datos ya
+    guardados del cliente (`visagismo_profile`, overrides, remolinos), ver
+    `app/pipeline/visagismo_ai_advisor.build_user_message`.
+
+    Deliberadamente NO se persiste en BD (a diferencia de `ClientOut`):
+    cada llamada genera un informe nuevo bajo demanda. Ver nota "pendiente"
+    en CLAUDE.md sobre guardar historial de informes en el futuro."""
+
+    client_id: str
+    model: str
+    report: str

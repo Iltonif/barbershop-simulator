@@ -21,6 +21,11 @@ pydantic>=2.6
 # ninguna funcion de GUI (solo cv2.face para Facemark LBF), asi que la
 # variante headless trae lo mismo sin esa dependencia del sistema.
 opencv-contrib-python-headless>=4.9
+
+# Informe de visagismo por IA (app/pipeline/visagismo_ai_advisor.py):
+# igual que en requirements.txt, requiere ANTHROPIC_API_KEY configurada
+# en las variables de entorno de Railway para funcionar.
+anthropic>=1.0
 numpy>=1.26
 pillow>=10.2
 certifi>=2024.2.2

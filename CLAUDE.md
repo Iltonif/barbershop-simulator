@@ -34,7 +34,7 @@ Sistema OPCIONAL (opt-in) para que un cliente que vuelve no tenga que empezar de
 
 - Base de datos: SQLite en `backend/data/clients.db` (se crea sola al arrancar la app, `init_db()` en `main.py`). Suficiente para el volumen de una barbería; toda la lógica de acceso a datos vive en `app/db/repository.py`, así que migrar a Postgres más adelante no debería tocar las rutas de la API.
 - Tablas: `clients` (perfil + consentimientos + correcciones manuales del barbero) y `visits` (historial de simulaciones de ese cliente).
-- Consentimientos, deliberadamente separados (ver sección RGPD arriba): `consent_history` (obligatorio para crear el perfil), `consent_model_improvement` (opcional), `consent_save_photo` (opcional, por defecto NO se guardan fotos ni con perfil creado).
+- Consentimientos, deliberadamente separados (ver sección RGPD arriba): `consent_history` (obligatorio para crear el perfil), `consent_model_improvement` (opcional), `consent_save_photo` (opcional, por defecto NO se guardan fotos ni con perfil creado), `consent_ai_analysis` (opcional, exigido además para poder llamar a `POST /api/clients/{id}/visagismo-ai-report` -- ver sección dedicada más abajo).
 - Endpoints (`POST/GET /api/clients`, `GET /api/clients/{id}`, `PATCH /api/clients/{id}/hair-type`, `.../face-shape`, `.../growth-map`): el barbero corrige aquí el resultado del pipeline cuando se equivoca (p.ej. el caso real de rizado detectado como afro). Esas correcciones quedan guardadas en el perfil. `.../growth-map` recibe SIEMPRE el estado completo de la escena 3D de `frontend/growth-map.html` (lista de trazos + remolinos, cada uno con x,y,z reales sobre la cabeza genérica), no un delta — sustituye lo que hubiera antes.
 - **Nota de licencia (RESUELTO)**: se buscó primero usar un modelo 3D de cabeza descargado de Sketchfab, pero no se pudo confirmar que ninguno de esos candidatos tuviera licencia clara para uso comercial (el "Standard License" por defecto de Sketchfab normalmente no lo permite, y su badge de licencia no es verificable automáticamente — WebFetch da error ROBOTS_DISALLOWED contra su API y respuesta vacía contra la página del modelo). Se probó primero con geometría propia (esfera+cuello+orejas) sin ninguna duda legal pero poco realista. Después se encontró una fuente con licencia CC0 confirmada de forma verificable (el propio archivo fuente lo declara en texto plano, no solo una página web): el **base mesh oficial de MakeHuman** (`makehuman/data/3dobjs/base.obj`, https://github.com/makehumancommunity/makehuman), cuya cabecera dice literalmente: *"This asset was explicitly released as CC0 in september 2020"* (Copyright (C) 2020 Data Collection AB / Joel Palmius / Jonas Hauquier). Confirmado además por la comunidad de MakeHuman (FAQ oficial: "the asset license is CC0... no restriction on commercial use, modification or redistribution"). Se descargó ese `base.obj` (malla completa de cuerpo, en pose neutra), se recortó solo la región de cabeza+cuello (grupo `body` + `helper-l-eye`/`helper-r-eye` del OBJ, filtrando por altura para excluir hombros/torso y los grupos `joint-*`/otros `helper-*` que son ayudas de rigging, no geometría visible), se recompusieron normales y se cerró el hueco inferior del cuello con `trimesh` (Python), y se exportó a `frontend/assets/head.glb`. `frontend/growth-map.html` la carga con `THREE.GLTFLoader` en vez de la geometría procedural anterior; el raycasting para dibujar flechas/remolinos usa ahora las mallas reales del modelo cargado (`headGroup.traverse` → `raycastTargets`). No requiere atribución (CC0), pero se documenta aquí la procedencia exacta por trazabilidad, igual que se hizo con BiSeNet.
 
@@ -153,6 +153,95 @@ Pendiente: no hay UI en el frontend todavía para rellenar este perfil
 (igual que el resto de `clients_routes.py`, ver nota al final de la
 sección anterior), solo API.
 
+## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
+
+Segunda capa opcional sobre el perfil de visagismo (además del motor de
+reglas determinista de la sección anterior), pero de una naturaleza muy
+distinta: en vez de traducir reglas simples if/then a código, aquí se le
+pasa el perfil completo del cliente a un LLM (API de Claude) para que
+razone de forma cualitativa sobre muchos rasgos a la vez y genere un
+informe en lenguaje natural. Endpoint: `POST /api/clients/{id}/visagismo-ai-report`
+(sin payload -- usa los datos ya guardados del cliente). No sustituye a
+`visagismo_rules.py`: ese motor sigue matizando `recommend_styles` igual
+que antes, este es un informe adicional bajo demanda, no una fuente de
+verdad para el catálogo.
+
+Origen: el usuario pegó un system prompt completo ya redactado ("Motor
+Experto en Visajismo Masculino"), con un pipeline de razonamiento por
+prioridades (restricciones óseas → micro-rasgos faciales → línea capilar
+→ estilo de vida), un manual de compensación geométrica rasgo por rasgo
+(frente, nariz, orejas, ojos/cejas, mandíbula) y un formato de salida
+obligatorio de 5 secciones (diagnóstico morfológico, prescripción técnica
+del corte, diseño de barba, guía de estilizado, y un prompt generador
+para Midjourney/Stable Diffusion). Ese texto se usa TAL CUAL como
+`system` de la llamada a la API (`SYSTEM_PROMPT` en
+`visagismo_ai_advisor.py`), sin reescribir su contenido -- solo se le
+añadió al final una nota explicando qué campos pueden faltar y que el
+modelo no debe inventar medidas que no se le han dado.
+
+**Por qué esto es distinto a todo lo demás en `app/pipeline/`**: es la
+PRIMERA llamada del proyecto a un servicio externo de pago. Hasta ahora
+todo el pipeline (segmentación, landmarks, catálogo, reglas de
+recomendación) corre en local, sin salir del servidor ni tener coste por
+petición -- esto rompe esa propiedad. Por eso:
+
+- **Consentimiento separado**: `consent_ai_analysis` en `ClientProfile`
+  (columnas `consent_ai_analysis`/`consent_ai_analysis_at` en `clients`,
+  migradas igual que `visagismo_profile` -- ver `_MIGRATIONS` en
+  `database.py`). Es una finalidad de tratamiento distinta a guardar el
+  perfil en el propio servidor: aquí se transfieren datos a un tercero
+  (Anthropic). El endpoint devuelve 422 si el cliente no tiene este
+  consentimiento, con el mismo criterio que `create_client` exige
+  `consent_history=true` -- pero el motivo es más fuerte todavía por la
+  transferencia a terceros. Solo se puede fijar al CREAR el cliente (no
+  hay un `PATCH` dedicado, igual que `consent_model_improvement` y
+  `consent_save_photo` tampoco lo tienen hoy) -- si en la práctica hace
+  falta activarlo para un cliente ya existente sin recrear su perfil,
+  añadir ese `PATCH` es la extensión natural, deliberadamente no hecha
+  todavía para no adelantarse a una necesidad real.
+- **Nunca se envía la foto ni datos identificables**: solo los campos
+  categóricos ya recogidos en `visagismo_profile`/`hair_texture_override`/
+  `face_shape_override`/remolinos (`build_user_message` en
+  `visagismo_ai_advisor.py`), igual que ya hace `visagismo_rules.py` con
+  esos mismos datos. Nunca el nombre del cliente ni sus notas libres.
+- **Configuración** (`app/config.py`): `ANTHROPIC_API_KEY` (obligatoria
+  para que el endpoint funcione) y `ANTHROPIC_MODEL` (por defecto
+  `claude-sonnet-5`, configurable sin tocar código si cambia el modelo
+  disponible más adelante). Sin `ANTHROPIC_API_KEY`, el endpoint devuelve
+  503 con un mensaje claro en vez de fallar de forma confusa o exponer un
+  500 críptico -- el resto de la app funciona exactamente igual sin esa
+  variable, no es obligatoria para arrancar. En Railway: Settings →
+  Variables → añadir `ANTHROPIC_API_KEY` con una clave de
+  https://console.anthropic.com/ (cuenta de pago del propio usuario).
+- **Coste real por llamada**: cada informe generado consume tokens de
+  pago de la API de Claude (hasta 2000 tokens de salida por informe, ver
+  `max_tokens` en `generate_ai_report`) -- a diferencia de todo lo demás
+  en este pipeline, que no tiene coste variable por petición.
+- El texto que devuelve el modelo es una interpretación cualitativa de
+  estética/peluquería, NO un diagnóstico médico real, a pesar del tono
+  "clínico" del prompt original (términos como "evaluación de rasgos
+  críticos" son terminología de peluquería, no medicina).
+
+Errores manejados explícitamente (`clients_routes.generate_visagismo_ai_report`):
+`AIAdvisorNotConfigured` (falta la API key o el paquete `anthropic`) →
+503; `AIAdvisorError` (falla la llamada -- red, cuota, autenticación,
+respuesta vacía) → 502. Ninguno de los dos expone la traza original del
+SDK al barbero.
+
+Tests: `backend/tests/test_visagismo_ai_advisor.py` (stdlib `unittest` +
+`unittest.mock`, sin llamadas reales a la API -- se mockea
+`anthropic.Anthropic` por completo, igual filosofía que el resto del
+repo de no depender de red/credenciales para los tests).
+
+Pendiente: no se persiste ningún informe generado (cada llamada genera
+uno nuevo bajo demanda, sin guardar historial) -- si en el futuro se
+quiere que el barbero pueda volver a ver un informe ya generado sin pagar
+de nuevo por él, haría falta una tabla nueva (algo como `ai_reports`,
+con su propio `created_at`) y decidir cuánto tiempo conservarlo (RGPD:
+esto ya no serían solo rasgos categóricos del cliente, sería el texto
+completo generado sobre él). Tampoco hay UI en el frontend todavía
+(mismo estado que el resto de `clients_routes.py`).
+
 ## Roadmap sugerido (por fases, no lo hagas todo a la vez)
 
 **Fase 1 — Pipeline visible de extremo a extremo (sin generación real todavía)**
@@ -177,7 +266,7 @@ Las fotos de clientes son datos sensibles (biométricos) en España/UE. Antes de
 - No almacenar fotos más tiempo del necesario para generar la simulación (por defecto, procesar en memoria y descartar).
 - Si se decide guardar fotos (p.ej. para que el cliente vea su historial), documentar política de retención y borrado, y cifrar en reposo.
 
-Desde que existe el perfil de cliente (ver sección siguiente) esto ya no es solo teórico: `POST /api/clients` guarda tipo de pelo/forma de cara/remolinos de forma persistente y por eso EXIGE `consent_history=true` para crear el perfil (la API lo rechaza si no). `consent_model_improvement` (usar los datos para mejorar el sistema) y `consent_save_photo` (guardar la foto en sí, no solo los rasgos derivados) son consentimientos separados y opcionales a propósito: son tres finalidades de tratamiento distintas y el RGPD exige un consentimiento específico por finalidad, no uno genérico que valga para todo. Cómo se recoge ese consentimiento en el mostrador de la barbería (checkbox en tablet, papel firmado, verbal registrado) es una decisión de producto todavía pendiente — la API solo modela que el consentimiento tiene que existir, no cómo se obtiene. No lanzar esto con clientes reales sin que alguien con conocimiento de RGPD revise el flujo completo.
+Desde que existe el perfil de cliente (ver sección siguiente) esto ya no es solo teórico: `POST /api/clients` guarda tipo de pelo/forma de cara/remolinos de forma persistente y por eso EXIGE `consent_history=true` para crear el perfil (la API lo rechaza si no). `consent_model_improvement` (usar los datos para mejorar el sistema), `consent_save_photo` (guardar la foto en sí, no solo los rasgos derivados) y `consent_ai_analysis` (enviar el perfil de visagismo a un servicio externo de pago para generar un informe con IA, ver sección dedicada más abajo) son consentimientos separados y opcionales a propósito: son cuatro finalidades de tratamiento distintas y el RGPD exige un consentimiento específico por finalidad, no uno genérico que valga para todo. `consent_ai_analysis` es el único de los tres que implica además una TRANSFERENCIA de datos a un tercero (Anthropic), no solo un tratamiento adicional en el propio servidor -- tenerlo en cuenta al redactar el texto de consentimiento real que vea el cliente. Cómo se recoge ese consentimiento en el mostrador de la barbería (checkbox en tablet, papel firmado, verbal registrado) es una decisión de producto todavía pendiente — la API solo modela que el consentimiento tiene que existir, no cómo se obtiene. No lanzar esto con clientes reales sin que alguien con conocimiento de RGPD revise el flujo completo.
 
 ## Despliegue en la nube (Railway)
 

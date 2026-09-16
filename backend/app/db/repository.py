@@ -7,11 +7,13 @@ identificable. No llamar a `create_client` sin haber comprobado antes que
 el cliente ha dado su consentimiento explícito: la función lo exige
 (`consent_history=True`), pero la decisión de PEDIR ese consentimiento de
 forma clara es responsabilidad de quien use esta API (ver sección RGPD de
-CLAUDE.md). `consent_model_improvement` y `consent_save_photo` son
-consentimientos separados a propósito: guardar el historial para atender
-mejor al cliente es una finalidad distinta de usar sus datos para mejorar
-el sistema, o de guardar directamente su foto — el RGPD exige que cada
-finalidad tenga su propio consentimiento, no vale uno genérico.
+CLAUDE.md). `consent_model_improvement`, `consent_save_photo` y
+`consent_ai_analysis` son consentimientos separados a propósito: guardar
+el historial para atender mejor al cliente es una finalidad distinta de
+usar sus datos para mejorar el sistema, de guardar directamente su foto,
+o de enviar su perfil de visagismo a un servicio externo de pago (API de
+Claude, ver `app/pipeline/visagismo_ai_advisor.py`) — el RGPD exige que
+cada finalidad tenga su propio consentimiento, no vale uno genérico.
 """
 
 import json
@@ -34,6 +36,7 @@ def _row_to_client(row) -> ClientProfile:
         consent_history=bool(row["consent_history"]),
         consent_model_improvement=bool(row["consent_model_improvement"]),
         consent_save_photo=bool(row["consent_save_photo"]),
+        consent_ai_analysis=bool(row["consent_ai_analysis"]),
         hair_texture_override=row["hair_texture_override"],
         face_shape_override=row["face_shape_override"],
         custom_growth_map=json.loads(row["custom_growth_map"]) if row["custom_growth_map"] else None,
@@ -61,6 +64,7 @@ def create_client(
     consent_history: bool,
     consent_model_improvement: bool = False,
     consent_save_photo: bool = False,
+    consent_ai_analysis: bool = False,
     notes: str | None = None,
 ) -> ClientProfile:
     if not consent_history:
@@ -80,8 +84,9 @@ def create_client(
                 consent_history, consent_history_at,
                 consent_model_improvement, consent_model_improvement_at,
                 consent_save_photo, consent_save_photo_at,
+                consent_ai_analysis, consent_ai_analysis_at,
                 notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 client_id,
@@ -93,6 +98,8 @@ def create_client(
                 now if consent_model_improvement else None,
                 1 if consent_save_photo else 0,
                 now if consent_save_photo else None,
+                1 if consent_ai_analysis else 0,
+                now if consent_ai_analysis else None,
                 notes,
             ),
         )

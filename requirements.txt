@@ -8,6 +8,12 @@ pydantic>=2.6
 # nativo de Metal/GPU al detectar la cara. opencv-contrib-python trae el
 # módulo cv2.face que hace falta (a diferencia de opencv-python a secas).
 opencv-contrib-python>=4.9
+
+# Informe de visagismo por IA (app/pipeline/visagismo_ai_advisor.py,
+# Fase opcional): llama a la API de Claude con el perfil de visagismo del
+# cliente. Requiere ANTHROPIC_API_KEY configurada -- sin ella, el
+# endpoint devuelve un error claro en vez de fallar el arranque.
+anthropic>=1.0
 numpy>=1.26
 pillow>=10.2
 certifi>=2024.2.2
