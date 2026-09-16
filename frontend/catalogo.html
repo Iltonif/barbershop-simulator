@@ -222,16 +222,26 @@
     function groupByFamily(styles) {
       const families = new Map();
       for (const s of styles) {
-        const key = s.style_family || s.id;
+        // Cada estilo con foto propia forma su propio grupo (catalogo casi 1:1).
+        // Solo se agrupan varios cortes juntos cuando comparten literalmente la
+        // misma imagen de referencia (fallback histórico por familia/id).
+        const key = s.reference_image || s.style_family || s.id;
         if (!families.has(key)) {
           families.set(key, {
             key,
-            label: FAMILY_LABELS[key] || s.style_family || s.name,
+            label: FAMILY_LABELS[s.style_family || s.id] || s.style_family || s.name,
             referenceImage: s.reference_image,
             items: [],
           });
         }
         families.get(key).items.push(s);
+      }
+      // Si el grupo terminó con un unico corte, usamos el nombre propio de ese
+      // corte como etiqueta (mas preciso que la etiqueta generica de familia).
+      for (const family of families.values()) {
+        if (family.items.length === 1) {
+          family.label = family.items[0].name;
+        }
       }
       return Array.from(families.values());
     }

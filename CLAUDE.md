@@ -390,6 +390,59 @@ arreglo puede necesitar una recarga forzada (o borrar datos del sitio)
 una única vez para des-atascarse; a partir de ahí ya no debería volver a
 pasar.
 
+**`API_BASE` fijo a `localhost:8000` roto en producción (sept 2026)**:
+`index.html`, `growth-map.html`, `catalogo.html` y `recomendaciones.html`
+tenían `const API_BASE = "http://localhost:8000/api";` copiado y pegado en
+cada página. Funcionaba en local, pero una vez desplegado en Railway
+cualquier `fetch(`${API_BASE}/...`)` intentaba conectar al propio
+ordenador del cliente (`localhost`) en vez de al backend real, así que la
+web en producción daba "Error de red: Failed to fetch" en todas las
+páginas que llaman a la API (corte, catálogo, etc.) aunque el backend
+funcionara perfectamente. Se corrigió cambiando las 4 apariciones a
+`const API_BASE = "/api";` (ruta relativa): como el propio backend sirve
+el frontend como estático desde el mismo origen (ver más abajo), una ruta
+relativa apunta siempre al sitio correcto tanto en local
+(`http://localhost:8000/api`) como en producción
+(`https://<dominio-railway>/api`), sin mantener una URL distinta por
+entorno.
+
+**Catálogo de cortes con foto propia, casi 1 foto por corte (sept
+2026)**: hasta ahora los 104 cortes de `styles.json` compartían solo 12
+fotos (`frontend/assets/style_photos/*.jpg`) agrupadas por
+`style_family` en `catalogo.html` — hasta 23 cortes distintos llegaban a
+mostrar la misma imagen de "buzz cut". A petición de Pedro ("necesito un
+catálogo extenso con los cortes de pelo reales y su correspondiente
+foto", cobertura máxima) se sustituyó por una foto real y distinta para
+cada uno de los 104 `id`:
+
+- Origen de las fotos: búsqueda por texto en la API interna (sin clave,
+  de uso público) de Unsplash, con una consulta en inglés generada a
+  partir del `name`/`description` en español de cada corte (reglas de
+  traducción de palabras clave: mullet, tazón → bowl cut, rastas →
+  dreadlocks, moño → man bun, degradado → fade, flequillo → fringe,
+  etc., más el largo en mm para anteponer short/medium/long). Las fotos
+  de Unsplash usan la Unsplash License (uso comercial y no comercial
+  gratuito, sin atribución obligatoria), así que no hay riesgo de
+  derechos de autor.
+- Deduplicación global: como consultas distintas a veces devuelven la
+  misma foto en primer lugar, se llevó un registro de ids de foto ya
+  usadas across TODAS las búsquedas (no solo dentro de cada una), para
+  que dos cortes no acaben compartiendo foto salvo que de verdad sea el
+  mismo corte repetido.
+- Revisión manual: tras descargar las 104 fotos se hizo una pasada
+  visual conjunta y se repitió la búsqueda a mano para las pocas que
+  salieron mal emparejadas según el texto alternativo de Unsplash
+  (describían a una mujer en vez de un hombre, o no se veía claramente
+  un corte de pelo).
+- `frontend/catalogo.html` (`groupByFamily()`): ahora agrupa primero por
+  `reference_image` en vez de por `style_family`. Como cada corte tiene
+  hoy su propia foto, esto deja en la práctica un grupo de un único
+  corte por tarjeta, con el nombre propio de ese corte como etiqueta
+  (`family.label = family.items[0].name`) en vez de la etiqueta
+  genérica de familia. El agrupado por `style_family`/`FAMILY_LABELS`
+  se mantiene como fallback del código, por si en el futuro se añaden
+  cortes que vuelvan a compartir una misma foto a propósito.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).
