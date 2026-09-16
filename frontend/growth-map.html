@@ -147,7 +147,7 @@
         <line id="compass-needle" x1="60" y1="60" x2="60" y2="14" stroke="#4fe3ff" stroke-width="4" stroke-linecap="round"></line>
         <circle cx="60" cy="60" r="5" fill="#4fe3ff"></circle>
       </svg>
-      <div class="compass-readout" id="compass-readout">Dirección natural</div>
+      <div class="compass-readout" id="compass-readout">0° (hacia la cara)</div>
       <div class="compass-actions">
         <button type="button" id="compass-clear-btn" class="toolbar-btn secondary">Quitar</button>
         <button type="button" id="compass-done-btn" class="toolbar-btn secondary">Listo</button>
@@ -187,6 +187,12 @@
       { name: "nuca", label: "Nuca", direction: [0.0, -0.05, -1.0] },
     ];
 
+    // Referencia GLOBAL y fija para el 0° de la brújula de dirección: "hacia
+    // la cara" (mismo eje +Z que usa la cámara en la vista "front" del
+    // resto del archivo). Ver el porqué junto a donde se usa, en
+    // `placeZoneMarkers()`.
+    const WORLD_FRONT = new THREE.Vector3(0, 0, 1);
+
     // Estado de dibujo: como mucho UNA flecha por zona (se sustituye si se
     // vuelve a fijar la misma zona con la brújula), en vez de la lista
     // libre de trazos de antes.
@@ -197,7 +203,7 @@
     // traduce el ángulo de la brújula en un vector 3D real sobre la
     // superficie de la cabeza. Ver applyZoneAngle()/angleFromDirection().
     const zoneFrames = {};
-    const zoneAngles = {}; // name -> radianes (0 = dirección natural de la zona)
+    const zoneAngles = {}; // name -> radianes (0 = hacia la cara, ver WORLD_FRONT)
     let armedZone = null; // zona con la brújula abierta esperando un ángulo
 
     // Trazos "libres" de perfiles guardados con la versión anterior de esta
@@ -312,20 +318,33 @@
         worldPoint.add(outward.clone().multiplyScalar(0.06));
 
         // Marco tangente para la brújula de dirección (ver openCompassFor /
-        // applyZoneAngle más abajo): dir0 es la propia dirección "natural"
-        // de la zona (el `zone.direction` de HEAD_ZONES) proyectada sobre
-        // el plano tangente a la piel en este punto -- así el ángulo 0° de
-        // la brújula siempre coincide con el sentido intuitivo por defecto
-        // de cada zona (hacia arriba en la coronilla, hacia delante en el
-        // flequillo...) en vez de depender de un eje arbitrario del mundo.
-        // dir90 es perpendicular a dir0 dentro del mismo plano.
-        let dir0 = dir.clone().sub(outward.clone().multiplyScalar(dir.dot(outward)));
+        // applyZoneAngle más abajo). dir0 es la referencia de "0°": ANTES
+        // se usaba la propia dirección "natural" de la zona (el
+        // `zone.direction` de HEAD_ZONES) proyectada sobre el plano
+        // tangente, pero ese vector es (por construcción) casi paralelo a
+        // la normal real de la superficie en el punto exacto donde golpea
+        // el rayo -- es el mismo vector usado para lanzar el rayo, así que
+        // solo le queda un residuo tangencial minúsculo, casi ruido
+        // numérico, una vez restada la componente normal. El ángulo
+        // resultante no correspondía a ninguna dirección reconocible (p.ej.
+        // una flecha señalando claramente hacia la nuca podía leerse como
+        // "346°" en vez de un valor con sentido -- ver feedback de uso
+        // real). Ahora se usa `WORLD_FRONT` (siempre "hacia la cara", igual
+        // para las 5 zonas) como referencia: al ser un eje FIJO y
+        // compartido, 0°/90°/180°/270° significan siempre lo mismo (cara/
+        // derecha/nuca/izquierda) sin importar qué zona esté armada, y de
+        // paso deja de depender de lo bien o mal alineado que esté el
+        // `zone.direction` de cada zona con la normal real de la malla.
+        let dir0 = WORLD_FRONT.clone().sub(outward.clone().multiplyScalar(WORLD_FRONT.dot(outward)));
         if (dir0.lengthSq() < 1e-6) {
-          // Caso degenerado (dir casi paralelo a la normal, no debería
-          // pasar con las direcciones actuales, pero por si acaso):
-          // cualquier vector tangente sirve como referencia de "0°".
-          dir0 = new THREE.Vector3(1, 0, 0).sub(outward.clone().multiplyScalar(outward.x));
-          if (dir0.lengthSq() < 1e-6) dir0 = new THREE.Vector3(0, 0, 1).sub(outward.clone().multiplyScalar(outward.z));
+          // Caso degenerado (normal casi paralela a "hacia la cara", p.ej.
+          // un punto mirando justo hacia +Z/-Z): cae a "hacia arriba" como
+          // referencia de repuesto, y si esa también degenera, a un eje
+          // lateral. No ocurre con las 5 zonas actuales (todas conservan
+          // suficiente componente tangencial de WORLD_FRONT), pero deja el
+          // cálculo a salvo si se añaden zonas nuevas más adelante.
+          dir0 = new THREE.Vector3(0, 1, 0).sub(outward.clone().multiplyScalar(outward.y));
+          if (dir0.lengthSq() < 1e-6) dir0 = new THREE.Vector3(1, 0, 0).sub(outward.clone().multiplyScalar(outward.x));
         }
         dir0.normalize();
         const dir90 = new THREE.Vector3().crossVectors(outward, dir0).normalize();
@@ -341,9 +360,9 @@
       }
     }
 
-    // Convierte un ángulo de brújula (radianes, 0 = dirección natural de la
-    // zona, sentido horario visto desde fuera de la cabeza) en un vector 3D
-    // unitario tangente a la piel en esa zona.
+    // Convierte un ángulo de brújula (radianes, 0 = hacia la cara, sentido
+    // horario visto desde fuera de la cabeza, ver WORLD_FRONT más arriba)
+    // en un vector 3D unitario tangente a la piel en esa zona.
     function directionForAngle(zoneName, angleRad) {
       const frame = zoneFrames[zoneName];
       if (!frame) return new THREE.Vector3(0, 0, 1);
@@ -608,7 +627,12 @@
       compassNeedle.setAttribute("x2", x);
       compassNeedle.setAttribute("y2", y);
       const deg = Math.round(((angleRad * 180) / Math.PI + 360) % 360);
-      compassReadoutEl.textContent = deg === 0 ? "Dirección natural (0°)" : `${deg}°`;
+      // 0°/90°/180°/270° son siempre "hacia la cara/derecha/nuca/izquierda"
+      // en las 5 zonas (ver WORLD_FRONT en placeZoneMarkers), así que se
+      // puede dar una etiqueta con sentido real en vez de solo el número.
+      const ETIQUETAS_CARDINALES = { 0: "hacia la cara", 90: "hacia la derecha", 180: "hacia la nuca", 270: "hacia la izquierda" };
+      const etiqueta = ETIQUETAS_CARDINALES[deg];
+      compassReadoutEl.textContent = etiqueta ? `${deg}° (${etiqueta})` : `${deg}°`;
     }
 
     function openCompassFor(zoneName) {

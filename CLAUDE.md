@@ -57,6 +57,32 @@ Sistema OPCIONAL (opt-in) para que un cliente que vuelve no tenga que empezar de
 - El historial de cada visita guarda POR SEPARADO `detected_hair_texture` (lo que dijo la heurística automática, sin tocar) y `used_hair_texture` (lo que se usó de verdad, tras aplicar corrección/selección manual) — esa comparación es el dato real que en el futuro podría alimentar un clasificador entrenado.
 - Pendiente: no hay UI en el frontend todavía, solo API. Tampoco hay ningún mecanismo que exporte este historial como dataset de entrenamiento — eso es un paso futuro deliberadamente no implementado aún.
 
+**Grados de la brújula sin sentido real (tras feedback de uso real)**: se
+detectó que el número de grados que muestra la brújula de dirección
+(`frontend/growth-map.html`) no correspondía a ninguna dirección física
+reconocible -- una flecha señalando claramente hacia la nuca podía leerse
+como "346°" en vez de un valor con sentido. Causa: el "0°" de cada zona se
+definía como el propio `zone.direction` de `HEAD_ZONES` proyectado sobre
+el plano tangente a la piel en ese punto, pero `zone.direction` es
+(por construcción) el mismo vector usado para lanzar el rayo que coloca
+el marcador, así que en el punto exacto de impacto es casi paralelo a la
+normal real de la superficie -- su residuo tangencial, una vez restada la
+componente normal, es casi ruido numérico, no una dirección con
+significado. Se arregló sustituyendo esa referencia por un eje FIJO y
+compartido por las 5 zonas: `WORLD_FRONT` (0,0,1), "hacia la cara" --
+el mismo eje que ya usa la cámara para la vista "front". Con una
+referencia fija, 0°/90°/180°/270° significan siempre lo mismo (cara/
+derecha/nuca/izquierda) en cualquier zona, verificado numéricamente
+(un vector sintético "hacia atrás" da exactamente 180° en las 5 zonas)
+y visualmente (la flecha dibujada al fijar 180° apunta de verdad hacia
+la nuca vista desde perfil/detrás). El texto de la brújula ahora muestra
+una etiqueta junto al número en los 4 puntos cardinales (p.ej. "180°
+(hacia la nuca)") para que sea evidente que el número tiene un
+significado real y no solo relativo a la zona. No hace falta ninguna
+migración de datos: los trazos ya guardados (start/end en 3D) no
+cambian, solo cambia qué número de grados se les asocia al reabrir esa
+zona.
+
 ## Motor de reglas de visagismo (`app/pipeline/visagismo_rules.py`)
 
 Capa opcional por encima de `recommend_styles` (ver más arriba) que añade
