@@ -33,7 +33,7 @@
     <a href="catalogo.html">Catálogo de cortes</a>
   </nav>
   <h1 class="page-title">Simulador de Cortes de Pelo/Barba</h1>
-  <p class="page-lead">Prueba local del pipeline. El backend debe estar corriendo en <code>http://localhost:8000</code>.</p>
+  <p class="page-lead">Prueba del pipeline de simulación.</p>
 
   <form id="simulate-form" class="glass-card form-card">
     <label for="photo">Foto del cliente</label>
@@ -71,7 +71,16 @@
 </div>
 
   <script>
-    const API_BASE = "http://localhost:8000/api";
+    // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
+    // estaba antes): el backend sirve este mismo HTML como estático (ver
+    // el mount de StaticFiles en app/main.py), así que la API siempre está
+    // en el mismo origen que la página, sea localhost, la IP local en la
+    // WiFi de la barbería, o el dominio real de Railway en producción. La
+    // URL fija rompía los tres casos salvo el primero -- detectado al
+    // probar la web ya desplegada de verdad (catálogo/simulador daban
+    // "Failed to fetch" porque intentaban llamar al localhost del propio
+    // dispositivo del cliente, no al servidor real).
+    const API_BASE = "/api";
 
     async function loadStyles() {
       const res = await fetch(`${API_BASE}/styles`);
