@@ -83,6 +83,18 @@ migración de datos: los trazos ya guardados (start/end en 3D) no
 cambian, solo cambia qué número de grados se les asocia al reabrir esa
 zona.
 
+**Remolinos con el mismo bug de oclusión que los marcadores de zona**: al
+revisar de nuevo la oclusión de puntos sobre la cabeza 3D (ver el punto
+anterior sobre los marcadores de zona) se encontró que el icono de
+remolino (`makeWhorlSprite`, el círculo con ↻/↺ que se coloca al tocar la
+cabeza en modo remolino) tenía el mismo `depthTest: false` que ya se
+había corregido en el marcador de zona, así que un remolino marcado en un
+lateral o en la nuca seguía viéndose "flotando" sobre la cara al mirar la
+cabeza de frente. Se corrigió de la misma forma (`depthTest: true`) y se
+verificó con un test geométrico (raycasting contra la malla de la piel):
+un remolino colocado en el lateral derecho queda oculto al ver la cabeza
+desde el lado izquierdo, y visible desde el lado en el que se colocó.
+
 ## Motor de reglas de visagismo (`app/pipeline/visagismo_rules.py`)
 
 Capa opcional por encima de `recommend_styles` (ver más arriba) que añade

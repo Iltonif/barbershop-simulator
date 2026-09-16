@@ -513,7 +513,12 @@
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(rotation === "horario" ? "↻" : "↺", 33, 34);
       const texture = new THREE.CanvasTexture(c);
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false }));
+      // depthTest en true por el mismo motivo que el marcador de zona (ver
+      // makeZoneMarkerSprite): un remolino marcado en un lateral/atrás no
+      // debe verse "flotando" sobre la cara al mirar la cabeza de frente,
+      // debe ocultarse detrás de la cabeza como cualquier punto real de la
+      // piel que en ese momento no mira hacia la cámara.
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: true }));
       sprite.scale.set(0.2, 0.2, 1);
       return sprite;
     }
