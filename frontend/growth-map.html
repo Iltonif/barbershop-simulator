@@ -397,7 +397,11 @@
       ctx.strokeStyle = "#4fe3ff";
       ctx.stroke();
       const texture = new THREE.CanvasTexture(c);
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true }));
+      // depthTest en true: así el punto se oculta detrás de la cabeza cuando
+      // esa zona no mira hacia la cámara, en vez de "flotar" siempre encima
+      // de todo (antes esto hacía que, p.ej., el punto de la nuca pareciera
+      // estar sobre la cara al ver la cabeza de frente).
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: true, transparent: true }));
       sprite.scale.set(0.34, 0.34, 1);
       sprite.renderOrder = 10;
       sprite.userData.zoneName = zoneName;
