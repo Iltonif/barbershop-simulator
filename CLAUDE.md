@@ -443,6 +443,36 @@ cada uno de los 104 `id`:
   se mantiene como fallback del código, por si en el futuro se añaden
   cortes que vuelvan a compartir una misma foto a propósito.
 
+**Corrección de 34 fotos mal emparejadas + rediseño de tarjetas y zoom
+(sept 2026)**: tras la pasada anterior, Pedro reportó que "la mayoría de
+cortes no coinciden con las fotos, además de no poder ampliarse y ser un
+catálogo un poco cutre". Se hicieron las dos cosas que pidió:
+
+- **Corrección de fotos**: revisión visual corte por corte de los 104
+  contra su nombre/descripción real (no solo comprobar que aparece un
+  hombre, sino que el peinado coincide: raya, flequillo, longitud,
+  rizado/liso, mechas, etc.). 34 de los 104 no encajaban y se volvieron a
+  buscar en Unsplash con consultas más específicas (a veces 2-4 intentos
+  por corte hasta encontrar una coincidencia razonable), manteniendo el
+  mismo proceso que la pasada anterior (Unsplash License, deduplicación
+  global de ids de foto). En un puñado de cortes muy concretos sin foto
+  de stock exacta (p.ej. "puntas decoloradas" en una melena) se aceptó la
+  aproximación más cercana disponible, con el visto bueno de Pedro.
+- **Rediseño de `frontend/catalogo.html`**: se mantiene toda la lógica
+  existente (agrupado, filtros, llamada a `/api/styles`) y solo cambia el
+  aspecto/interacción:
+  - Tarjetas con esquinas más redondeadas, elevación y ligero
+    `transform` al pasar el ratón, foto con relación de aspecto fija
+    (4:5) y un pequeño icono de lupa que aparece al hacer hover como
+    pista de que se puede ampliar.
+  - Zoom real: al hacer click en la foto de una tarjeta se abre un
+    lightbox a pantalla completa con la imagen ampliada y su
+    nombre/descripción debajo; se cierra con el botón de cerrar,
+    haciendo click fuera de la imagen o con la tecla Escape.
+  - Sigue usando `frontend/assets/theme.css` (tokens de color/tipografía
+    compartidos con el resto de la web), así que el resto de páginas no
+    se ven afectadas por este cambio.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

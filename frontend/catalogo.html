@@ -19,7 +19,7 @@
 <title>Catálogo de cortes</title>
 <link rel="stylesheet" href="assets/theme.css" />
 <style>
-  .page-shell { max-width: 1100px; }
+  .page-shell { max-width: 1180px; }
   #subtitle { color: var(--text-dim); margin-top: 0; max-width: 640px; font-size: 14px; }
   #status { font-size: 14px; color: var(--text-dim); margin: 16px 0; }
 
@@ -34,38 +34,168 @@
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 22px;
     margin-top: 8px;
     align-items: start;
   }
+
+  /* --- Tarjetas rediseñadas ------------------------------------------- */
   .card {
-    border: 1px solid var(--glass-border); border-radius: 14px; overflow: hidden;
-    display: flex; flex-direction: column; background: var(--glass);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    position: relative;
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   }
-  .card img { width: 100%; height: 220px; object-fit: cover; display: block; background: rgba(255,255,255,0.05); border-radius: 0; }
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(79, 124, 255, 0.18);
+  }
+
+  .card-photo {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: zoom-in;
+  }
+  .card-photo img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    border-radius: 0;
+    transition: transform 0.5s ease;
+  }
+  .card:hover .card-photo img { transform: scale(1.08); }
+
+  /* Degradado inferior para que el título "flote" sobre la foto y separe
+     visualmente la imagen del cuerpo de la tarjeta sin un corte brusco. */
+  .card-photo::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(5, 6, 15, 0.75) 0%, rgba(5, 6, 15, 0) 45%);
+    pointer-events: none;
+  }
+
+  .zoom-hint {
+    position: absolute; top: 10px; right: 10px;
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 10px; border-radius: 999px;
+    background: rgba(5, 6, 15, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff; font-size: 11px; font-weight: 600;
+    opacity: 0; transform: translateY(-4px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+  }
+  .card:hover .zoom-hint { opacity: 1; transform: translateY(0); }
+  .zoom-hint svg { width: 13px; height: 13px; }
+
   .no-photo {
-    width: 100%; height: 220px; display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
     background: rgba(255,255,255,0.04); color: var(--text-faint); font-size: 13px; text-align: center; padding: 12px; box-sizing: border-box;
   }
-  .card-body { padding: 14px 16px 18px; }
-  .card-body h3 { margin: 0 0 2px; font-size: 16px; color: var(--text-main); }
-  .family-hint { margin: 0 0 12px; font-size: 12px; color: var(--text-faint); }
-  .cut-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-  .cut-item { border-top: 1px solid var(--glass-border); padding-top: 10px; }
+
+  .card-body { padding: 16px 18px 20px; position: relative; }
+  .card-body h3 {
+    margin: 0 0 3px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em;
+    color: var(--text-main);
+  }
+  .family-hint { margin: 0 0 14px; font-size: 12px; color: var(--text-faint); line-height: 1.4; }
+
+  .cut-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .cut-item { border-top: 1px solid var(--glass-border); padding-top: 12px; }
   .cut-item:first-child { border-top: none; padding-top: 0; }
-  .cut-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
-  .cut-desc { margin: 0 0 6px; font-size: 12px; color: var(--text-dim); }
+  .cut-name { font-size: 13.5px; font-weight: 600; margin-bottom: 5px; color: var(--text-main); }
+  .cut-desc { margin: 0 0 7px; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+
   .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
   .badge {
-    font-size: 11px; padding: 3px 8px; border-radius: 999px; background: rgba(79, 124, 255, 0.18); color: #c7d4ff;
-    white-space: nowrap;
+    font-size: 11px; padding: 4px 10px; border-radius: 999px;
+    background: rgba(79, 124, 255, 0.18); color: #c7d4ff;
+    white-space: nowrap; border: 1px solid rgba(79, 124, 255, 0.28);
   }
-  .badge.fade { background: rgba(52, 211, 153, 0.15); color: #86e6c4; }
+  .badge.fade { background: rgba(52, 211, 153, 0.15); color: #86e6c4; border-color: rgba(52, 211, 153, 0.3); }
   .source { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
-  details > summary { cursor: pointer; font-size: 12px; color: var(--accent-cyan); padding-top: 8px; }
-  details[open] > summary { margin-bottom: 6px; }
+
+  details > summary {
+    cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--accent-cyan);
+    padding-top: 10px; list-style: none;
+  }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "＋ "; }
+  details[open] > summary::before { content: "－ "; }
+  details[open] > summary { margin-bottom: 8px; }
+
+  /* --- Lightbox / zoom -------------------------------------------------- */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 50;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 24px;
+    background: rgba(3, 4, 10, 0.86);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: lb-fade-in 0.2s ease;
+  }
+  .lightbox.open { display: flex; }
+  @keyframes lb-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+  .lightbox-inner {
+    position: relative;
+    max-width: min(900px, 92vw);
+    max-height: 88vh;
+    display: flex; flex-direction: column;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    animation: lb-pop-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes lb-pop-in { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .lightbox-img-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+  }
+  .lightbox-img-wrap img {
+    max-width: 100%; max-height: 78vh; width: auto; height: auto;
+    object-fit: contain; display: block; border-radius: 0;
+  }
+  .lightbox-caption {
+    padding: 14px 20px 16px;
+    border-top: 1px solid var(--glass-border);
+  }
+  .lightbox-caption h3 { margin: 0 0 4px; font-size: 16px; color: var(--text-main); }
+  .lightbox-caption p { margin: 0; font-size: 13px; color: var(--text-dim); }
+
+  .lightbox-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 36px; height: 36px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(5, 6, 15, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff; font-size: 18px; line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .lightbox-close:hover { background: rgba(5, 6, 15, 0.85); transform: scale(1.06); }
+
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .card-body { padding: 14px 14px 16px; }
+  }
 </style>
 </head>
 <body>
@@ -77,7 +207,7 @@
   </nav>
 
   <h1 class="page-title">Catálogo de cortes</h1>
-  <p id="subtitle">Todos los cortes disponibles en la barbería, para que explores estilos antes de tu cita. Usa los filtros si buscas algo concreto.</p>
+  <p id="subtitle">Todos los cortes disponibles en la barbería, para que explores estilos antes de tu cita. Usa los filtros si buscas algo concreto, y toca cualquier foto para ampliarla.</p>
 
   <div class="filters glass-card">
     <div class="filter-group">
@@ -116,6 +246,20 @@
 
   <div id="status"></div>
   <div id="grid" class="grid"></div>
+</div>
+
+<!-- Lightbox / zoom de foto ------------------------------------------- -->
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="lightbox-inner">
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Cerrar">✕</button>
+    <div class="lightbox-img-wrap">
+      <img id="lightbox-img" src="" alt="" />
+    </div>
+    <div class="lightbox-caption">
+      <h3 id="lightbox-title"></h3>
+      <p id="lightbox-desc"></p>
+    </div>
+  </div>
 </div>
 
   <script>
@@ -163,6 +307,11 @@
     const MAX_VISIBLE_PER_FAMILY = 4;
     let allStyles = [];
 
+    const ZOOM_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2"/>
+      <path d="M20 20L15.2 15.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+
     function cutBadgesHtml(s) {
       const badges = [];
       if (s.length_category) badges.push(`<span class="badge">${LENGTH_LABELS[s.length_category] || s.length_category}</span>`);
@@ -190,8 +339,11 @@
       card.className = "card";
 
       const photoHtml = family.referenceImage
-        ? `<img src="${family.referenceImage}" alt="Foto de referencia: ${family.label}" loading="lazy" />`
-        : `<div class="no-photo">No encontramos una foto de stock que representara bien este estilo todavía</div>`;
+        ? `<div class="card-photo" data-img="${family.referenceImage}" data-title="${family.label}" data-desc="${(family.items[0] && family.items[0].description) || ""}">
+             <img src="${family.referenceImage}" alt="Foto de referencia: ${family.label}" loading="lazy" />
+             <span class="zoom-hint">${ZOOM_ICON_SVG} Ampliar</span>
+           </div>`
+        : `<div class="card-photo" style="cursor:default;"><div class="no-photo">No encontramos una foto de stock que representara bien este estilo todavía</div></div>`;
 
       const visible = family.items.slice(0, MAX_VISIBLE_PER_FAMILY);
       const rest = family.items.slice(MAX_VISIBLE_PER_FAMILY);
@@ -295,6 +447,48 @@
       lengthSelect.value = "";
       fadeSelect.value = "";
       applyFiltersAndRender();
+    });
+
+    // --- Lightbox / zoom -------------------------------------------------
+    const lightboxEl = document.getElementById("lightbox");
+    const lightboxImgEl = document.getElementById("lightbox-img");
+    const lightboxTitleEl = document.getElementById("lightbox-title");
+    const lightboxDescEl = document.getElementById("lightbox-desc");
+    const lightboxCloseEl = document.getElementById("lightbox-close");
+    let lastFocusedEl = null;
+
+    function openLightbox(src, title, desc) {
+      lightboxImgEl.src = src;
+      lightboxImgEl.alt = title || "";
+      lightboxTitleEl.textContent = title || "";
+      lightboxDescEl.textContent = desc || "";
+      lightboxEl.classList.add("open");
+      lightboxEl.setAttribute("aria-hidden", "false");
+      lastFocusedEl = document.activeElement;
+      lightboxCloseEl.focus();
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLightbox() {
+      lightboxEl.classList.remove("open");
+      lightboxEl.setAttribute("aria-hidden", "true");
+      lightboxImgEl.src = "";
+      document.body.style.overflow = "";
+      if (lastFocusedEl && lastFocusedEl.focus) lastFocusedEl.focus();
+    }
+
+    gridEl.addEventListener("click", (ev) => {
+      const photo = ev.target.closest(".card-photo[data-img]");
+      if (!photo) return;
+      openLightbox(photo.dataset.img, photo.dataset.title, photo.dataset.desc);
+    });
+
+    lightboxCloseEl.addEventListener("click", closeLightbox);
+    lightboxEl.addEventListener("click", (ev) => {
+      if (ev.target === lightboxEl) closeLightbox();
+    });
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && lightboxEl.classList.contains("open")) closeLightbox();
     });
 
     load();
