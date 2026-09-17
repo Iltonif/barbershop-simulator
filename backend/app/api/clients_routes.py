@@ -12,7 +12,9 @@ el consentimiento en el mostrador (de momento aquí solo se exige el flag
 pendiente, no solo técnica).
 """
 
-from fastapi import APIRouter, HTTPException
+import cv2
+import numpy as np
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.api.schemas import (
     ClientCreateIn,
@@ -25,12 +27,13 @@ from app.api.schemas import (
     StyleOut,
     StyleRecommendationOut,
     VisagismoAIReportOut,
+    VisagismoAutoAnalysisOut,
     VisagismoProfileIn,
     VisitOut,
 )
 from app.config import ANTHROPIC_MODEL
 from app.db import repository
-from app.pipeline import visagismo_ai_advisor
+from app.pipeline import facial_traits_analysis, visagismo_ai_advisor
 from app.pipeline.recommender import recommend_styles
 
 router = APIRouter()
@@ -118,6 +121,77 @@ def override_visagismo_profile(client_id: str, payload: VisagismoProfileIn):
     if client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return ClientOut(**client.__dict__)
+
+
+def _read_upload_as_bgr(upload: UploadFile, label: str) -> np.ndarray:
+    contents = upload.file.read()
+    image_array = np.frombuffer(contents, dtype=np.uint8)
+    image_bgr = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+    if image_bgr is None:
+        raise HTTPException(status_code=400, detail=f"No se pudo leer la foto de {label}")
+    return image_bgr
+
+
+@router.post("/clients/{client_id}/visagismo-auto-analysis", response_model=VisagismoAutoAnalysisOut)
+def override_visagismo_auto_analysis(
+    client_id: str,
+    photo_frontal: UploadFile = File(...),
+    photo_perfil_izquierdo: UploadFile = File(...),
+    photo_perfil_derecho: UploadFile = File(...),
+):
+    """Analiza automáticamente 3 fotos guiadas del cliente (frontal, perfil
+    izquierdo y perfil derecho) para rellenar `facial_features_profile`
+    dentro de `visagismo_profile` -- ver `app/pipeline/
+    facial_traits_analysis.py` para el detalle de qué se detecta (perfil
+    de nariz, proyección de orejas, separación de ojos, forma de cejas,
+    simetría ocular, uso de gafas) y sus limitaciones.
+
+    RGPD: las 3 fotos se procesan en memoria y NUNCA se guardan en disco
+    ni en la base de datos -- solo se guarda el resultado ya resumido en
+    categorías (igual que `POST /api/simulate`). Como el dato final que se
+    persiste es el mismo `visagismo_profile` que ya cubre `consent_history`
+    (misma finalidad de tratamiento que rellenarlo a mano vía `PATCH
+    .../visagismo-profile`), no hace falta ningún consentimiento adicional
+    a los que ya exige `create_client` -- a diferencia de `consent_save_photo`
+    (que sería para guardar la foto en sí, cosa que este endpoint no hace)
+    o `consent_ai_analysis` (que es solo para el informe que llama a la
+    API externa de Claude en `visagismo_ai_advisor.py`, no para este
+    análisis, que es 100% local).
+
+    Fusiona el resultado con lo que ya hubiera guardado el barbero (no lo
+    sustituye por completo, a diferencia de `PATCH .../visagismo-profile`):
+    un campo detectado automáticamente solo se escribe si el barbero no lo
+    había rellenado ya a mano, para no pisar una corrección manual previa
+    con una detección automática peor."""
+    client = repository.get_client(client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    frontal_bgr = _read_upload_as_bgr(photo_frontal, "frontal")
+    left_bgr = _read_upload_as_bgr(photo_perfil_izquierdo, "perfil izquierdo")
+    right_bgr = _read_upload_as_bgr(photo_perfil_derecho, "perfil derecho")
+
+    result = facial_traits_analysis.analyze_facial_traits(frontal_bgr, left_bgr, right_bgr)
+
+    existing_profile = dict(client.visagismo_profile or {})
+    existing_anatomical = dict(existing_profile.get("anatomical_metrics") or {})
+    existing_features = dict(existing_anatomical.get("facial_features_profile") or {})
+
+    # Solo se auto-rellenan los campos que el barbero no hubiera rellenado
+    # ya a mano (ver docstring de arriba).
+    for key, value in result.facial_features_profile.items():
+        existing_features.setdefault(key, value)
+
+    existing_anatomical["facial_features_profile"] = existing_features
+    existing_profile["anatomical_metrics"] = existing_anatomical
+
+    updated_client = repository.update_visagismo_profile(client_id, existing_profile)
+
+    return VisagismoAutoAnalysisOut(
+        client=ClientOut(**updated_client.__dict__),
+        warnings=result.warnings,
+        detected_anomalies_notes=result.detected_anomalies_notes,
+    )
 
 
 @router.post("/clients/{client_id}/visagismo-ai-report", response_model=VisagismoAIReportOut)

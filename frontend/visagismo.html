@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Análisis de visajismo</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  .form-card { max-width: 680px; padding: 24px 26px 30px; margin-bottom: 24px; }
+  #status { font-size: 14px; color: var(--text-dim); margin: 10px 0 20px; }
+  #search-section { max-width: 420px; margin-bottom: 20px; }
+  #search-section button { width: auto; padding: 10px 18px; }
+
+  fieldset { border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px 16px 18px; margin: 0 0 18px; }
+  legend { padding: 0 8px; font-size: 13px; font-weight: 700; color: var(--text-main); }
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .photo-slot label { margin-top: 0; }
+  .photo-hint { font-size: 12px; color: var(--text-faint); margin: -4px 0 8px; }
+  .photo-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; margin-top: 8px; display: none; }
+
+  #results-section { display: none; }
+  .anomaly-note { background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--text-main); margin-bottom: 14px; }
+  .warning-list { margin: 0 0 14px; padding-left: 18px; font-size: 12.5px; color: var(--warning); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-row > div { min-width: 0; }
+  @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="inicio.html">← Inicio</a>
+    <a id="growth-map-link" href="growth-map.html">Mapa de remolinos y dirección del pelo</a>
+    <a id="recomendaciones-link" href="recomendaciones.html">Recomendaciones</a>
+  </nav>
+  <h1 class="page-title">Análisis de visajismo</h1>
+  <p class="page-lead">
+    Rasgos faciales (nariz, ojos, orejas, cejas, simetría, gafas) para afinar las
+    recomendaciones de corte de este cliente. Puedes rellenarlos a mano o dejar que
+    el sistema los estime a partir de 3 fotos guiadas — siempre revisables después.
+  </p>
+
+  <div id="search-section" class="glass-card form-card">
+    <label for="client-name">Nombre del cliente</label>
+    <input type="text" id="client-name" placeholder="Ej: Pedro Gómez Martínez" />
+    <label class="checkbox-row">
+      <input type="checkbox" id="consent" />
+      <span>El cliente da su consentimiento para guardar estos datos en su ficha (dato biométrico)</span>
+    </label>
+    <button id="load-btn" type="button">Cargar / crear perfil</button>
+  </div>
+
+  <div id="status"></div>
+
+  <form id="analysis-form" class="glass-card form-card" style="display:none;">
+    <fieldset>
+      <legend>Análisis automático (opcional)</legend>
+      <p class="photo-hint">
+        3 fotos con buena luz. Los perfiles funcionan mejor con un giro de unos
+        3/4 (no un perfil puro a 90°): así el sistema puede seguir encontrando
+        los puntos de la cara. Las fotos se analizan al vuelo y no se guardan
+        en ningún sitio — solo se guarda el resultado ya resumido.
+      </p>
+      <div class="photo-grid">
+        <div class="photo-slot">
+          <label for="photo-frontal">Frontal</label>
+          <input type="file" id="photo-frontal" accept="image/*" capture="environment" />
+          <img class="photo-preview" id="preview-frontal" alt="" />
+        </div>
+        <div class="photo-slot">
+          <label for="photo-izq">Perfil izquierdo</label>
+          <input type="file" id="photo-izq" accept="image/*" capture="environment" />
+          <img class="photo-preview" id="preview-izq" alt="" />
+        </div>
+        <div class="photo-slot">
+          <label for="photo-dcha">Perfil derecho</label>
+          <input type="file" id="photo-dcha" accept="image/*" capture="environment" />
+          <img class="photo-preview" id="preview-dcha" alt="" />
+        </div>
+      </div>
+      <button id="analyze-btn" type="button" class="secondary" style="margin-top: 14px;">
+        Analizar fotos y rellenar campos
+      </button>
+    </fieldset>
+
+    <div id="results-section">
+      <div id="anomaly-note-box"></div>
+      <ul id="warning-list" class="warning-list"></ul>
+    </div>
+
+    <fieldset>
+      <legend>Nariz y perfil</legend>
+      <label for="profile-type">Perfil de nariz</label>
+      <select id="profile-type">
+        <option value="">Sin especificar</option>
+        <option value="straight">Recto</option>
+        <option value="convex_prominent_nose">Convexo / prominente</option>
+        <option value="concave">Cóncavo</option>
+      </select>
+    </fieldset>
+
+    <fieldset>
+      <legend>Ojos y cejas</legend>
+      <div class="field-row">
+        <div>
+          <label for="eye-spacing">Separación de ojos</label>
+          <select id="eye-spacing">
+            <option value="">Sin especificar</option>
+            <option value="close_set">Juntos</option>
+            <option value="proportional">Proporcional</option>
+            <option value="wide_set">Separados</option>
+          </select>
+        </div>
+        <div>
+          <label for="eyebrow-type">Forma de cejas</label>
+          <select id="eyebrow-type">
+            <option value="">Sin especificar</option>
+            <option value="straight_low">Recta / baja</option>
+            <option value="arched">Arqueada</option>
+            <option value="prominent_ridge">Arco superciliar marcado</option>
+          </select>
+        </div>
+      </div>
+      <label for="eye-symmetry">Simetría ocular</label>
+      <select id="eye-symmetry">
+        <option value="">Sin especificar</option>
+        <option value="symmetric">Simétrico</option>
+        <option value="asymmetric">Asimétrico (p.ej. un ojo más abierto que otro)</option>
+      </select>
+      <p class="hint" id="eye-symmetry-percent-hint"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Orejas, cuello y otros</legend>
+      <div class="field-row">
+        <div>
+          <label for="ears-projection">Proyección de orejas</label>
+          <select id="ears-projection">
+            <option value="">Sin especificar</option>
+            <option value="flat">Pegadas</option>
+            <option value="prominent_protruding">Prominentes / de soplillo</option>
+          </select>
+        </div>
+        <div>
+          <label for="neck-proportions">Proporciones de cuello</label>
+          <select id="neck-proportions">
+            <option value="">Sin especificar</option>
+            <option value="short_thick">Corto y grueso</option>
+            <option value="long_thin">Largo y fino</option>
+            <option value="proportional">Proporcional</option>
+          </select>
+        </div>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="has-glasses" />
+        <span>Usa gafas (solo informativo — no cambia las recomendaciones de corte)</span>
+      </label>
+      <label for="anomalies-notes">Otras irregularidades observadas</label>
+      <textarea id="anomalies-notes" rows="3" placeholder="Cualquier rasgo atípico que no encaje arriba (opcional)"></textarea>
+    </fieldset>
+
+    <button id="save-btn" type="submit">Guardar en la ficha del cliente</button>
+  </form>
+</div>
+
+  <script>
+    // Ruta relativa: ver nota igual en index.html/growth-map.html — el
+    // backend sirve este HTML como estático, así que /api siempre resuelve
+    // al mismo origen (localhost, IP local en la barbería o dominio real).
+    const API_BASE = "/api";
+
+    const statusEl = document.getElementById("status");
+    const analysisForm = document.getElementById("analysis-form");
+    const resultsSection = document.getElementById("results-section");
+    const anomalyNoteBox = document.getElementById("anomaly-note-box");
+    const warningListEl = document.getElementById("warning-list");
+    const growthMapLink = document.getElementById("growth-map-link");
+    const recomendacionesLink = document.getElementById("recomendaciones-link");
+
+    let currentClient = null;
+    // Perfil de visagismo completo tal como está guardado (para no perder
+    // hair_physical_metrics/lifestyle_and_preferences al hacer PATCH, ya
+    // que ese endpoint sustituye el perfil entero, no solo un campo).
+    let fullVisagismoProfile = {};
+
+    function wirePreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      input.addEventListener("change", () => {
+        if (!input.files[0]) { preview.style.display = "none"; return; }
+        preview.src = URL.createObjectURL(input.files[0]);
+        preview.style.display = "block";
+      });
+    }
+    wirePreview("photo-frontal", "preview-frontal");
+    wirePreview("photo-izq", "preview-izq");
+    wirePreview("photo-dcha", "preview-dcha");
+
+    function fillFormFromFeatures(features) {
+      const f = features || {};
+      document.getElementById("profile-type").value = f.profile_type || "";
+      document.getElementById("eye-spacing").value = f.eye_spacing || "";
+      document.getElementById("eyebrow-type").value = f.eyebrow_type || "";
+      document.getElementById("eye-symmetry").value = f.eye_symmetry || "";
+      document.getElementById("ears-projection").value = f.ears_projection || "";
+      document.getElementById("neck-proportions").value = f.neck_proportions || "";
+      document.getElementById("has-glasses").checked = !!f.has_glasses;
+      document.getElementById("anomalies-notes").value = f.detected_anomalies_notes || "";
+
+      const percentHint = document.getElementById("eye-symmetry-percent-hint");
+      percentHint.textContent = (f.eye_symmetry_percent !== undefined && f.eye_symmetry_percent !== null)
+        ? `Diferencia de apertura medida entre ambos ojos: ${f.eye_symmetry_percent}%`
+        : "";
+    }
+
+    function applyClientToPage(client) {
+      currentClient = client;
+      fullVisagismoProfile = client.visagismo_profile || {};
+      const features = ((fullVisagismoProfile.anatomical_metrics || {}).facial_features_profile) || {};
+      fillFormFromFeatures(features);
+      analysisForm.style.display = "block";
+      growthMapLink.href = `growth-map.html?client_id=${encodeURIComponent(client.id)}`;
+      recomendacionesLink.href = `recomendaciones.html?client_id=${encodeURIComponent(client.id)}`;
+    }
+
+    async function loadClientFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const clientId = params.get("client_id");
+      if (!clientId) return;
+      statusEl.textContent = "Cargando perfil...";
+      try {
+        const res = await fetch(`${API_BASE}/clients/${clientId}`);
+        if (!res.ok) {
+          statusEl.innerHTML = '<span class="warning">No se encontró el cliente indicado en el enlace.</span>';
+          return;
+        }
+        const client = await res.json();
+        document.getElementById("consent").checked = true;
+        if (client.display_name) document.getElementById("client-name").value = client.display_name;
+        applyClientToPage(client);
+        statusEl.innerHTML = `<span class="ok">Perfil de ${client.display_name || "cliente"} cargado.</span>`;
+      } catch (e) {
+        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+      }
+    }
+
+    document.getElementById("load-btn").addEventListener("click", async () => {
+      const name = document.getElementById("client-name").value.trim();
+      const consent = document.getElementById("consent").checked;
+      if (!name) { statusEl.innerHTML = '<span class="warning">Escribe el nombre del cliente.</span>'; return; }
+      if (!consent) { statusEl.innerHTML = '<span class="warning">Marca la casilla de consentimiento antes de continuar.</span>'; return; }
+
+      statusEl.textContent = "Buscando...";
+      try {
+        const listRes = await fetch(`${API_BASE}/clients`);
+        const clients = await listRes.json();
+        let match = clients.find((c) => (c.display_name || "").trim().toLowerCase() === name.toLowerCase());
+
+        if (!match) {
+          const createRes = await fetch(`${API_BASE}/clients`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ display_name: name, consent_history: true }),
+          });
+          if (!createRes.ok) {
+            const err = await createRes.json();
+            statusEl.innerHTML = `<span class="warning">No se pudo crear el perfil: ${err.detail || createRes.statusText}</span>`;
+            return;
+          }
+          match = await createRes.json();
+        }
+        applyClientToPage(match);
+        statusEl.innerHTML = `<span class="ok">Perfil listo.</span>`;
+      } catch (e) {
+        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+      }
+    });
+
+    document.getElementById("analyze-btn").addEventListener("click", async () => {
+      if (!currentClient) return;
+      const frontal = document.getElementById("photo-frontal").files[0];
+      const izq = document.getElementById("photo-izq").files[0];
+      const dcha = document.getElementById("photo-dcha").files[0];
+      if (!frontal || !izq || !dcha) {
+        statusEl.innerHTML = '<span class="warning">Sube las 3 fotos (frontal + ambos perfiles) para analizar.</span>';
+        return;
+      }
+
+      statusEl.textContent = "Analizando fotos...";
+      resultsSection.style.display = "none";
+      const formData = new FormData();
+      formData.append("photo_frontal", frontal);
+      formData.append("photo_perfil_izquierdo", izq);
+      formData.append("photo_perfil_derecho", dcha);
+
+      try {
+        const res = await fetch(`${API_BASE}/clients/${currentClient.id}/visagismo-auto-analysis`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          statusEl.innerHTML = `<span class="warning">Error: ${err.detail || res.statusText}</span>`;
+          return;
+        }
+        const data = await res.json();
+        applyClientToPage(data.client);
+
+        anomalyNoteBox.innerHTML = data.detected_anomalies_notes
+          ? `<div class="anomaly-note">⚠️ ${data.detected_anomalies_notes}</div>`
+          : "";
+        warningListEl.innerHTML = (data.warnings || []).map((w) => `<li>${w}</li>`).join("");
+        resultsSection.style.display = (data.detected_anomalies_notes || (data.warnings || []).length) ? "block" : "none";
+
+        statusEl.innerHTML = '<span class="ok">Análisis completado. Revisa los campos de abajo antes de guardar.</span>';
+      } catch (e) {
+        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+      }
+    });
+
+    analysisForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!currentClient) return;
+
+      // Se manda el perfil de visagismo COMPLETO (el endpoint lo sustituye
+      // entero), fusionando solo la sección de rasgos faciales con lo que
+      // ya hubiera guardado (hair_physical_metrics/lifestyle no se tocan
+      // desde esta pantalla).
+      const merged = JSON.parse(JSON.stringify(fullVisagismoProfile));
+      merged.anatomical_metrics = merged.anatomical_metrics || {};
+      merged.anatomical_metrics.facial_features_profile = {
+        profile_type: document.getElementById("profile-type").value || null,
+        eye_spacing: document.getElementById("eye-spacing").value || null,
+        eyebrow_type: document.getElementById("eyebrow-type").value || null,
+        eye_symmetry: document.getElementById("eye-symmetry").value || null,
+        ears_projection: document.getElementById("ears-projection").value || null,
+        neck_proportions: document.getElementById("neck-proportions").value || null,
+        has_glasses: document.getElementById("has-glasses").checked,
+        detected_anomalies_notes: document.getElementById("anomalies-notes").value || null,
+      };
+
+      statusEl.textContent = "Guardando...";
+      try {
+        const res = await fetch(`${API_BASE}/clients/${currentClient.id}/visagismo-profile`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(merged),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          statusEl.innerHTML = `<span class="warning">No se pudo guardar: ${err.detail || res.statusText}</span>`;
+          return;
+        }
+        const client = await res.json();
+        applyClientToPage(client);
+        statusEl.innerHTML = '<span class="ok">Guardado en la ficha del cliente.</span>';
+      } catch (e) {
+        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+      }
+    });
+
+    loadClientFromUrl();
+  </script>
+</body>
+</html>

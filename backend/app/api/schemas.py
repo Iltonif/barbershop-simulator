@@ -80,6 +80,16 @@ class FacialFeaturesProfileIn(BaseModel):
     neck_proportions: str | None = None  # "short_thick" | "long_thin" | "proportional"
     eye_spacing: str | None = None  # "close_set" | "proportional" | "wide_set"
     eyebrow_type: str | None = None  # "straight_low" | "arched" | "prominent_ridge"
+    # Campos añadidos para el análisis automático de rasgos faciales (ver
+    # `app/pipeline/facial_traits_analysis.py`), pero también rellenables
+    # a mano igual que el resto de este esquema.
+    eye_symmetry: str | None = None  # "symmetric" | "asymmetric"
+    eye_symmetry_percent: float | None = None  # diferencia de apertura entre ojos, 0-100
+    has_glasses: bool | None = None  # solo informativo (no afecta a las reglas de recomendación)
+    # Cualquier irregularidad que no encaje en un campo estructurado de
+    # arriba (p.ej. una cicatriz, una asimetría de nariz/orejas puntual):
+    # texto libre en vez de intentar catalogar cada caso posible.
+    detected_anomalies_notes: str | None = None
 
 
 class AnatomicalMetricsIn(BaseModel):
@@ -241,3 +251,22 @@ class VisagismoAIReportOut(BaseModel):
     client_id: str
     model: str
     report: str
+
+
+class VisagismoAutoAnalysisOut(BaseModel):
+    """Respuesta de `POST /api/clients/{id}/visagismo-auto-analysis`: el
+    resultado de analizar las 3 fotos guiadas (frontal + perfil izq. +
+    perfil dcha.) con `app/pipeline/facial_traits_analysis.py`, ya
+    fusionado y guardado en el `visagismo_profile` del cliente (por eso
+    se devuelve el `ClientOut` completo, igual que el resto de endpoints
+    `.../visagismo-profile` y `.../growth-map`).
+
+    `warnings` recoge lo que NO se ha podido detectar (p.ej. una foto sin
+    cara reconocible) para que el barbero sepa qué campos conviene
+    revisar/rellenar a mano. `detected_anomalies_notes` es el resumen en
+    texto de asimetrías detectadas (con su porcentaje), pensado para
+    mostrarse tal cual en la ficha del cliente."""
+
+    client: ClientOut
+    warnings: list[str] = []
+    detected_anomalies_notes: str | None = None

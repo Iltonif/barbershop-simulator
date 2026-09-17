@@ -153,6 +153,107 @@ Pendiente: no hay UI en el frontend todavía para rellenar este perfil
 (igual que el resto de `clients_routes.py`, ver nota al final de la
 sección anterior), solo API.
 
+## Análisis automático de rasgos faciales (`app/pipeline/facial_traits_analysis.py`)
+
+Capa que rellena automáticamente `facial_features_profile` (dentro de
+`anatomical_metrics` en `visagismo_profile`, ver sección anterior) a
+partir de 3 fotos guiadas del cliente -- frontal, perfil izquierdo y
+perfil derecho -- en vez de depender solo de que el barbero rellene esos
+campos a mano. Endpoint: `POST /api/clients/{id}/visagismo-auto-analysis`
+(multipart con 3 ficheros: `photo_frontal`, `photo_perfil_izquierdo`,
+`photo_perfil_derecho`). Frontend: `frontend/visagismo.html` (enlazado
+desde `inicio.html` → "Análisis de visajismo" y desde el nav de
+`growth-map.html`).
+
+Origen: petición de Pedro de mejorar el análisis de visajismo con rasgos
+de nariz, ojos, orejas, asimetrías ("un ojo más abierto que otro") y
+gafas -- resuelta, tras dos rondas de preguntas, como detección
+automática (no solo campos manuales) a partir de 3 fotos (sin vídeo),
+asimetría expresada como porcentaje, gafas como dato meramente
+informativo (no afecta a `visagismo_rules.py`), y RGPD "procesar y
+descartar, igual que ahora" (mismo criterio que el resto del perfil, sin
+consentimiento nuevo).
+
+**Qué se detecta y cómo, reutilizando SOLO piezas ya existentes del
+pipeline (cero dependencias/modelos nuevos)**:
+- `face_analysis.analyze_face()` (68 landmarks dlib/iBUG, ya usado en el
+  resto del pipeline) da `eye_spacing` (separación de ojos por
+  proporción respecto al ancho de ojo), `eyebrow_type` (recta/arqueada
+  por curvatura 2D; solo se rellena si ambas cejas coinciden), y
+  `profile_type` (perfil de nariz recto/convexo/cóncavo, heurística de
+  desviación de la punta de nariz respecto a la línea entrecejo-mentón,
+  normalizada con el labio superior como referencia de orientación para
+  que dé el mismo resultado mirando el perfil izquierdo o el derecho).
+- `eye_symmetry` + `eye_symmetry_percent`: diferencia porcentual del EAR
+  (Eye Aspect Ratio, misma fórmula estándar de apertura ocular) entre
+  ambos ojos en la foto frontal -- es el "% de simetría/anomalías" que
+  pidió Pedro. Por encima de un umbral (15%, sin calibrar contra dataset
+  real todavía) se marca `asymmetric` y se genera una nota en
+  `detected_anomalies_notes` (p.ej. "el ojo derecho está
+  aproximadamente un 18% más abierto que el otro").
+- `ears_projection` (`prominent_protruding`/`flat`) y `has_glasses`:
+  **reutilizan el modelo BiSeNet** (`hair_segmentation.segment_face_parts`,
+  MIT, ya vendorizado para segmentar el pelo) en vez de un modelo nuevo.
+  Ese modelo ya clasifica 19 clases estilo CelebAMask-HQ, incluyendo
+  `l_ear`/`r_ear`/`eye_g` (gafas) -- clases que ya existían en su salida
+  pero que ningún otro módulo consumía todavía. Se evaluó explícitamente
+  si merecía la pena un detector de orejas nuevo y dedicado (fue la
+  opción elegida por Pedro entre las alternativas que se le plantearon);
+  no se encontró ningún modelo de orejas maduro y con licencia permisiva
+  de uso comercial, así que se usa la segmentación de BiSeNet ya
+  integrada -- es real y "dedicada" en el sentido de que segmenta la
+  oreja explícitamente (no es un truco), simplemente no es un modelo
+  nuevo. La proyección se calcula como proporción entre el ancho de la
+  máscara de oreja y el ancho de la máscara de piel en la misma foto de
+  perfil (proxy razonable, no una medición en milímetros). `has_glasses`
+  es solo informativo: se guarda y se muestra en el informe de IA (ver
+  siguiente sección) pero **no** se usa en `visagismo_rules.py`, tal
+  como pidió Pedro.
+
+**Fusión, no sustitución**: el endpoint solo rellena con `.setdefault()`
+los campos que el barbero no hubiera puesto ya a mano en
+`facial_features_profile` -- una detección automática nunca pisa una
+corrección manual previa. Esto es distinto de `PATCH
+.../visagismo-profile`, que siempre sustituye el perfil completo.
+
+**RGPD**: las 3 fotos se procesan en memoria dentro del propio endpoint y
+se descartan justo después de extraer las categorías -- nunca se guardan
+en disco ni en la base de datos, igual que ya hace `POST /api/simulate`
+con la foto de simulación. Como el dato final persistido es el mismo
+`visagismo_profile` que ya cubre `consent_history`, no hace falta ningún
+consentimiento nuevo (a diferencia de `consent_save_photo`, que sería
+para guardar la foto en sí -- cosa que este endpoint no hace -- o
+`consent_ai_analysis`, que es solo para la llamada externa a la API de
+Claude en `visagismo_ai_advisor.py`, no para este análisis 100% local).
+
+Limitaciones honestas (documentadas también en el docstring del módulo):
+heurísticas geométricas 2D sin calibrar contra un dataset real (umbrales
+elegidos por criterio razonable); el modelo de landmarks puede no
+detectar cara en un perfil muy cerrado (90°) -- se pide un giro de 3/4,
+no perfil puro, y cada foto que falla se reporta como aviso sin romper
+el resto del análisis; sin los pesos de BiSeNet descargados (ver
+`python -m app.pipeline.download_weights` en la sección de roadmap),
+orejas y gafas se omiten con un aviso pero el resto del análisis sigue
+funcionando.
+
+Tests: `backend/tests/test_facial_traits_analysis.py` (stdlib
+`unittest`, mismo criterio que el resto del repo -- sin dependencia
+nueva). Cubre EAR, tipo de ceja, separación de ojos y perfil de nariz
+(incluyendo un test de regresión específico para el bug de orientación
+que se detectó y arregló durante el desarrollo: el signo bruto de la
+desviación de la nariz daba una clasificación opuesta según el lado del
+perfil fotografiado). No cubre orejas/gafas directamente porque
+necesitan los pesos de BiSeNet -- mismo motivo por el que el resto del
+repo tampoco testea ese modelo directamente.
+
+Pendiente / no cubierto a propósito en `frontend/visagismo.html`: la
+página nueva solo cubre `facial_features_profile` (los campos de esta
+sección) -- `hair_physical_metrics`, `lifestyle_and_preferences`,
+`cranial_morphology` y `facial_geometry` del resto de
+`visagismo_profile` siguen sin tener UI dedicada (mismo estado "solo
+API" que ya tenían antes de esta feature, ver nota al final de la
+sección de reglas de visagismo).
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de
