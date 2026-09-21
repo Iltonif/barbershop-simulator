@@ -4,8 +4,8 @@ el perfil de visagismo del cliente.
 
 Motivación (petición de Pedro): al registrar el perfil de un cliente,
 detectar automáticamente rasgos como perfil de nariz, proyección de
-orejas, separación de ojos, forma de cejas, asimetrías (p. ej. "un ojo
-más abierto que el otro") y uso de gafas -- en vez de depender solo de
+orejas, separación de ojos, asimetrías (p. ej. "un ojo más abierto que
+el otro") y uso de gafas -- en vez de depender solo de
 que el barbero los rellene a mano en `FacialFeaturesProfileIn`
 (`app/api/schemas.py`).
 
@@ -19,7 +19,8 @@ detectadas con sus porcentajes.
 Reutiliza dos piezas YA existentes del pipeline, sin añadir ninguna
 dependencia ni modelo nuevo:
 - `face_analysis.analyze_face()` (68 landmarks, esquema dlib/iBUG) para
-  ojos, cejas y una aproximación del perfil de nariz.
+  ojos y una aproximación del perfil de nariz. (La forma de las cejas se
+  probó y se descartó: ver el comentario junto a `_frontal_turn`.)
 - `hair_segmentation.segment_face_parts()` (BiSeNet, licencia MIT, ya
   vendorizado para segmentar el pelo) para orejas y gafas: ese mismo
   modelo ya clasifica las clases "l_ear"/"r_ear"/"eye_g" como parte de
@@ -40,6 +41,9 @@ documenta sus propias aproximaciones):
   cerrado (90°) -- por eso se pide al barbero un perfil "de 3/4", no un
   perfil puro, y cada foto que falla se reporta como aviso en vez de
   romper el análisis completo.
+- Los umbrales de la foto frontal están calibrados con 61 fotos reales
+  (ver comentarios junto a las constantes y CLAUDE.md); los de las fotos
+  de perfil (nariz, orejas) todavía no.
 - La clasificación de perfil de nariz (convexo/cóncavo/recto) es una
   heurística geométrica 2D (desviación de la punta de la nariz respecto
   a la línea entrecejo-mentón), no una medición profilométrica real.
@@ -63,20 +67,50 @@ from app.pipeline import face_analysis, hair_segmentation
 # acoplar este módulo a detalles internos de `face_analysis.py`.
 _RIGHT_EYE = list(range(36, 42))
 _LEFT_EYE = list(range(42, 48))
-_RIGHT_EYEBROW = list(range(17, 22))
-_LEFT_EYEBROW = list(range(22, 27))
 
 _SKIN_CLASS = 1
 _EYE_GLASSES_CLASS = 6
 _L_EAR_CLASS = 7
 _R_EAR_CLASS = 8
 
-# Umbrales de las heurísticas de abajo. Elegidos por criterio razonable,
-# no calibrados contra un dataset real todavía -- si en el uso real dan
-# demasiados falsos positivos/negativos, son el primer sitio a ajustar.
-_EYE_ASYMMETRY_THRESHOLD_PERCENT = 15.0
+# --- Umbrales de la foto frontal: CALIBRADOS con fotos reales ---
+# Medidos ejecutando este mismo pipeline (Haar + LBF + BiSeNet) sobre 61
+# fotos frontales de un conjunto público de pruebas, varias de ellas de la
+# misma persona (lo que permite separar el ruido de medición de la
+# variación real entre personas). Detalle de cada decisión en CLAUDE.md,
+# sección "Calibración de umbrales".
+#
+# Simetría ocular: en caras normales la diferencia de EAR llega hasta ~15%
+# solo por expresión, pose y ruido de landmarks (p95 = 10%, máximo 15,1%).
+# Con el 15% anterior se marcaba "asimétrica" a gente que no lo es. El 20%
+# deja margen sobre ese máximo y coincide aproximadamente con la diferencia
+# que ya se aprecia a simple vista (~2 mm sobre una apertura de ~10 mm).
+_EYE_ASYMMETRY_THRESHOLD_PERCENT = 20.0
+# Giro de cabeza = desplazamiento horizontal de la punta de la nariz
+# respecto al punto medio entre los ojos, dividido por la distancia entre
+# ojos. Era el principal causante de falsas asimetrías (correlación 0,46):
+# con la cara girada, el ojo lejano sale escorzado y parece "más cerrado".
+# Por encima de este valor no se mide simetría ni separación de ojos y se
+# pide repetir la foto. En fotos frontales normales la mediana es 0,04.
+_MAX_FRONTAL_TURN = 0.15
+# Separación de ojos: distancia intercantal (entre lagrimales) dividida por
+# el ancho de la cara. La fórmula anterior (entre ancho de ojo) daba 0/61
+# "juntos" y 10/61 "separados" y apenas distinguía entre personas: la
+# misma persona variaba casi tanto como dos personas distintas. Esta es
+# algo más estable, pero sigue siendo ruidosa, así que solo se clasifica
+# como juntos/separados en valores claramente extremos (rango observado en
+# caras normales: 0,222-0,292).
+_CLOSE_SET_MAX_RATIO = 0.215
+_WIDE_SET_MIN_RATIO = 0.300
+# Gafas: píxeles de gafas / píxeles de piel (no / imagen entera, que
+# dependía de lo cerca que estuviera la cámara). Con gafas: 0,21-0,22;
+# sin gafas: como mucho 0,003. Margen amplio a ambos lados.
+_GLASSES_MIN_SKIN_RATIO = 0.05
+
+# --- Umbrales de las fotos de perfil: SIN calibrar todavía ---
+# Pendiente de validarlos con fotos de perfil reales (no había ninguna
+# disponible en el conjunto usado para calibrar la foto frontal).
 _EAR_PROJECTION_RATIO_THRESHOLD = 0.16
-_GLASSES_MIN_COVERAGE_RATIO = 0.004
 _NOSE_CONVEXITY_THRESHOLD = 0.03  # proporción del alto de cara
 
 
@@ -103,73 +137,62 @@ def _eye_aspect_ratio(points: np.ndarray, eye_indices: list[int]) -> float:
     return vertical / horizontal
 
 
-def _eyebrow_type(points: np.ndarray, eyebrow_indices: list[int]) -> str:
-    """Clasificación aproximada según la curvatura de la ceja: compara la
-    altura del punto central con la línea entre sus dos extremos.
+# Forma de cejas: deliberadamente NO se detecta automáticamente. Se probó
+# (curvatura de los 5 puntos de ceja del modelo LBF) y, al comparar con
+# las fotos, el resultado iba al revés de lo que ve una persona: las cejas
+# depiladas y muy arqueadas salían "rectas" y las cejas gruesas y planas
+# salían "arqueadas". Los 5 puntos siguen una plantilla que no reproduce
+# bien dónde está el pico real de la ceja. Ningún umbral arregla eso, así
+# que `eyebrow_type` se queda como campo manual del barbero.
 
-    Solo distingue "recta/baja" de "arqueada" -- "prominent_ridge" (arco
-    superciliar marcado, cuestión de hueso, no de forma 2D de la ceja) no
-    se puede inferir de forma fiable con estos landmarks, así que esa
-    categoría se deja para que el barbero la confirme a mano."""
-    pts = points[eyebrow_indices]
-    start, mid, end = pts[0], pts[len(pts) // 2], pts[-1]
-    baseline_y = (start[1] + end[1]) / 2
-    arch_height = baseline_y - mid[1]  # positivo si el centro está más arriba
-    eyebrow_width = max(_dist(start, end), 1e-6)
-    if (arch_height / eyebrow_width) > 0.08:
-        return "arched"
-    return "straight_low"
+
+def _frontal_turn(points: np.ndarray) -> float:
+    """Giro horizontal aproximado de la cabeza en la foto frontal:
+    desplazamiento de la punta de la nariz (30) respecto al punto medio
+    entre los centros de los ojos, en unidades de distancia entre ojos.
+    0 = mirando de frente. Independiente de la resolución de la foto (a
+    diferencia de `FaceAnalysisResult.yaw`, que divide por el ancho de la
+    imagen)."""
+    right_center = points[_RIGHT_EYE].mean(axis=0)
+    left_center = points[_LEFT_EYE].mean(axis=0)
+    interocular = max(_dist(right_center, left_center), 1e-6)
+    eyes_mid_x = (right_center[0] + left_center[0]) / 2
+    return float(abs(points[30][0] - eyes_mid_x) / interocular)
 
 
 def _eye_spacing(points: np.ndarray) -> str:
-    right_inner, left_inner = points[39], points[42]
-    right_width = _dist(points[36], points[39])
-    left_width = _dist(points[42], points[45])
-    avg_eye_width = max((right_width + left_width) / 2, 1e-6)
-    inner_gap = _dist(right_inner, left_inner)
-    ratio = inner_gap / avg_eye_width
-    if ratio < 0.9:
+    """Distancia intercantal (entre lagrimales, 39-42) / ancho de cara
+    (extremos de la mandíbula, 0-16). Ver umbrales arriba."""
+    face_width = max(_dist(points[0], points[16]), 1e-6)
+    ratio = _dist(points[39], points[42]) / face_width
+    if ratio < _CLOSE_SET_MAX_RATIO:
         return "close_set"
-    if ratio > 1.5:
+    if ratio > _WIDE_SET_MIN_RATIO:
         return "wide_set"
     return "proportional"
 
 
-def _analyze_frontal(image_bgr: np.ndarray, result: FacialTraitsResult) -> None:
-    face = face_analysis.analyze_face(image_bgr)
-    if face is None:
-        result.warnings.append(
-            "No se detectó ninguna cara en la foto frontal: separación de "
-            "ojos, forma de cejas, simetría ocular y gafas no se han "
-            "podido analizar."
-        )
-        return
+def _has_glasses(parsing: np.ndarray) -> bool:
+    """`parsing` = mapa de clases de BiSeNet. Proporción de píxeles de
+    gafas respecto a los de piel (ver `_GLASSES_MIN_SKIN_RATIO`)."""
+    skin_px = int(np.count_nonzero(parsing == _SKIN_CLASS))
+    if skin_px == 0:
+        return False
+    glasses_px = int(np.count_nonzero(parsing == _EYE_GLASSES_CLASS))
+    return glasses_px / skin_px >= _GLASSES_MIN_SKIN_RATIO
 
-    points = face.landmarks
+
+def _measure_eye_symmetry(points: np.ndarray, result: FacialTraitsResult) -> None:
     profile = result.facial_features_profile
-
-    profile["eye_spacing"] = _eye_spacing(points)
-
-    right_eyebrow = _eyebrow_type(points, _RIGHT_EYEBROW)
-    left_eyebrow = _eyebrow_type(points, _LEFT_EYEBROW)
-    # Si ambas cejas coinciden, se guarda esa categoría; si difieren, se
-    # deja sin auto-rellenar (mejor pedir al barbero que lo confirme que
-    # forzar una de las dos).
-    if right_eyebrow == left_eyebrow:
-        profile["eyebrow_type"] = right_eyebrow
-
     ear_right = _eye_aspect_ratio(points, _RIGHT_EYE)
     ear_left = _eye_aspect_ratio(points, _LEFT_EYE)
     bigger = max(ear_right, ear_left)
-    if bigger > 1e-6:
-        diff_percent = abs(ear_right - ear_left) / bigger * 100
-    else:
-        diff_percent = 0.0
+    diff_percent = abs(ear_right - ear_left) / bigger * 100 if bigger > 1e-6 else 0.0
 
+    profile["eye_symmetry_percent"] = round(diff_percent, 1)
     if diff_percent >= _EYE_ASYMMETRY_THRESHOLD_PERCENT:
         more_open = "derecho" if ear_right > ear_left else "izquierdo"
         profile["eye_symmetry"] = "asymmetric"
-        profile["eye_symmetry_percent"] = round(diff_percent, 1)
         result.detected_anomalies_notes = (
             f"Asimetría ocular detectada: el ojo {more_open} está "
             f"aproximadamente un {diff_percent:.0f}% más abierto que el otro "
@@ -177,15 +200,41 @@ def _analyze_frontal(image_bgr: np.ndarray, result: FacialTraitsResult) -> None:
         )
     else:
         profile["eye_symmetry"] = "symmetric"
-        profile["eye_symmetry_percent"] = round(diff_percent, 1)
+
+
+def _analyze_frontal(image_bgr: np.ndarray, result: FacialTraitsResult) -> None:
+    face = face_analysis.analyze_face(image_bgr)
+    if face is None:
+        result.warnings.append(
+            "No se detectó ninguna cara en la foto frontal: separación de "
+            "ojos, simetría ocular y gafas no se han podido analizar."
+        )
+        return
+
+    points = face.landmarks
+    profile = result.facial_features_profile
+
+    # Con la cabeza girada, el ojo lejano sale escorzado: parece más
+    # cerrado y más cerca del otro. Medir simetría o separación así da
+    # falsos positivos (ver `_MAX_FRONTAL_TURN`), así que se omiten y se
+    # pide repetir la foto. Las gafas sí se siguen comprobando.
+    turn = _frontal_turn(points)
+    if turn > _MAX_FRONTAL_TURN:
+        result.warnings.append(
+            "La foto frontal tiene la cabeza algo girada: no se han medido "
+            "la simetría ocular ni la separación de ojos para no dar un "
+            "resultado falso. Repite la foto con el cliente mirando "
+            "directamente a la cámara."
+        )
+    else:
+        profile["eye_spacing"] = _eye_spacing(points)
+        _measure_eye_symmetry(points, result)
 
     # Gafas: clase "eye_g" de la segmentación BiSeNet ya vendorizada para
     # el pelo (ver docstring del módulo) -- no es un modelo nuevo.
     try:
         parsing = hair_segmentation.segment_face_parts(image_bgr)
-        glasses_mask = parsing == _EYE_GLASSES_CLASS
-        coverage = hair_segmentation.mask_coverage_ratio(glasses_mask)
-        profile["has_glasses"] = coverage >= _GLASSES_MIN_COVERAGE_RATIO
+        profile["has_glasses"] = _has_glasses(parsing)
     except FileNotFoundError:
         # Pesos de BiSeNet no descargados en este despliegue -- no bloquea
         # el resto del análisis, solo se omite el dato de gafas.

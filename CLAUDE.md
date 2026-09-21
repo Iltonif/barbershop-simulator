@@ -177,9 +177,8 @@ consentimiento nuevo).
 **Qué se detecta y cómo, reutilizando SOLO piezas ya existentes del
 pipeline (cero dependencias/modelos nuevos)**:
 - `face_analysis.analyze_face()` (68 landmarks dlib/iBUG, ya usado en el
-  resto del pipeline) da `eye_spacing` (separación de ojos por
-  proporción respecto al ancho de ojo), `eyebrow_type` (recta/arqueada
-  por curvatura 2D; solo se rellena si ambas cejas coinciden), y
+  resto del pipeline) da `eye_spacing` (distancia entre lagrimales /
+  ancho de cara, ver calibración más abajo) y
   `profile_type` (perfil de nariz recto/convexo/cóncavo, heurística de
   desviación de la punta de nariz respecto a la línea entrecejo-mentón,
   normalizada con el labio superior como referencia de orientación para
@@ -187,10 +186,13 @@ pipeline (cero dependencias/modelos nuevos)**:
 - `eye_symmetry` + `eye_symmetry_percent`: diferencia porcentual del EAR
   (Eye Aspect Ratio, misma fórmula estándar de apertura ocular) entre
   ambos ojos en la foto frontal -- es el "% de simetría/anomalías" que
-  pidió Pedro. Por encima de un umbral (15%, sin calibrar contra dataset
-  real todavía) se marca `asymmetric` y se genera una nota en
-  `detected_anomalies_notes` (p.ej. "el ojo derecho está
-  aproximadamente un 18% más abierto que el otro").
+  pidió Pedro. Por encima del 20% (calibrado, ver más abajo) se marca
+  `asymmetric` y se genera una nota en `detected_anomalies_notes` (p.ej.
+  "el ojo derecho está aproximadamente un 24% más abierto que el
+  otro"). Si la cabeza sale girada en la foto frontal, no se mide y se
+  pide repetir la foto.
+- `eyebrow_type` NO se rellena automáticamente (se probó y se descartó,
+  ver calibración más abajo): sigue siendo un campo manual del barbero.
 - `ears_projection` (`prominent_protruding`/`flat`) y `has_glasses`:
   **reutilizan el modelo BiSeNet** (`hair_segmentation.segment_face_parts`,
   MIT, ya vendorizado para segmentar el pelo) en vez de un modelo nuevo.
@@ -227,8 +229,9 @@ para guardar la foto en sí -- cosa que este endpoint no hace -- o
 Claude en `visagismo_ai_advisor.py`, no para este análisis 100% local).
 
 Limitaciones honestas (documentadas también en el docstring del módulo):
-heurísticas geométricas 2D sin calibrar contra un dataset real (umbrales
-elegidos por criterio razonable); el modelo de landmarks puede no
+heurísticas geométricas 2D; los umbrales de la foto frontal están
+calibrados con fotos reales (ver subsección siguiente), los de las fotos
+de perfil (nariz, orejas) todavía no; el modelo de landmarks puede no
 detectar cara en un perfil muy cerrado (90°) -- se pide un giro de 3/4,
 no perfil puro, y cada foto que falla se reporta como aviso sin romper
 el resto del análisis; sin los pesos de BiSeNet descargados (ver
@@ -238,13 +241,55 @@ funcionando.
 
 Tests: `backend/tests/test_facial_traits_analysis.py` (stdlib
 `unittest`, mismo criterio que el resto del repo -- sin dependencia
-nueva). Cubre EAR, tipo de ceja, separación de ojos y perfil de nariz
-(incluyendo un test de regresión específico para el bug de orientación
-que se detectó y arregló durante el desarrollo: el signo bruto de la
-desviación de la nariz daba una clasificación opuesta según el lado del
-perfil fotografiado). No cubre orejas/gafas directamente porque
-necesitan los pesos de BiSeNet -- mismo motivo por el que el resto del
-repo tampoco testea ese modelo directamente.
+nueva). Cubre EAR, simetría ocular (incluido un caso del 18% que con el
+umbral antiguo salía como asimetría), la guarda de cabeza girada,
+separación de ojos, gafas (con mapas de segmentación sintéticos, sin
+cargar BiSeNet) y perfil de nariz (incluyendo un test de regresión
+específico para el bug de orientación que se detectó y arregló durante
+el desarrollo: el signo bruto de la desviación de la nariz daba una
+clasificación opuesta según el lado del perfil fotografiado). La
+proyección de orejas no tiene test todavía.
+
+### Calibración de umbrales (sept 2026)
+
+Los umbrales originales se habían puesto "a ojo". Se calibraron los de
+la foto frontal ejecutando el pipeline real (Haar + LBF + BiSeNet, el
+mismo código que en producción) sobre 61 fotos frontales de un conjunto
+público de pruebas (`tests/unit/dataset` del proyecto open source
+`serengil/deepface`, solo para medir; no se ha guardado ninguna foto en
+este repo). Varias fotos son de la misma persona, lo que permitió
+separar el ruido de la medición (misma persona, distinta foto) de la
+diferencia real entre personas -- una métrica solo sirve si lo segundo
+es claramente mayor que lo primero. Además de mirar los números se
+revisaron las fotos a mano, que es lo que destapó el problema de las
+cejas.
+
+| Rasgo | Antes | Después | Por qué |
+|---|---|---|---|
+| Simetría ocular | ≥15% | ≥20%, y no se mide si la cabeza está girada (giro > 0,15) | En caras normales la diferencia llega al 15% solo por expresión, pose y ruido (p95 = 10%). El giro de cabeza era la causa principal (correlación 0,46): el ojo lejano sale escorzado. Con el 15%, 1 de 61 caras normales salía "asimétrica"; ahora 0. |
+| Separación de ojos | intercantal / ancho de ojo, <0,9 o >1,5 | intercantal / ancho de cara, <0,215 o >0,300 | La fórmula anterior no podía salir nunca "juntos" (0/61) y daba "separados" al 16% de caras normales. Además apenas distinguía entre personas (el ruido de una misma persona era el 85% de la variación total). La nueva es algo mejor (74%) pero sigue ruidosa, así que solo clasifica valores claramente extremos; lo normal cae en "proporcional". |
+| Gafas | píxeles de gafas / imagen entera ≥0,004 | píxeles de gafas / píxeles de piel ≥0,05 | Funcionaba, pero dependía de lo cerca que estuviera la cámara. Normalizado por la piel: con gafas 0,21-0,22, sin gafas 0,003 como mucho. |
+| Forma de cejas | curvatura ≥0,08 → arqueada | ya no se detecta | Con 0,08, las 61 caras salían "arqueadas". Y recalibrar no sirve: al revisar las fotos, la métrica va AL REVÉS de lo que ve una persona (cejas depiladas muy arqueadas salían rectas; cejas gruesas y planas salían arqueadas). Los 5 puntos de ceja del modelo LBF siguen una plantilla que no reproduce dónde está el pico real. Campo manual. |
+
+Límite importante de esta calibración: ninguna de las 61 personas tiene
+asimetría ocular real ni ojos especialmente juntos/separados, así que lo
+que está comprobado es que ya NO hay falsas alarmas, no que los casos
+reales se detecten. El 20% de asimetría se eligió además porque
+corresponde aproximadamente a la diferencia que ya se ve a simple vista
+(~2 mm sobre una apertura de ~10 mm), pero conviene confirmarlo con el
+primer cliente real que la tenga.
+
+Pendiente: calibrar nariz y orejas con fotos de perfil reales (no había
+ninguna en el conjunto usado). Pendiente también comprobar que el
+detector de caras (Haar frontal) encuentra la cara en las fotos de
+perfil de 3/4 que se piden: si no la encuentra, `profile_type` nunca se
+rellena, y eso no es un problema de umbral sino del detector.
+
+Nota encontrada de paso: `bisenet/resnet.py` descarga los pesos ImageNet
+de ResNet-18 desde `download.pytorch.org` cada vez que se construye el
+modelo en una máquina sin esa caché, aunque luego `79999_iter.pth` los
+sobrescribe por completo. En un servidor sin acceso a ese dominio la
+segmentación (pelo, orejas, gafas) fallaría al arrancar. No se ha tocado.
 
 Pendiente / no cubierto a propósito en `frontend/visagismo.html`: la
 página nueva solo cubre `facial_features_profile` (los campos de esta
