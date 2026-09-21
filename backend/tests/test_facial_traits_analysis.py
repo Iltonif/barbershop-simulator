@@ -1,5 +1,5 @@
 """Tests de las heurísticas de `facial_traits_analysis.py` (EAR, simetría
-ocular, giro de cabeza, separación de ojos, gafas, perfil de nariz) usando
+ocular, giro de cabeza, separación de ojos, gafas) usando
 puntos y mapas de segmentación sintéticos -- sin cargar ningún modelo
 pesado (igual que `test_visagismo_rules.py`/`test_visagismo_ai_advisor.py`).
 Donde hace falta la cara o la segmentación, se sustituyen
@@ -24,7 +24,6 @@ from app.pipeline.facial_traits_analysis import (
     _eye_spacing,
     _frontal_turn,
     _has_glasses,
-    _nose_profile_type,
 )
 
 
@@ -170,31 +169,64 @@ class TestAnalyzeFrontal(unittest.TestCase):
         self.assertNotIn("eyebrow_type", result.facial_features_profile)
 
 
-class TestNoseProfileType(unittest.TestCase):
-    def test_straight_profile(self):
-        # Punta de nariz (33) justo sobre la línea entrecejo(27)-mentón(8);
-        # el labio (51) marca "delante" hacia +x.
-        pts = _make_landmarks({27: (0, 0), 8: (0, 100), 33: (0, 50), 51: (5, 70)})
-        self.assertEqual(_nose_profile_type(pts), "straight")
+class TestMergeDetectedFeatures(unittest.TestCase):
+    DETECTED = {"eye_spacing": "proportional", "eye_symmetry": "asymmetric",
+                "eye_symmetry_percent": 24.0, "has_glasses": True}
 
-    def test_convex_profile_faces_positive_x(self):
-        # Perfil "mirando hacia +x" (el labio sobresale hacia +x) y la
-        # nariz sobresale aún más en esa misma dirección -> convexo.
-        pts = _make_landmarks({27: (0, 0), 8: (0, 100), 33: (20, 50), 51: (5, 70)})
-        self.assertEqual(_nose_profile_type(pts), "convex_prominent_nose")
+    def test_fields_saved_as_none_by_the_form_are_filled(self):
+        # Bug real: tras guardar la ficha, todos los campos existen con
+        # None y el análisis no rellenaba nada.
+        existing = {"profile_type": "straight", "eye_spacing": None, "eye_symmetry": None,
+                    "eye_symmetry_percent": None, "has_glasses": None, "eyebrow_type": None}
+        merged = fta.merge_detected_features(existing, self.DETECTED)
+        self.assertEqual(merged["eye_spacing"], "proportional")
+        self.assertEqual(merged["eye_symmetry"], "asymmetric")
+        self.assertEqual(merged["eye_symmetry_percent"], 24.0)
+        self.assertTrue(merged["has_glasses"])
+        self.assertEqual(merged["profile_type"], "straight")
+        self.assertIsNone(merged["eyebrow_type"])
 
-    def test_convex_profile_faces_negative_x(self):
-        # Mismo caso pero en el perfil "espejo" (mirando hacia -x): debe
-        # seguir dando convexo, no concave, pese a que el signo bruto de
-        # la desviación de la nariz se ha invertido.
-        pts = _make_landmarks({27: (0, 0), 8: (0, 100), 33: (-20, 50), 51: (-5, 70)})
-        self.assertEqual(_nose_profile_type(pts), "convex_prominent_nose")
+    def test_manual_values_are_never_overwritten(self):
+        existing = {"eye_spacing": "wide_set", "eye_symmetry": "symmetric", "eye_symmetry_percent": None}
+        merged = fta.merge_detected_features(existing, self.DETECTED)
+        self.assertEqual(merged["eye_spacing"], "wide_set")
+        self.assertEqual(merged["eye_symmetry"], "symmetric")
+        # No se añade un 24% medido que contradiga el "simétrico" manual.
+        self.assertIsNone(merged["eye_symmetry_percent"])
 
-    def test_concave_profile(self):
-        # La cara mira hacia +x (labio en +x) pero la nariz se queda
-        # retrasada respecto a esa línea -> cóncavo.
-        pts = _make_landmarks({27: (0, 0), 8: (0, 100), 33: (-20, 50), 51: (5, 70)})
-        self.assertEqual(_nose_profile_type(pts), "concave")
+    def test_unchecked_glasses_checkbox_does_not_block_detection(self):
+        merged = fta.merge_detected_features({"has_glasses": False}, {"has_glasses": True})
+        self.assertTrue(merged["has_glasses"])
+
+    def test_checked_glasses_are_kept(self):
+        merged = fta.merge_detected_features({"has_glasses": True}, {"has_glasses": False})
+        self.assertTrue(merged["has_glasses"])
+
+    def test_empty_profile(self):
+        self.assertEqual(fta.merge_detected_features({}, self.DETECTED), self.DETECTED)
+
+
+class TestAnalyzeFacialTraits(unittest.TestCase):
+    def test_profile_photos_do_not_fill_nose_or_ears(self):
+        # Probado con fotos reales: en foto de perfil no se detecta la cara
+        # y BiSeNet confunde barbilla con oreja. Nariz, orejas y cejas son
+        # campos manuales, aunque se manden las 3 fotos.
+        frontal = SimpleNamespace(landmarks=_frontal_face())
+        image = np.zeros((10, 10, 3), dtype=np.uint8)
+        with patch.object(fta.face_analysis, "analyze_face", return_value=frontal) as analyze, \
+             patch.object(fta.hair_segmentation, "segment_face_parts", return_value=_parsing(1000, 0)):
+            result = fta.analyze_facial_traits(image, image, image)
+        profile = result.facial_features_profile
+        for manual_field in ("profile_type", "ears_projection", "eyebrow_type"):
+            self.assertNotIn(manual_field, profile)
+        self.assertEqual(profile["eye_symmetry"], "symmetric")
+        self.assertEqual(analyze.call_count, 1)  # solo la foto frontal
+
+    def test_frontal_only_call_is_supported(self):
+        with patch.object(fta.face_analysis, "analyze_face", return_value=None):
+            result = fta.analyze_facial_traits(np.zeros((10, 10, 3), dtype=np.uint8))
+        self.assertEqual(result.facial_features_profile, {})
+        self.assertTrue(any("frontal" in w for w in result.warnings))
 
 
 if __name__ == "__main__":

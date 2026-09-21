@@ -3,53 +3,36 @@ Etapa adicional del pipeline: análisis automático de rasgos faciales para
 el perfil de visagismo del cliente.
 
 Motivación (petición de Pedro): al registrar el perfil de un cliente,
-detectar automáticamente rasgos como perfil de nariz, proyección de
-orejas, separación de ojos, asimetrías (p. ej. "un ojo más abierto que
-el otro") y uso de gafas -- en vez de depender solo de
-que el barbero los rellene a mano en `FacialFeaturesProfileIn`
-(`app/api/schemas.py`).
+detectar automáticamente rasgos como separación de ojos, asimetrías (p.
+ej. "un ojo más abierto que el otro") y uso de gafas -- en vez de
+depender solo de que el barbero los rellene a mano en
+`FacialFeaturesProfileIn` (`app/api/schemas.py`). También se intentó con
+perfil de nariz, proyección de orejas y forma de cejas; se descartaron
+tras probarlos con fotos reales (ver comentarios más abajo y CLAUDE.md).
 
 Entrada: 3 fotos guiadas del cliente -- frontal, perfil izquierdo y
-perfil derecho (decisión de producto: sin vídeo, ver CLAUDE.md). Salida:
-un `FacialFeaturesProfileIn`-compatible (dict) con los campos que se han
-podido detectar, más una lista de avisos (p.ej. "no se detectó cara en
-la foto de perfil derecho") y un resumen en texto de las asimetrías
+perfil derecho (decisión de producto: sin vídeo, ver CLAUDE.md) --,
+aunque hoy solo se analiza la frontal. Salida: un
+`FacialFeaturesProfileIn`-compatible (dict) con los campos que se han
+podido detectar, más una lista de avisos (p.ej. "la foto frontal tiene
+la cabeza algo girada") y un resumen en texto de las asimetrías
 detectadas con sus porcentajes.
 
 Reutiliza dos piezas YA existentes del pipeline, sin añadir ninguna
 dependencia ni modelo nuevo:
 - `face_analysis.analyze_face()` (68 landmarks, esquema dlib/iBUG) para
-  ojos y una aproximación del perfil de nariz. (La forma de las cejas se
-  probó y se descartó: ver el comentario junto a `_frontal_turn`.)
+  los ojos.
 - `hair_segmentation.segment_face_parts()` (BiSeNet, licencia MIT, ya
-  vendorizado para segmentar el pelo) para orejas y gafas: ese mismo
-  modelo ya clasifica las clases "l_ear"/"r_ear"/"eye_g" como parte de
-  su salida estándar de 19 clases (CelebAMask-HQ), documentado en el
-  docstring de `hair_segmentation.py` como disponible "por si
-  `compositor.py` las necesita más adelante" -- este módulo es el primer
-  consumidor real de esas clases. Dicho de otro modo: NO hace falta un
-  "detector de orejas" nuevo y separado (se evaluó explícitamente si
-  existía algún modelo dedicado de orejas con licencia permisiva de uso
-  comercial -- no se encontró ninguno maduro y mantenido; usar la
-  segmentación de BiSeNet que ya tenemos es la opción real, sin coste de
-  licencia ni de mantenimiento añadido).
+  vendorizado para segmentar el pelo) para las gafas: ese mismo modelo ya
+  clasifica la clase "eye_g" como parte de su salida estándar de 19
+  clases (CelebAMask-HQ).
 
 Limitaciones honestas (igual que el resto de `face_analysis.py` ya
 documenta sus propias aproximaciones):
-- El modelo de landmarks (68 puntos, entrenado sobre caras frontales/
-  moderadamente giradas) puede no detectar ninguna cara en un perfil muy
-  cerrado (90°) -- por eso se pide al barbero un perfil "de 3/4", no un
-  perfil puro, y cada foto que falla se reporta como aviso en vez de
-  romper el análisis completo.
-- Los umbrales de la foto frontal están calibrados con 61 fotos reales
-  (ver comentarios junto a las constantes y CLAUDE.md); los de las fotos
-  de perfil (nariz, orejas) todavía no.
-- La clasificación de perfil de nariz (convexo/cóncavo/recto) es una
-  heurística geométrica 2D (desviación de la punta de la nariz respecto
-  a la línea entrecejo-mentón), no una medición profilométrica real.
-- La proyección de orejas es una proporción entre el ancho de la máscara
-  de oreja y el ancho de cabeza (máscara de piel) en la misma foto de
-  perfil -- un proxy razonable, no una medición en milímetros.
+- Los umbrales están calibrados con 61 fotos frontales reales (ver
+  comentarios junto a las constantes y CLAUDE.md), pero ninguna de esas
+  personas tenía asimetría ocular real ni ojos muy juntos/separados: está
+  comprobado que no da falsas alarmas, no que detecte los casos reales.
 - RGPD: ninguna de las 3 fotos se guarda en ningún sitio -- se procesan
   en memoria en `clients_routes.override_visagismo_auto_analysis` y se
   descartan justo después de extraer estas categorías, igual que ya hace
@@ -70,8 +53,6 @@ _LEFT_EYE = list(range(42, 48))
 
 _SKIN_CLASS = 1
 _EYE_GLASSES_CLASS = 6
-_L_EAR_CLASS = 7
-_R_EAR_CLASS = 8
 
 # --- Umbrales de la foto frontal: CALIBRADOS con fotos reales ---
 # Medidos ejecutando este mismo pipeline (Haar + LBF + BiSeNet) sobre 61
@@ -106,12 +87,6 @@ _WIDE_SET_MIN_RATIO = 0.300
 # dependía de lo cerca que estuviera la cámara). Con gafas: 0,21-0,22;
 # sin gafas: como mucho 0,003. Margen amplio a ambos lados.
 _GLASSES_MIN_SKIN_RATIO = 0.05
-
-# --- Umbrales de las fotos de perfil: SIN calibrar todavía ---
-# Pendiente de validarlos con fotos de perfil reales (no había ninguna
-# disponible en el conjunto usado para calibrar la foto frontal).
-_EAR_PROJECTION_RATIO_THRESHOLD = 0.16
-_NOSE_CONVEXITY_THRESHOLD = 0.03  # proporción del alto de cara
 
 
 @dataclass
@@ -162,7 +137,13 @@ def _frontal_turn(points: np.ndarray) -> float:
 
 def _eye_spacing(points: np.ndarray) -> str:
     """Distancia intercantal (entre lagrimales, 39-42) / ancho de cara
-    (extremos de la mandíbula, 0-16). Ver umbrales arriba."""
+    (extremos de la mandíbula, 0-16). Ver umbrales arriba.
+
+    Ojo: con orejas muy separadas de la cabeza, el modelo LBF a veces
+    coloca los puntos 0 y 16 sobre las propias orejas, así que el "ancho
+    de cara" sale algo mayor y la separación algo menor. Los umbrales
+    están calibrados con esta misma medida, y los extremos son amplios,
+    pero es otro motivo para no bajarlos sin más datos."""
     face_width = max(_dist(points[0], points[16]), 1e-6)
     ratio = _dist(points[39], points[42]) / face_width
     if ratio < _CLOSE_SET_MAX_RATIO:
@@ -244,121 +225,72 @@ def _analyze_frontal(image_bgr: np.ndarray, result: FacialTraitsResult) -> None:
         )
 
 
-def _signed_deviation(point: np.ndarray, line_start: np.ndarray, line_vec: np.ndarray, line_len: float) -> float:
-    """Distancia con signo de `point` a la recta que pasa por `line_start`
-    con dirección `line_vec` (producto cruzado 2D / longitud de la línea)."""
-    cross = line_vec[0] * (point[1] - line_start[1]) - line_vec[1] * (point[0] - line_start[0])
-    return cross / line_len
+# Nariz y orejas: deliberadamente NO se detectan automáticamente. Se
+# probaron con fotos reales (ver CLAUDE.md, "Calibración de umbrales"):
+# - Perfil de nariz: el detector de caras (Haar frontal + landmarks LBF)
+#   no encuentra la cara en una foto de perfil, así que nunca se llegaba a
+#   medir. En una foto de 3/4 sí podría encontrarla, pero el propio giro
+#   deforma justo la geometría de la nariz que se quería medir.
+# - Proyección de orejas: desde el perfil, BiSeNet (entrenado con caras
+#   frontales) confunde barbilla y boca con oreja. Desde la foto frontal sí
+#   segmenta bien las orejas, pero la medida resultante es ruido: las dos
+#   orejas de una misma cara, que son casi iguales, daban valores sin
+#   ninguna relación entre sí (correlación -0,05).
+# Ambos campos quedan como manuales del barbero.
 
 
-def _nose_profile_type(points: np.ndarray) -> str | None:
-    """Heurística 2D: desviación perpendicular de la punta de la nariz
-    respecto a la línea entrecejo (27) - mentón (8), normalizada por el
-    alto de cara. Ver limitaciones en el docstring del módulo.
+def merge_detected_features(existing: dict, detected: dict) -> dict:
+    """Fusiona lo detectado en las fotos con lo que ya hubiera en la ficha,
+    sin pisar nunca un valor que el barbero haya puesto a mano.
 
-    El signo de esa desviación, por sí solo, depende de hacia qué lado
-    mira la cara en la foto (perfil izquierdo y derecho dan signos
-    opuestos para la MISMA nariz) -- por eso se normaliza usando el labio
-    superior (punto 51) como referencia de "hacia dónde está el frente de
-    la cara": el labio superior siempre sobresale ligeramente hacia
-    delante respecto a esa misma línea, sea cual sea el lado fotografiado,
-    así que su signo sirve para poner el de la nariz en un eje comparable
-    entre ambos perfiles."""
-    glabella, chin, tip, upper_lip = points[27], points[8], points[33], points[51]
-    face_height = max(_dist(glabella, chin), 1e-6)
+    "Vacío" no es solo "la clave no existe": al guardar la ficha con
+    `PATCH .../visagismo-profile`, Pydantic escribe TODOS los campos, con
+    `None` en los que no se rellenaron. Con `dict.setdefault` (la versión
+    anterior) esas claves contaban como ya rellenas y, en cuanto la ficha
+    se había guardado una vez, el análisis automático no volvía a rellenar
+    nada (devolvía 200 sin avisos, pero sin guardar ningún resultado).
 
-    line_vec = chin - glabella
-    line_len = np.linalg.norm(line_vec)
-    if line_len < 1e-6:
-        return None
+    `has_glasses` además acepta `False` como vacío: la página lo guarda con
+    una casilla, que no puede distinguir "no lleva gafas" de "sin
+    especificar". La detección de gafas fue la más fiable de la
+    calibración, así que una casilla sin marcar no debe bloquearla.
 
-    mouth_dev = _signed_deviation(upper_lip, glabella, line_vec, line_len)
-    tip_dev = _signed_deviation(tip, glabella, line_vec, line_len)
+    `eye_symmetry_percent` solo se escribe junto con `eye_symmetry`, para
+    no dejar un porcentaje medido que contradiga una simetría puesta a mano."""
+    merged = dict(existing)
 
-    forward_sign = 1.0 if mouth_dev >= 0 else -1.0
-    ratio = (tip_dev * forward_sign) / face_height
+    def is_empty(key):
+        value = merged.get(key)
+        return value is None or value == "" or (key == "has_glasses" and value is False)
 
-    if abs(ratio) < _NOSE_CONVEXITY_THRESHOLD:
-        return "straight"
-    return "convex_prominent_nose" if ratio > 0 else "concave"
-
-
-def _ear_projection(image_bgr: np.ndarray) -> str | None:
-    """Proporción entre el ancho de la máscara de oreja visible (la que
-    tenga más píxeles: la cercana a la cámara en una foto de perfil) y el
-    ancho de la máscara de piel (proxy del ancho de cabeza) en esa misma
-    foto."""
-    parsing = hair_segmentation.segment_face_parts(image_bgr)
-
-    def _mask_width(class_idx: int) -> float:
-        ys, xs = np.where(parsing == class_idx)
-        if xs.size == 0:
-            return 0.0
-        return float(xs.max() - xs.min())
-
-    left_ear_px = int(np.count_nonzero(parsing == _L_EAR_CLASS))
-    right_ear_px = int(np.count_nonzero(parsing == _R_EAR_CLASS))
-    ear_class = _L_EAR_CLASS if left_ear_px >= right_ear_px else _R_EAR_CLASS
-    if max(left_ear_px, right_ear_px) == 0:
-        return None
-
-    ear_width = _mask_width(ear_class)
-    skin_width = _mask_width(_SKIN_CLASS)
-    if skin_width < 1e-6:
-        return None
-
-    ratio = ear_width / skin_width
-    return "prominent_protruding" if ratio >= _EAR_PROJECTION_RATIO_THRESHOLD else "flat"
-
-
-def _analyze_profile_photo(image_bgr: np.ndarray, side_label: str, result: FacialTraitsResult) -> None:
-    profile = result.facial_features_profile
-    face = face_analysis.analyze_face(image_bgr)
-
-    if face is not None:
-        nose_type = _nose_profile_type(face.landmarks)
-        if nose_type is not None and "profile_type" not in profile:
-            profile["profile_type"] = nose_type
-    else:
-        result.warnings.append(
-            f"No se detectó ninguna cara en la foto de perfil {side_label}: "
-            "el perfil de nariz no se ha podido estimar desde ese lado. "
-            "Prueba con un giro algo menos cerrado (3/4 en vez de perfil puro)."
-        )
-
-    try:
-        ear_result = _ear_projection(image_bgr)
-        if ear_result is not None and "ears_projection" not in profile:
-            profile["ears_projection"] = ear_result
-        elif ear_result is None:
-            result.warnings.append(
-                f"No se detectó ninguna oreja en la foto de perfil {side_label}."
-            )
-    except FileNotFoundError:
-        result.warnings.append(
-            "No se pudo estimar la proyección de orejas (modelo de "
-            "segmentación no disponible en este despliegue)."
-        )
+    symmetry_filled = False
+    for key, value in detected.items():
+        if key == "eye_symmetry_percent":
+            continue
+        if is_empty(key):
+            merged[key] = value
+            symmetry_filled = symmetry_filled or key == "eye_symmetry"
+    if symmetry_filled and "eye_symmetry_percent" in detected:
+        merged["eye_symmetry_percent"] = detected["eye_symmetry_percent"]
+    return merged
 
 
 def analyze_facial_traits(
     frontal_bgr: np.ndarray,
-    left_profile_bgr: np.ndarray,
-    right_profile_bgr: np.ndarray,
+    left_profile_bgr: np.ndarray | None = None,
+    right_profile_bgr: np.ndarray | None = None,
 ) -> FacialTraitsResult:
-    """Punto de entrada: analiza las 3 fotos guiadas y devuelve los
-    campos de `FacialFeaturesProfileIn` que se han podido detectar, más
-    avisos de lo que no se pudo analizar. Nunca lanza excepción por una
-    foto individual sin cara/oreja -- esos casos se acumulan como avisos
-    para que el barbero rellene esos campos concretos a mano."""
+    """Punto de entrada: analiza la foto frontal y devuelve los campos de
+    `FacialFeaturesProfileIn` que se han podido detectar, más avisos de lo
+    que no se pudo analizar. Nunca lanza excepción por una foto sin cara:
+    esos casos se acumulan como avisos para que el barbero rellene esos
+    campos a mano.
+
+    Las fotos de perfil se aceptan (el flujo sigue pidiendo 3 fotos, por
+    decisión de producto) pero hoy no se analizan: ver el comentario
+    justo encima. Se dejan en la firma para no tener que cambiar el
+    endpoint ni la página si más adelante se incorpora un modelo que sí
+    funcione de perfil."""
     result = FacialTraitsResult()
-
     _analyze_frontal(frontal_bgr, result)
-    # El perfil derecho es el que, por convención de esta función, se
-    # analiza en segundo lugar -- si ambos lados dan una detección de
-    # nariz/orejas válida, se conserva la primera (izquierda) por ser
-    # determinista; en la práctica ambos lados deberían coincidir.
-    _analyze_profile_photo(left_profile_bgr, "izquierdo", result)
-    _analyze_profile_photo(right_profile_bgr, "derecho", result)
-
     return result

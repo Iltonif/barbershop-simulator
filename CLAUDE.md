@@ -155,11 +155,18 @@ sección anterior), solo API.
 
 ## Análisis automático de rasgos faciales (`app/pipeline/facial_traits_analysis.py`)
 
-Capa que rellena automáticamente `facial_features_profile` (dentro de
-`anatomical_metrics` en `visagismo_profile`, ver sección anterior) a
-partir de 3 fotos guiadas del cliente -- frontal, perfil izquierdo y
-perfil derecho -- en vez de depender solo de que el barbero rellene esos
-campos a mano. Endpoint: `POST /api/clients/{id}/visagismo-auto-analysis`
+Capa que rellena automáticamente parte de `facial_features_profile`
+(dentro de `anatomical_metrics` en `visagismo_profile`, ver sección
+anterior) a partir de 3 fotos guiadas del cliente -- frontal, perfil
+izquierdo y perfil derecho --, en vez de depender solo de que el barbero
+rellene esos campos a mano. **Hoy solo se analiza la foto frontal**: la
+detección desde las fotos de perfil se probó con fotos reales y no
+funciona con los modelos actuales (ver "Calibración de umbrales" más
+abajo). Pedro decidió mantener igualmente las 3 fotos en el flujo, para
+no cambiarlo si más adelante se incorpora un modelo que sí funcione de
+perfil; el endpoint las recibe pero ni siquiera decodifica las de perfil.
+
+Endpoint: `POST /api/clients/{id}/visagismo-auto-analysis`
 (multipart con 3 ficheros: `photo_frontal`, `photo_perfil_izquierdo`,
 `photo_perfil_derecho`). Frontend: `frontend/visagismo.html` (enlazado
 desde `inicio.html` → "Análisis de visajismo" y desde el nav de
@@ -178,11 +185,7 @@ consentimiento nuevo).
 pipeline (cero dependencias/modelos nuevos)**:
 - `face_analysis.analyze_face()` (68 landmarks dlib/iBUG, ya usado en el
   resto del pipeline) da `eye_spacing` (distancia entre lagrimales /
-  ancho de cara, ver calibración más abajo) y
-  `profile_type` (perfil de nariz recto/convexo/cóncavo, heurística de
-  desviación de la punta de nariz respecto a la línea entrecejo-mentón,
-  normalizada con el labio superior como referencia de orientación para
-  que dé el mismo resultado mirando el perfil izquierdo o el derecho).
+  ancho de cara, ver calibración más abajo).
 - `eye_symmetry` + `eye_symmetry_percent`: diferencia porcentual del EAR
   (Eye Aspect Ratio, misma fórmula estándar de apertura ocular) entre
   ambos ojos en la foto frontal -- es el "% de simetría/anomalías" que
@@ -191,32 +194,42 @@ pipeline (cero dependencias/modelos nuevos)**:
   "el ojo derecho está aproximadamente un 24% más abierto que el
   otro"). Si la cabeza sale girada en la foto frontal, no se mide y se
   pide repetir la foto.
-- `eyebrow_type` NO se rellena automáticamente (se probó y se descartó,
-  ver calibración más abajo): sigue siendo un campo manual del barbero.
-- `ears_projection` (`prominent_protruding`/`flat`) y `has_glasses`:
-  **reutilizan el modelo BiSeNet** (`hair_segmentation.segment_face_parts`,
-  MIT, ya vendorizado para segmentar el pelo) en vez de un modelo nuevo.
-  Ese modelo ya clasifica 19 clases estilo CelebAMask-HQ, incluyendo
-  `l_ear`/`r_ear`/`eye_g` (gafas) -- clases que ya existían en su salida
-  pero que ningún otro módulo consumía todavía. Se evaluó explícitamente
-  si merecía la pena un detector de orejas nuevo y dedicado (fue la
-  opción elegida por Pedro entre las alternativas que se le plantearon);
-  no se encontró ningún modelo de orejas maduro y con licencia permisiva
-  de uso comercial, así que se usa la segmentación de BiSeNet ya
-  integrada -- es real y "dedicada" en el sentido de que segmenta la
-  oreja explícitamente (no es un truco), simplemente no es un modelo
-  nuevo. La proyección se calcula como proporción entre el ancho de la
-  máscara de oreja y el ancho de la máscara de piel en la misma foto de
-  perfil (proxy razonable, no una medición en milímetros). `has_glasses`
-  es solo informativo: se guarda y se muestra en el informe de IA (ver
-  siguiente sección) pero **no** se usa en `visagismo_rules.py`, tal
-  como pidió Pedro.
+- `has_glasses`: **reutiliza el modelo BiSeNet**
+  (`hair_segmentation.segment_face_parts`, MIT, ya vendorizado para
+  segmentar el pelo), cuya salida de 19 clases (CelebAMask-HQ) ya incluye
+  `eye_g` (gafas). Es solo informativo: se guarda y se muestra en el
+  informe de IA (ver siguiente sección) pero **no** se usa en
+  `visagismo_rules.py`, tal como pidió Pedro.
+- **Campos manuales** (se probaron y se descartaron, ver calibración más
+  abajo; la página lo indica junto a cada campo): `eyebrow_type` (forma
+  de cejas), `profile_type` (perfil de nariz) y `ears_projection`
+  (proyección de orejas). Para las orejas Pedro había elegido un
+  "detector dedicado"; se usó la segmentación de orejas de BiSeNet en vez
+  de un modelo nuevo (no se encontró ninguno maduro con licencia de uso
+  comercial), y al probarla con fotos reales resultó no ser fiable.
 
-**Fusión, no sustitución**: el endpoint solo rellena con `.setdefault()`
-los campos que el barbero no hubiera puesto ya a mano en
-`facial_features_profile` -- una detección automática nunca pisa una
-corrección manual previa. Esto es distinto de `PATCH
-.../visagismo-profile`, que siempre sustituye el perfil completo.
+**Fusión, no sustitución** (`merge_detected_features` en
+`facial_traits_analysis.py`): el endpoint solo rellena los campos que el
+barbero no hubiera puesto ya a mano en `facial_features_profile` -- una
+detección automática nunca pisa una corrección manual previa. Esto es
+distinto de `PATCH .../visagismo-profile`, que siempre sustituye el
+perfil completo.
+
+⚠️ Bug real corregido (sept 2026, encontrado al probar el endpoint de
+extremo a extremo con fotos reales): la versión inicial usaba
+`dict.setdefault()`, pero al guardar la ficha con `PATCH
+.../visagismo-profile` Pydantic escribe TODOS los campos, con `null` en
+los vacíos. Esas claves ya existían, así que `setdefault` no las
+rellenaba: en cuanto la ficha de un cliente se había guardado una sola
+vez, el análisis automático devolvía 200, sin avisos, y no guardaba
+ningún resultado. Ahora `null`/`""` cuentan como vacío. Además
+`has_glasses: false` también cuenta como vacío, porque la página lo
+guarda con una casilla, que no distingue "no lleva gafas" de "sin
+especificar". Y `eye_symmetry_percent` solo se escribe junto con
+`eye_symmetry`, para no guardar un porcentaje medido que contradiga una
+simetría puesta a mano. Consecuencia de diseño que se mantiene a
+propósito: si se repite el análisis con otra foto, no cambia lo que ya
+rellenó el anterior (el barbero lo corrige a mano).
 
 **RGPD**: las 3 fotos se procesan en memoria dentro del propio endpoint y
 se descartan justo después de extraer las categorías -- nunca se guardan
@@ -229,26 +242,20 @@ para guardar la foto en sí -- cosa que este endpoint no hace -- o
 Claude en `visagismo_ai_advisor.py`, no para este análisis 100% local).
 
 Limitaciones honestas (documentadas también en el docstring del módulo):
-heurísticas geométricas 2D; los umbrales de la foto frontal están
-calibrados con fotos reales (ver subsección siguiente), los de las fotos
-de perfil (nariz, orejas) todavía no; el modelo de landmarks puede no
-detectar cara en un perfil muy cerrado (90°) -- se pide un giro de 3/4,
-no perfil puro, y cada foto que falla se reporta como aviso sin romper
-el resto del análisis; sin los pesos de BiSeNet descargados (ver
-`python -m app.pipeline.download_weights` en la sección de roadmap),
-orejas y gafas se omiten con un aviso pero el resto del análisis sigue
-funcionando.
+heurísticas geométricas 2D con umbrales calibrados con fotos reales (ver
+subsección siguiente); si no se detecta cara en la foto frontal o la
+cabeza sale girada, se avisa sin romper nada; sin los pesos de BiSeNet
+descargados (ver `python -m app.pipeline.download_weights` en la sección
+de roadmap), las gafas se omiten con un aviso pero el resto del análisis
+sigue funcionando.
 
 Tests: `backend/tests/test_facial_traits_analysis.py` (stdlib
 `unittest`, mismo criterio que el resto del repo -- sin dependencia
 nueva). Cubre EAR, simetría ocular (incluido un caso del 18% que con el
 umbral antiguo salía como asimetría), la guarda de cabeza girada,
 separación de ojos, gafas (con mapas de segmentación sintéticos, sin
-cargar BiSeNet) y perfil de nariz (incluyendo un test de regresión
-específico para el bug de orientación que se detectó y arregló durante
-el desarrollo: el signo bruto de la desviación de la nariz daba una
-clasificación opuesta según el lado del perfil fotografiado). La
-proyección de orejas no tiene test todavía.
+cargar BiSeNet), que las fotos de perfil ya no rellenan nariz, orejas
+ni cejas, y la fusión con una ficha ya guardada (el bug de arriba).
 
 ### Calibración de umbrales (sept 2026)
 
@@ -279,17 +286,47 @@ corresponde aproximadamente a la diferencia que ya se ve a simple vista
 (~2 mm sobre una apertura de ~10 mm), pero conviene confirmarlo con el
 primer cliente real que la tenga.
 
-Pendiente: calibrar nariz y orejas con fotos de perfil reales (no había
-ninguna en el conjunto usado). Pendiente también comprobar que el
-detector de caras (Haar frontal) encuentra la cara en las fotos de
-perfil de 3/4 que se piden: si no la encuentra, `profile_type` nunca se
-rellena, y eso no es un problema de umbral sino del detector.
+**Nariz y orejas, probadas con las 3 fotos guiadas de Pedro** (frontal +
+dos perfiles a ~90°, sept 2026). Resultado: no funcionan con los modelos
+actuales, y no por los umbrales:
+
+- **Perfil de nariz**: Haar + LBF no encuentran ninguna cara en las fotos
+  de perfil, así que `profile_type` nunca llegaba a rellenarse. En una
+  foto de 3/4 quizá sí la encontrarían, pero el propio giro deforma la
+  geometría de la nariz que se quería medir (la desviación de la punta
+  respecto a la línea entrecejo-mentón depende tanto del ángulo como de
+  la nariz), así que no se ha seguido por ahí.
+- **Orejas desde el perfil**: BiSeNet está entrenado con caras
+  frontales. En las fotos de perfil etiquetó la barbilla y la boca como
+  "oreja", y la oreja real como piel o pelo. El valor que daba el código
+  anterior ("prominentes") salía de medir la barbilla.
+- **Orejas desde la foto frontal** (se probó como alternativa, porque es
+  desde donde se juzga si las orejas sobresalen): BiSeNet sí segmenta
+  bien las orejas de frente, pero ninguna medida de "cuánto sobresalen"
+  resultó fiable. Con los puntos 0/16 del contorno de la mandíbula como
+  referencia, el modelo LBF colocaba esos puntos encima de las propias
+  orejas justo en las personas con orejas más separadas (la de Pedro
+  salía la más baja de las 62, aunque en la foto se ve que sobresalen).
+  Con el borde de la máscara de piel como referencia, las dos orejas de
+  una misma cara (casi idénticas en la realidad) daban valores sin
+  ninguna relación (correlación izquierda-derecha -0,05, y la diferencia
+  entre las dos orejas de una persona era tan grande como la diferencia
+  entre personas). Además el pelo tapaba las orejas en 14 de las 61
+  fotos.
+
+Por eso `profile_type` y `ears_projection` pasan a ser manuales. Si se
+retoma, hace falta otro modelo, no otro umbral: un detector/landmarks
+que funcione de perfil (para la nariz) o una segmentación de orejas
+entrenada también con vistas laterales.
+
+Foto frontal de Pedro con los umbrales nuevos: simetría 0,5%
+(simétrico), separación proporcional, sin gafas -- todo correcto.
 
 Nota encontrada de paso: `bisenet/resnet.py` descarga los pesos ImageNet
 de ResNet-18 desde `download.pytorch.org` cada vez que se construye el
 modelo en una máquina sin esa caché, aunque luego `79999_iter.pth` los
 sobrescribe por completo. En un servidor sin acceso a ese dominio la
-segmentación (pelo, orejas, gafas) fallaría al arrancar. No se ha tocado.
+segmentación (pelo, gafas) fallaría al arrancar. No se ha tocado.
 
 Pendiente / no cubierto a propósito en `frontend/visagismo.html`: la
 página nueva solo cubre `facial_features_profile` (los campos de esta

@@ -29,6 +29,7 @@
   .photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
   .photo-slot label { margin-top: 0; }
   .photo-hint { font-size: 12px; color: var(--text-faint); margin: -4px 0 8px; }
+  .field-hint { font-size: 12px; color: var(--text-faint); margin: 6px 0 0; }
   .photo-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; margin-top: 8px; display: none; }
 
   #results-section { display: none; }
@@ -49,8 +50,9 @@
   <h1 class="page-title">Análisis de visajismo</h1>
   <p class="page-lead">
     Rasgos faciales (nariz, ojos, orejas, cejas, simetría, gafas) para afinar las
-    recomendaciones de corte de este cliente. Puedes rellenarlos a mano o dejar que
-    el sistema los estime a partir de 3 fotos guiadas — siempre revisables después.
+    recomendaciones de corte de este cliente. A partir de las fotos, el sistema estima
+    la simetría y separación de los ojos y si lleva gafas; el resto se rellena a mano.
+    Todo es revisable después.
   </p>
 
   <div id="search-section" class="glass-card form-card">
@@ -69,10 +71,11 @@
     <fieldset>
       <legend>Análisis automático (opcional)</legend>
       <p class="photo-hint">
-        3 fotos con buena luz. Los perfiles funcionan mejor con un giro de unos
-        3/4 (no un perfil puro a 90°): así el sistema puede seguir encontrando
-        los puntos de la cara. Las fotos se analizan al vuelo y no se guardan
-        en ningún sitio — solo se guarda el resultado ya resumido.
+        3 fotos con buena luz. Lo importante es la frontal: cliente mirando
+        directamente a la cámara, sin girar la cabeza. Las de perfil todavía no
+        se analizan automáticamente (nariz y orejas se rellenan a mano). Las fotos
+        se analizan al vuelo y no se guardan en ningún sitio — solo se guarda el
+        resultado ya resumido.
       </p>
       <div class="photo-grid">
         <div class="photo-slot">
@@ -110,6 +113,7 @@
         <option value="convex_prominent_nose">Convexo / prominente</option>
         <option value="concave">Cóncavo</option>
       </select>
+      <p class="field-hint">Se rellena a mano, mirando al cliente de perfil.</p>
     </fieldset>
 
     <fieldset>
@@ -132,7 +136,7 @@
             <option value="arched">Arqueada</option>
             <option value="prominent_ridge">Arco superciliar marcado</option>
           </select>
-          <p class="photo-hint">Este campo se rellena a mano: las fotos no permiten detectarlo con fiabilidad.</p>
+          <p class="field-hint">Se rellena a mano: las fotos no permiten detectarlo con fiabilidad.</p>
         </div>
       </div>
       <label for="eye-symmetry">Simetría ocular</label>
@@ -154,6 +158,7 @@
             <option value="flat">Pegadas</option>
             <option value="prominent_protruding">Prominentes / de soplillo</option>
           </select>
+          <p class="field-hint">Se rellena a mano, mirando al cliente de frente.</p>
         </div>
         <div>
           <label for="neck-proportions">Proporciones de cuello</label>

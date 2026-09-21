@@ -139,12 +139,11 @@ def override_visagismo_auto_analysis(
     photo_perfil_izquierdo: UploadFile = File(...),
     photo_perfil_derecho: UploadFile = File(...),
 ):
-    """Analiza automáticamente 3 fotos guiadas del cliente (frontal, perfil
-    izquierdo y perfil derecho) para rellenar `facial_features_profile`
-    dentro de `visagismo_profile` -- ver `app/pipeline/
-    facial_traits_analysis.py` para el detalle de qué se detecta (perfil
-    de nariz, proyección de orejas, separación de ojos, forma de cejas,
-    simetría ocular, uso de gafas) y sus limitaciones.
+    """Recibe 3 fotos guiadas del cliente (frontal, perfil izquierdo y
+    perfil derecho) y rellena parte de `facial_features_profile` dentro de
+    `visagismo_profile`. Hoy solo se analiza la frontal (simetría ocular,
+    separación de ojos, gafas); nariz, orejas y cejas son campos manuales
+    -- ver `app/pipeline/facial_traits_analysis.py` para el porqué.
 
     RGPD: las 3 fotos se procesan en memoria y NUNCA se guardan en disco
     ni en la base de datos -- solo se guarda el resultado ya resumido en
@@ -168,21 +167,22 @@ def override_visagismo_auto_analysis(
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
     frontal_bgr = _read_upload_as_bgr(photo_frontal, "frontal")
-    left_bgr = _read_upload_as_bgr(photo_perfil_izquierdo, "perfil izquierdo")
-    right_bgr = _read_upload_as_bgr(photo_perfil_derecho, "perfil derecho")
-
-    result = facial_traits_analysis.analyze_facial_traits(frontal_bgr, left_bgr, right_bgr)
+    # Las fotos de perfil se siguen pidiendo (decisión de producto, para
+    # no cambiar el flujo si más adelante se incorpora un modelo que
+    # funcione de perfil) pero hoy no se analizan -- ver
+    # `facial_traits_analysis.py`. Ni siquiera se decodifican: no se
+    # procesa ningún dato biométrico que no se vaya a usar.
+    result = facial_traits_analysis.analyze_facial_traits(frontal_bgr)
 
     existing_profile = dict(client.visagismo_profile or {})
     existing_anatomical = dict(existing_profile.get("anatomical_metrics") or {})
     existing_features = dict(existing_anatomical.get("facial_features_profile") or {})
 
     # Solo se auto-rellenan los campos que el barbero no hubiera rellenado
-    # ya a mano (ver docstring de arriba).
-    for key, value in result.facial_features_profile.items():
-        existing_features.setdefault(key, value)
-
-    existing_anatomical["facial_features_profile"] = existing_features
+    # ya a mano (ver docstring de arriba y `merge_detected_features`).
+    existing_anatomical["facial_features_profile"] = facial_traits_analysis.merge_detected_features(
+        existing_features, result.facial_features_profile
+    )
     existing_profile["anatomical_metrics"] = existing_anatomical
 
     updated_client = repository.update_visagismo_profile(client_id, existing_profile)
