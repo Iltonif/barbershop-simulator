@@ -66,8 +66,8 @@
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html">← Inicio</a>
-    <a href="visagismo.html">Análisis de visajismo</a>
+    <a href="visagismo.html">← Volver al análisis de visajismo</a>
+    <a href="inicio.html">Inicio</a>
   </nav>
 
   <h1 class="page-title">Guía de visajismo de perfil</h1>
@@ -239,6 +239,11 @@
         card.appendChild(el("p", "advice", item.texto));
         photos.appendChild(card);
       }
+      // Los dibujos se cargan después de que el navegador salte al ancla
+      // (p.ej. #fotos desde el botón de ayuda de visagismo.html), así que
+      // el contenido de arriba crece y el salto se queda corto: repetirlo.
+      const target = location.hash && document.getElementById(location.hash.slice(1));
+      if (target) target.scrollIntoView();
     })
     .catch(() => {
       document.querySelector(".page-lead").insertAdjacentHTML(

@@ -338,8 +338,12 @@ sección de reglas de visagismo).
 
 ## Guía de visajismo de perfil y cámara con marco (sept 2026)
 
-**`frontend/guia-visagismo.html`** (enlazada desde `inicio.html` y desde el
-nav de `visagismo.html`): guía para valorar a mano tres rasgos de perfil
+**`frontend/guia-visagismo.html`** (solo se llega desde `visagismo.html`:
+botón "❓ Ayuda: cómo hacer las fotos" junto al título y "¿Cómo hacer las
+fotos?" en el paso 2, ambos a `#fotos`; a petición de Pedro ya no tiene
+tarjeta propia en `inicio.html`, y su nav lleva de vuelta al análisis.
+Como los dibujos se cargan con `fetch` después del salto al ancla, la
+página repite el `scrollIntoView` al terminar de pintarlos): guía para valorar a mano tres rasgos de perfil
 con el mismo criterio -- perfil facial (recto/convexo/cóncavo), mentón
 (retraído/equilibrado/prominente) y línea mandibular (definida/poco
 definida) --, con el consejo de corte y barba habitual en visajismo para
