@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from app.api.schemas import HeadShapeOut, SimulationResponse, StyleOut
+from app.api.schemas import HeadShapeOut, SimulationProviderOut, SimulationResponse, StyleOut
 from app.config import CLIENT_PHOTOS_DIR
 from app.db import repository
 from app.pipeline import (
@@ -20,6 +20,7 @@ from app.pipeline import (
     head_mesh,
     head_shape,
 )
+from app.pipeline import haircut_editor
 from app.pipeline.generator import GenerationRequest, generate_haircut_preview
 from app.pipeline.style_catalog import get_style_by_id, load_catalog
 
@@ -68,6 +69,16 @@ async def growth_map_head_shape(photo: UploadFile = File(...)):
     )
 
 
+@router.get("/simulate/providers", response_model=list[SimulationProviderOut])
+def simulation_providers():
+    """Proveedores de simulación con clave configurada (ver
+    `haircut_editor.py`). Lista vacía = la simulación todavía devuelve la
+    foto sin cambios. La web lo usa para enseñar a quién se enviaría la
+    foto en el consentimiento y para el modo "comparar"."""
+    return [SimulationProviderOut(id=p.id, label=p.label, company=p.company)
+            for p in haircut_editor.available_providers()]
+
+
 @router.post("/simulate", response_model=SimulationResponse)
 async def simulate(
     photo: UploadFile = File(...),
@@ -75,10 +86,32 @@ async def simulate(
     target_hair_color_hex: str | None = Form(None),
     client_id: str | None = Form(None),
     manual_hair_texture: str | None = Form(None),
+    # Simulación real con un modelo externo (Fase 2, ver haircut_editor.py).
+    # `provider` vacío = el primero configurado. La foto sale del servidor,
+    # así que hace falta el consentimiento explícito del cliente PARA ESTA
+    # simulación (`consent_external_photo`), aparte del de su ficha.
+    provider: str | None = Form(None),
+    consent_external_photo: bool = Form(False),
+    # En el modo "comparar" la web lanza una simulación por proveedor; solo
+    # la primera se anota en el historial del cliente.
+    record_visit: bool = Form(True),
 ):
     style = get_style_by_id(style_id)
     if style is None:
         raise HTTPException(status_code=404, detail=f"Corte '{style_id}' no encontrado en el catálogo")
+
+    configured = [p.id for p in haircut_editor.available_providers()]
+    if provider and provider not in configured:
+        raise HTTPException(status_code=422, detail=f"El proveedor '{provider}' no está configurado")
+    use_provider = provider or (configured[0] if configured else None)
+    if use_provider and not consent_external_photo:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Falta el consentimiento del cliente para enviar su foto a "
+                f"{haircut_editor.PROVIDERS[use_provider].company} y generar la simulación."
+            ),
+        )
 
     contents = await photo.read()
     image_array = np.frombuffer(contents, dtype=np.uint8)
@@ -109,6 +142,12 @@ async def simulate(
     # visitas más abajo).
     hair_type_result = hair_type.classify_hair_type(image_bgr, hair_mask)
     raw_detected_hair_texture = hair_type_result.texture.value
+    # Solo se le dice al modelo de simulación el tipo de pelo si lo ha
+    # indicado una persona (ahora o en la ficha): la heurística automática
+    # falla a menudo (p.ej. pelo liso despeinado -> "afro") y la instrucción
+    # "mantén su pelo afro" le cambiaría el pelo al cliente. Sin dato fiable,
+    # el modelo ve la textura en la propia foto.
+    hair_texture_is_confirmed = False
 
     # Etapa 4: mapa de crecimiento / geometría de cabeza
     growth_map = head_mesh.build_default_growth_map(face_result.landmarks, image_bgr.shape)
@@ -127,6 +166,7 @@ async def simulate(
         if client.hair_texture_override:
             try:
                 hair_type_result.texture = hair_type.HairTexture(client.hair_texture_override)
+                hair_texture_is_confirmed = True
             except ValueError:
                 warnings.append(
                     "El perfil del cliente tiene guardada una corrección de tipo de "
@@ -154,6 +194,7 @@ async def simulate(
     if manual_hair_texture:
         try:
             hair_type_result.texture = hair_type.HairTexture(manual_hair_texture)
+            hair_texture_is_confirmed = True
         except ValueError:
             raise HTTPException(
                 status_code=422,
@@ -167,6 +208,30 @@ async def simulate(
         # sigue pudiendo cambiarse a mano cualquier día que haga falta.
         if client is not None:
             client = repository.update_hair_type_override(client.id, manual_hair_texture)
+
+    # Etapa 7 (real): modelo externo de edición. Recibe la foto ORIGINAL (el
+    # color, si se pide, va en la instrucción) y la foto del corte del
+    # catálogo como referencia. Su resultado ya es la imagen final: no pasa
+    # por el compositor, que mezcla con la máscara de pelo de la foto
+    # original y aquí el pelo nuevo ocupa otra zona.
+    if use_provider:
+        try:
+            final_image = haircut_editor.edit_haircut(
+                image_bgr,
+                style,
+                hair_type_result.texture.value if hair_texture_is_confirmed else None,
+                use_provider,
+                target_color_hex=target_hair_color_hex,
+                reference=haircut_editor.load_reference_photo(style),
+            )
+        except haircut_editor.HaircutEditorNotConfigured as exc:
+            raise HTTPException(status_code=503, detail=str(exc))
+        except haircut_editor.HaircutEditorError as exc:
+            raise HTTPException(status_code=502, detail=f"No se pudo generar la simulación. {exc}")
+        return _finish_simulation(
+            image_bgr, final_image, style, client, face_result, hair_type_result,
+            raw_detected_hair_texture, warnings, record_visit, use_provider,
+        )
 
     # Etapa 6: color (opcional, solo si el cliente pide cambiar de color)
     working_image = image_bgr
@@ -192,7 +257,14 @@ async def simulate(
 
     # Etapa 8: compositing final
     final_image = compositor.blend_with_original(image_bgr, generated, hair_mask)
+    return _finish_simulation(
+        image_bgr, final_image, style, client, face_result, hair_type_result,
+        raw_detected_hair_texture, warnings, record_visit, None,
+    )
 
+
+def _finish_simulation(image_bgr, final_image, style, client, face_result, hair_type_result,
+                       raw_detected_hair_texture, warnings, record_visit, provider):
     _, buffer = cv2.imencode(".jpg", final_image)
     image_base64 = base64.b64encode(buffer).decode("utf-8")
 
@@ -201,7 +273,7 @@ async def simulate(
     # (se exige al crear el perfil), se comprueba igualmente por claridad y
     # por si en el futuro se permite revocar el consentimiento sin borrar
     # el perfil entero.
-    if client is not None and client.consent_history:
+    if client is not None and client.consent_history and record_visit:
         photo_path_str: str | None = None
         if client.consent_save_photo:
             client_dir = CLIENT_PHOTOS_DIR / client.id
@@ -226,6 +298,7 @@ async def simulate(
         detected_face_shape=face_result.face_shape,
         warnings=warnings,
         image_base64=image_base64,
+        provider=provider,
     )
 
 

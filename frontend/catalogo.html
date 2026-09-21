@@ -191,6 +191,8 @@
     transition: background 0.2s, transform 0.2s;
   }
   .lightbox-close .ico { width: 18px; height: 18px; }
+  .try-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 9px 16px; border-radius: 999px;
+             background: linear-gradient(120deg, var(--accent-blue), #7a5cff); color: #fff; text-decoration: none; font-weight: 700; font-size: 13px; }
   .lb-hair { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--text-faint); font-size: 12.5px; }
   .lightbox-close:hover { background: rgba(5, 6, 15, 0.85); transform: scale(1.06); }
 
@@ -258,6 +260,7 @@
     <div class="lightbox-caption">
       <h3 id="lightbox-title"></h3>
       <p id="lightbox-desc"></p>
+      <a id="lightbox-try" class="try-btn" href="index.html"><span data-icon="wand-sparkles"></span>Probar en un cliente</a>
     </div>
   </div>
 </div>
@@ -337,7 +340,7 @@
       card.className = "card";
 
       const photoHtml = family.referenceImage
-        ? `<div class="card-photo" data-img="${family.referenceImage}" data-title="${family.label}" data-desc="${(family.items[0] && family.items[0].description) || ""}" data-hair="${((family.items[0] && family.items[0].suitable_hair_types) || []).join(",")}">
+        ? `<div class="card-photo" data-img="${family.referenceImage}" data-title="${family.label}" data-desc="${(family.items[0] && family.items[0].description) || ""}" data-hair="${((family.items[0] && family.items[0].suitable_hair_types) || []).join(",")}" data-id="${family.items[0] ? family.items[0].id : ""}">
              <img src="${family.referenceImage}" alt="Foto de referencia: ${family.label}" loading="lazy" />
              <span class="zoom-hint">${UI.icon("zoom-in")}</span>
            </div>`
@@ -491,6 +494,7 @@
     gridEl.addEventListener("click", (ev) => {
       const photo = ev.target.closest(".card-photo[data-img]");
       if (!photo) return;
+      document.getElementById("lightbox-try").href = `index.html?style=${encodeURIComponent(photo.dataset.id || "")}`;
       openLightbox(photo.dataset.img, photo.dataset.title, photo.dataset.desc, (photo.dataset.hair || "").split(",").filter(Boolean));
     });
 

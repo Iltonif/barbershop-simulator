@@ -46,8 +46,27 @@
   .color-row input[type="color"] { width: 54px; min-height: 36px; height: 36px; padding: 3px; }
   .consent-row { margin: 8px 0 12px; }
   .consent-row .checkbox-row { margin: 0; }
-  #result-image { max-width: 100%; margin-top: 16px; display: block; }
-  #result-meta { font-size: 14px; color: var(--text-dim); max-width: 640px; display: grid; gap: 6px; }
+  .engine-row { margin: 4px 0 6px; }
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .seg button { width: auto; min-height: 38px; margin: 0; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+                background: var(--glass); color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px; }
+  .seg button[aria-checked="true"] { background: linear-gradient(120deg, var(--accent-blue), #7a5cff); color: #fff; border-color: transparent; }
+  .seg button:hover { transform: none; box-shadow: none; }
+  .engine-off { margin: 4px 0 10px; }
+  #results { max-width: 720px; margin: 4px 0 14px; }
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .result-tile { margin: 0; position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--glass-border);
+                 background: rgba(255, 255, 255, 0.03); aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; }
+  .result-tile img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; cursor: zoom-in; }
+  .result-tile figcaption { position: absolute; left: 8px; top: 8px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+                            background: rgba(5, 6, 15, 0.7); border: 1px solid var(--glass-border); }
+  .result-tile .tile-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; text-align: center;
+                             color: var(--text-dim); font-size: 12.5px; }
+  .result-tile .tile-state .ico { width: 26px; height: 26px; }
+  .result-tile.error .tile-state { color: var(--warning); }
+  .zoom { position: fixed; inset: 0; z-index: 60; background: rgba(3, 4, 10, 0.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .zoom img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; }
+  #result-meta { font-size: 14px; color: var(--text-dim); max-width: 720px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   #result-meta a { color: var(--accent-cyan); }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
           background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-main); font-size: 13px; width: fit-content; }
@@ -63,7 +82,7 @@
   <div class="head-row">
     <h1 class="page-title">Simular corte</h1>
     <details class="info"><summary></summary><div class="info-body">
-      Sube una foto del cliente, elige un corte y genera cómo le quedaría. Es una prueba del sistema de simulación.
+      Sube una foto del cliente, elige un corte y genera cómo le quedaría. La simulación la hace un modelo de edición de imagen externo; con "Comparar" se generan las dos versiones a la vez.
     </div></details>
   </div>
 
@@ -112,11 +131,32 @@
       </div></details>
     </div>
 
+    <!-- Motor de simulación: solo aparece si hay algún proveedor configurado
+         en el servidor (GET /api/simulate/providers). -->
+    <div id="engine-row" class="engine-row" hidden>
+      <div class="seg" id="provider-seg" role="radiogroup" aria-label="Motor de simulación"></div>
+      <div class="head-row consent-row">
+        <label class="checkbox-row">
+          <input type="checkbox" id="consent-photo" />
+          <span><span data-icon="shield-check"></span>Consiente enviar su foto</span>
+        </label>
+        <details class="info"><summary></summary><div class="info-body" id="consent-info"></div></details>
+      </div>
+    </div>
+    <div id="engine-off" class="head-row engine-off" hidden>
+      <span class="hint">Simulación no activada</span>
+      <details class="info"><summary></summary><div class="info-body">
+        Falta configurar en el servidor una clave de un motor de simulación (GEMINI_API_KEY o FAL_KEY). Mientras tanto se devuelve la foto sin cambios.
+      </div></details>
+    </div>
+
     <button type="submit"><span data-icon="wand-sparkles"></span>Generar</button>
   </form>
 
+  <section id="results" hidden>
+    <div class="result-grid" id="result-grid"></div>
+  </section>
   <div id="result-meta"></div>
-  <img id="result-image" alt="" />
 </div>
 
   <script src="assets/ui.js"></script>
@@ -154,6 +194,71 @@
         .join("");
     }
 
+    // ---- Motor de simulación (ver backend/app/pipeline/haircut_editor.py) ----
+    let providers = [];        // [{id, label, company}] con clave configurada
+    let selected = null;       // id del proveedor o "compare"
+
+    function renderProviderSeg() {
+      const seg = document.getElementById("provider-seg");
+      const options = providers.map((p) => ({ id: p.id, label: p.label, icon: "wand-sparkles" }));
+      if (providers.length > 1) options.push({ id: "compare", label: "Comparar", icon: "layout-grid" });
+      seg.innerHTML = options.map((o) =>
+        `<button type="button" role="radio" aria-checked="${o.id === selected}" data-id="${o.id}">${UI.icon(o.icon)}${o.label}</button>`
+      ).join("");
+      seg.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+        selected = b.dataset.id;
+        renderProviderSeg();
+      }));
+      const companies = providers.map((p) => p.company).join(" y ");
+      document.getElementById("consent-info").textContent =
+        `Para simular el corte, su foto se envía a ${companies}. No se guarda en este sistema. ` +
+        "Hace falta su permiso cada vez, aparte del de su ficha.";
+    }
+
+    async function loadProviders() {
+      try {
+        const res = await fetch(`${API_BASE}/simulate/providers`);
+        providers = res.ok ? await res.json() : [];
+      } catch (e) {
+        providers = [];
+      }
+      document.getElementById("engine-row").hidden = providers.length === 0;
+      document.getElementById("engine-off").hidden = providers.length > 0;
+      if (providers.length) {
+        selected = providers[0].id;
+        renderProviderSeg();
+      }
+    }
+
+    function tileHtml(label, state, content) {
+      return `<figure class="result-tile ${state}"><figcaption>${label}</figcaption>${content}</figure>`;
+    }
+
+    // Tocar una imagen del resultado la amplía a pantalla completa.
+    document.getElementById("result-grid").addEventListener("click", (e) => {
+      const img = e.target.closest(".result-tile img");
+      if (!img) return;
+      const zoom = document.createElement("div");
+      zoom.className = "zoom";
+      zoom.innerHTML = `<img src="${img.src}" alt="" />`;
+      zoom.addEventListener("click", () => zoom.remove());
+      document.body.appendChild(zoom);
+    });
+
+    async function runSimulation(baseData, providerId, recordVisit) {
+      const formData = new FormData();
+      for (const [k, v] of baseData) formData.append(k, v);
+      if (providerId) {
+        formData.append("provider", providerId);
+        formData.append("consent_external_photo", "true");
+      }
+      formData.append("record_visit", recordVisit ? "true" : "false");
+      const res = await fetch(`${API_BASE}/simulate`, { method: "POST", body: formData });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      return data;
+    }
+
     document.getElementById("simulate-form").addEventListener("submit", async (event) => {
       event.preventDefault();
 
@@ -165,7 +270,11 @@
       const saveHistory = document.getElementById("save-history").checked;
       const hairTexture = document.getElementById("hair-texture").value;
 
-      const resultMeta = document.getElementById("result-meta");
+      if (!photoInput.files[0]) { say("warn", "Falta la foto"); return; }
+      if (providers.length && !document.getElementById("consent-photo").checked) {
+        say("warn", "Falta su consentimiento para enviar la foto");
+        return;
+      }
 
       // Si se pide guardar historial, busca un cliente existente con ese
       // nombre (comparación simple, no distingue mayúsculas/acentos) o crea
@@ -203,41 +312,59 @@
         }
       }
 
-      const formData = new FormData();
-      formData.append("photo", photoInput.files[0]);
-      formData.append("style_id", styleId);
-      if (useColor) formData.append("target_hair_color_hex", colorHex);
-      if (clientId) formData.append("client_id", clientId);
-      if (hairTexture) formData.append("manual_hair_texture", hairTexture);
+      const baseData = [["photo", photoInput.files[0]], ["style_id", styleId]];
+      if (useColor) baseData.push(["target_hair_color_hex", colorHex]);
+      if (clientId) baseData.push(["client_id", clientId]);
+      if (hairTexture) baseData.push(["manual_hair_texture", hairTexture]);
 
-      say("busy", "Generando…");
+      // Qué se genera: un proveedor, los dos (comparar) o ninguno (sin clave).
+      const runs = !providers.length ? [{ id: null, label: "Resultado" }]
+        : selected === "compare" ? providers.map((p) => ({ id: p.id, label: p.label }))
+        : providers.filter((p) => p.id === selected).map((p) => ({ id: p.id, label: p.label }));
 
-      try {
-        const res = await fetch(`${API_BASE}/simulate`, { method: "POST", body: formData });
-        if (!res.ok) {
-          const err = await res.json();
-          say("warn", `Error: ${err.detail || res.statusText}`);
-          return;
-        }
-        const data = await res.json();
+      const grid = document.getElementById("result-grid");
+      const before = URL.createObjectURL(photoInput.files[0]);
+      grid.innerHTML = tileHtml("Antes", "", `<img src="${before}" alt="Foto original" />`) +
+        runs.map((r, i) => `<div id="tile-${i}">${tileHtml(r.label, "busy",
+          `<div class="tile-state">${UI.icon("loader-circle", "spin")}Generando…</div>`)}</div>`).join("");
+      document.getElementById("results").hidden = false;
+      say("busy", runs.length > 1 ? "Generando las dos versiones…" : "Generando…");
+      document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "start" });
 
-        document.getElementById("result-image").src = `data:image/jpeg;base64,${data.image_base64}`;
-        const warningsHtml = data.warnings.map((w) => `<div class="status-line warn">${UI.icon("triangle-alert")}<span>${w}</span></div>`).join("");
-        const recommendationsHtml = clientId
-          ? `<a class="chip" href="recomendaciones.html?client_id=${encodeURIComponent(clientId)}">${UI.icon("sparkles")}Recomendaciones ${UI.icon("arrow-right")}</a>`
-          : "";
-        resultMeta.innerHTML = `
-          <span class="chip" title="Tipo de pelo detectado">${UI.icon("scissors")}${data.detected_hair_texture}</span>
-          <span class="chip" title="Forma de cara detectada">${UI.icon("scan-face")}${data.detected_face_shape}</span>
-          ${warningsHtml}
-          ${recommendationsHtml}
-        `;
-      } catch (e) {
-        say("warn", `Sin conexión: ${e.message}`);
-      }
+      const results = await Promise.all(runs.map((r, i) =>
+        runSimulation(baseData, r.id, i === 0)
+          .then((data) => {
+            document.getElementById(`tile-${i}`).innerHTML = tileHtml(r.label, "done",
+              `<img src="data:image/jpeg;base64,${data.image_base64}" alt="Simulación: ${r.label}" />`);
+            return data;
+          })
+          .catch((err) => {
+            document.getElementById(`tile-${i}`).innerHTML = tileHtml(r.label, "error",
+              `<div class="tile-state">${UI.icon("triangle-alert")}${err.message}</div>`);
+            return null;
+          })
+      ));
+
+      const data = results.find(Boolean);
+      if (!data) { say("warn", "No se pudo generar"); return; }
+      const warningsHtml = data.warnings.map((w) => `<div class="status-line warn">${UI.icon("triangle-alert")}<span>${w}</span></div>`).join("");
+      const recommendationsHtml = clientId
+        ? `<a class="chip" href="recomendaciones.html?client_id=${encodeURIComponent(clientId)}">${UI.icon("sparkles")}Recomendaciones ${UI.icon("arrow-right")}</a>`
+        : "";
+      resultMetaEl().innerHTML = `
+        <span class="chip" title="Tipo de pelo detectado">${UI.icon("scissors")}${data.detected_hair_texture}</span>
+        <span class="chip" title="Forma de cara detectada">${UI.icon("scan-face")}${data.detected_face_shape}</span>
+        ${warningsHtml}
+        ${recommendationsHtml}
+      `;
     });
 
-    loadStyles();
+    loadStyles().then(() => {
+      // Llegar desde el catálogo con un corte ya elegido (?style=<id>).
+      const pre = new URLSearchParams(location.search).get("style");
+      if (pre) document.getElementById("style").value = pre;
+    });
+    loadProviders();
   </script>
 </body>
 </html>

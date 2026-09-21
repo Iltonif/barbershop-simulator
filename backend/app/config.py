@@ -59,3 +59,25 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 # que tocar código -- ver "Modelos" en la documentación de la API de
 # Claude para el identificador vigente.
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
+
+
+# Simulación del corte con un modelo externo de edición de imagen
+# (app/pipeline/haircut_editor.py). Igual que ANTHROPIC_API_KEY: sin clave,
+# ese proveedor no aparece y la app sigue funcionando (la simulación
+# devuelve la foto sin cambios, como antes). Se pueden poner las dos para
+# comparar. En Railway: Settings -> Variables.
+#   GEMINI_API_KEY: clave de https://aistudio.google.com/ CON facturación
+#     activada (en el nivel gratuito Google puede usar lo enviado para
+#     mejorar sus productos -- no vale para fotos de clientes).
+#   FAL_KEY: clave de https://fal.ai/ (FLUX.1 Kontext).
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_IMAGE_MODEL = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image")
+FAL_KEY = os.environ.get("FAL_KEY")
+FAL_MODEL = os.environ.get("FAL_MODEL", "fal-ai/flux-pro/kontext")
+FAL_MULTI_MODEL = os.environ.get("FAL_MULTI_MODEL", "fal-ai/flux-pro/kontext/max/multi")
+# Con 1, FLUX recibe también la foto del corte del catálogo (usa el modelo
+# [max] multi, ~0,08 $ en vez de ~0,04 $ por imagen).
+FAL_USE_REFERENCE = os.environ.get("FAL_USE_REFERENCE", "0") == "1"
+
+# Carpeta del frontend (de aquí salen las fotos de referencia del catálogo).
+FRONTEND_DIR = BASE_DIR.parent / "frontend"

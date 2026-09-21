@@ -266,3 +266,5 @@ details.info > .info-body p:last-child { margin-bottom: 0; }
   nav.top-nav a:not(.keep-label) .lbl { display: none; }
   nav.top-nav a:not(.keep-label) { padding: 9px 12px; }
 }
+/* `hidden` gana siempre, aunque la clase ponga display:flex (.head-row…). */
+[hidden] { display: none !important; }

@@ -31,3 +31,9 @@ pillow>=10.2
 certifi>=2024.2.2
 torch>=2.2
 torchvision>=0.17
+
+# Simulación del corte (app/pipeline/haircut_editor.py): APIs externas en
+# vez de difusión propia, así que no hace falta GPU en Railway. Configurar
+# GEMINI_API_KEY y/o FAL_KEY en las variables de Railway.
+google-genai>=2.0
+fal-client>=1.0

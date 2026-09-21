@@ -23,7 +23,7 @@ Construir una web app para barberías: el barbero (o el cliente) sube una foto, 
 5. **`style_catalog.py`** — Carga y consulta el catálogo de cortes (`data/styles/styles.json`).
    **Catálogo ampliado con el ranking de Esquire (2023)**: además de los 4 estilos de ejemplo originales, `data/styles/styles.json` incluye 100 cortes importados del artículo de Esquire España "100 peinados de hombre modernos y actuales para 2023" (el usuario pegó el texto completo en el chat porque la web está bloqueada para las herramientas de scraping; ver nota de licencia/proceso más abajo). Se importaron con `python -m app.pipeline.import_esquire_styles` (idempotente, no duplica si se re-ejecuta) — el script (`backend/app/pipeline/import_esquire_styles.py`) documenta en su docstring exactamente qué es dato real del artículo (nombre/descripción) y qué es estimación propia (longitud en mm, `fade_type`, tipos de pelo cuando el texto no lo menciona explícitamente). Solo se guardó texto/clasificación, NUNCA imágenes: el artículo solo da créditos de foto tipo "© Zara"/"Getty Images", no URLs descargables, y este proyecto ya había decidido antes (caso Figaro-1k) no incorporar fotos de personas identificables sin licencia confirmada. Dos campos nuevos en `HaircutStyle` para esto: `length_category` ("corto"/"medio"/"largo"/"extra_largo", la clasificación por longitud que pidió el usuario) y `source` (de dónde sale cada corte, para poder auditar/corregir clasificaciones concretas). Pendiente real: la clasificación de tipo de cabello de estos 100 es una aproximación de partida hecha leyendo cada descripción (la mayoría no menciona textura de pelo) — conviene que un barbero real las revise/corrija según vaya usando el catálogo, no tomarlas como definitivas.
 6. **`color_transfer.py`** — Extrae el color de pelo real del cliente o aplica un color nuevo respetando el tono de piel.
-7. **`generator.py`** — Genera la imagen final: difusión + ControlNet condicionado por (máscara de pelo + landmarks + parámetros del corte elegido). Aquí es donde vive el "hiperrealismo".
+7. **`generator.py`** — Genera la imagen final: difusión + ControlNet condicionado por (máscara de pelo + landmarks + parámetros del corte elegido). Sigue siendo un esqueleto sin usar: **la generación real va por `haircut_editor.py`** (modelos externos de edición de imagen por API, ver la sección "Simulación del corte" más abajo). `generator.py` solo se usa si no hay ninguna clave configurada, y entonces devuelve la foto sin cambios.
 8. **`compositor.py`** — Blending final: bordes, oclusiones (orejas, gafas, cuello), igualar grano/iluminación con la foto original.
 
 La API (`backend/app/api/routes.py`) orquesta estas etapas en `POST /api/simulate`.
@@ -450,6 +450,62 @@ Reglas para cualquier página nueva o cambio:
   textos de una línea (regenerados con `tools/generar_perfiles_guia.py`)
   y las fuentes plegadas.
 
+## Simulación del corte con API externa (`app/pipeline/haircut_editor.py`, sept 2026)
+
+Fase 2 hecha por otra vía: en vez de difusión + ControlNet propios (hace
+falta GPU y Railway no la tiene), la foto del cliente se manda a un modelo
+externo de edición de imagen con una instrucción construida a partir del
+corte del catálogo. Pedro eligió esta vía ("API externa de edición"),
+dejar DOS proveedores para compararlos con fotos reales, y un
+consentimiento nuevo específico.
+
+- **Proveedores** (solo aparecen si tienen clave; `GET /api/simulate/providers`):
+  - `gemini`: Google Gemini, modelo de imagen (`GEMINI_IMAGE_MODEL`, por
+    defecto `gemini-3.1-flash-image`, ~0,04-0,05 $/imagen). Recibe la foto
+    del cliente + la foto de referencia del corte (`reference_image` del
+    catálogo, leída de `frontend/`) + la instrucción. SDK `google-genai`.
+  - `flux`: FLUX.1 Kontext [pro] vía fal.ai (`FAL_MODEL`, ~0,04 $/imagen).
+    Solo foto + instrucción; con `FAL_USE_REFERENCE=1` usa el modelo [max]
+    multi con la foto de referencia (~0,08 $). SDK `fal-client`, con
+    `sync_mode` para que el resultado no quede en su historial.
+- **Instrucción** (`build_edit_prompt`, en inglés): nombre y descripción
+  del corte, largo arriba/laterales/nuca en mm, degradado, color si se
+  pide, y una lista explícita de lo que NO debe cambiar (cara, identidad,
+  barba, fondo, luz, encuadre). El tipo de pelo solo se incluye si lo ha
+  indicado una persona (selector o ficha): la heurística automática falla
+  (el pelo liso despeinado de Pedro sale "afro") y "mantén su pelo afro"
+  le cambiaría el pelo. Con referencia, se avisa de que la segunda foto
+  solo vale para la forma del corte (lleva la cara de otra persona).
+- **`POST /api/simulate`**: campos nuevos `provider`,
+  `consent_external_photo` y `record_visit`. Si hay algún proveedor
+  configurado y no llega el consentimiento → 422 (se comprueba antes de
+  abrir la foto). El resultado del modelo ya es la imagen final (no pasa
+  por `compositor.py`, que mezcla con la máscara de pelo original). Errores
+  del proveedor → 502; sin clave → 503. La respuesta dice qué `provider`
+  la generó.
+- **Web** (`index.html`): selector Gemini / FLUX / Comparar, casilla de
+  consentimiento (el ⓘ dice a qué empresa va la foto) y resultado en
+  mosaico Antes / Gemini / FLUX, cada uno con su estado (generando, hecho,
+  error) y ampliable al tocar. En "Comparar" se lanzan las dos peticiones a
+  la vez y solo la primera se apunta en el historial del cliente
+  (`record_visit`). El catálogo tiene "Probar en un cliente" al ampliar
+  una foto, que abre el simulador con ese corte (`index.html?style=<id>`).
+- **RGPD**: es la primera vez que la FOTO sale del servidor (el informe de
+  IA solo manda categorías). Consentimiento propio por simulación, aparte
+  del de la ficha. No se guarda ni la foto ni el resultado. Gemini: usar
+  una clave CON facturación (en el nivel gratuito Google puede usar lo
+  enviado para mejorar sus productos). Revisar los términos de tratamiento
+  de datos de cada proveedor antes de usarlo con clientes reales.
+- **Configurar** (Railway → Variables): `GEMINI_API_KEY` y/o `FAL_KEY`.
+  Sin ninguna, todo funciona como antes y la página dice "Simulación no
+  activada".
+- **Sin probar todavía con los modelos reales**: desde el entorno de
+  desarrollo no hay salida a esas APIs (403 del proxy) ni claves. Probado:
+  tests con los SDK simulados (`tests/test_haircut_editor.py`) y la web de
+  principio a fin con un servidor que sustituye a los proveedores. Lo
+  primero con las claves: comparar los dos con fotos reales, revisar que
+  no cambian la cara, y afinar la instrucción.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de
@@ -547,7 +603,7 @@ completo generado sobre él). Tampoco hay UI en el frontend todavía
 - Ampliar `data/styles/styles.json` con el catálogo real de la barbería (pedir al usuario las fotos/descripciones de sus cortes).
 
 **Fase 2 — Generación**
-- Integrar un modelo de difusión con ControlNet en `generator.py` (empezar con Stable Diffusion + ControlNet de tipo "canny" o "normal map" derivado de la máscara de pelo + landmarks).
+- ~~Integrar un modelo de difusión con ControlNet en `generator.py`~~ Sustituido por modelos externos de edición por API (`haircut_editor.py`, ver su sección). Pendiente: probar con claves reales y elegir proveedor.
 - Iterar sobre el prompt/condicionamiento hasta que el pelo generado respete longitud por zona y tipo de pelo del cliente.
 
 **Fase 3 — Realismo y producción**

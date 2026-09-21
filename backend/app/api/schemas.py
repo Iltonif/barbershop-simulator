@@ -43,6 +43,15 @@ class SimulationResponse(BaseModel):
     # TODO: para producción, considerar devolver una URL firmada de corta
     # duración en vez de embeber la imagen en el JSON.
     image_base64: str | None = None
+    # Proveedor que generó la imagen (ver haircut_editor.py); None = sin
+    # simulación real (se devuelve la foto original).
+    provider: str | None = None
+
+
+class SimulationProviderOut(BaseModel):
+    id: str
+    label: str
+    company: str
 
 
 class ClientCreateIn(BaseModel):

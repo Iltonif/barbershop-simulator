@@ -29,3 +29,10 @@ diffusers>=0.27
 transformers>=4.39
 accelerate>=0.28
 controlnet-aux>=0.0.9
+
+# Simulación del corte con un modelo externo de edición de imagen
+# (app/pipeline/haircut_editor.py, Fase 2). Solo se usa el proveedor cuya
+# clave esté configurada (GEMINI_API_KEY / FAL_KEY); sin ninguna, la
+# simulación devuelve la foto sin cambios como antes.
+google-genai>=2.0
+fal-client>=1.0
