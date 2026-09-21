@@ -50,6 +50,18 @@ class WaitingEntry:
     created_at: str
     updated_at: str
     status: str
+    requested_history_id: str | None = None
+
+
+@dataclass
+class HaircutRecord:
+    id: str
+    client_id: str
+    created_at: str
+    style_id: str | None
+    style_name: str | None
+    notes: str | None
+    photo_path: str | None
 
 
 @dataclass

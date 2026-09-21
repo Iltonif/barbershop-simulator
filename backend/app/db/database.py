@@ -62,6 +62,19 @@ CREATE TABLE IF NOT EXISTS waiting (
     status TEXT NOT NULL DEFAULT 'waiting'
 );
 
+-- Historial de cortes del cliente (ver session_routes.py): el peluquero
+-- registra al terminar el corte hecho y, con permiso, una foto. Máximo
+-- MAX_HAIRCUT_HISTORY por cliente (se borran los más antiguos).
+CREATE TABLE IF NOT EXISTS haircut_history (
+    id TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL REFERENCES clients(id),
+    created_at TEXT NOT NULL,
+    style_id TEXT,
+    style_name TEXT,
+    notes TEXT,
+    photo_path TEXT
+);
+
 -- Una fila por simulación con modelo externo, para el tope diario por
 -- cliente (cada una cuesta dinero, ver haircut_editor.py).
 CREATE TABLE IF NOT EXISTS simulation_log (
@@ -93,6 +106,9 @@ _MIGRATIONS = [
     ("clients", "consent_simulation_at", "TEXT"),
     ("clients", "simulation_photo_path", "TEXT"),
     ("clients", "liked_styles", "TEXT"),
+    # "Quiero repetir este corte": el cliente elige uno de su historial
+    # mientras espera y el peluquero lo ve en la sala y en la ficha.
+    ("waiting", "requested_history_id", "TEXT"),
 ]
 
 

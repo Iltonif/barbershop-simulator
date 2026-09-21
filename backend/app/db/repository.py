@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime, timezone
 
 from app.db.database import get_connection
-from app.db.models import ClientProfile, Visit, WaitingEntry
+from app.db.models import ClientProfile, HaircutRecord, Visit, WaitingEntry
 
 
 def _now() -> str:
@@ -297,7 +297,7 @@ def check_in(client_id: str) -> WaitingEntry:
         ).fetchone()
         if row:
             return WaitingEntry(**dict(row))
-        entry = WaitingEntry(str(uuid.uuid4()), client_id, _now(), _now(), "waiting")
+        entry = WaitingEntry(str(uuid.uuid4()), client_id, _now(), _now(), "waiting", None)
         conn.execute("INSERT INTO waiting (id, client_id, created_at, updated_at, status) VALUES (?, ?, ?, ?, ?)",
                      (entry.id, entry.client_id, entry.created_at, entry.updated_at, entry.status))
     return entry
@@ -331,3 +331,73 @@ def count_simulations_today(client_id: str, requested_by: str | None = None) -> 
         params.append(requested_by)
     with get_connection() as conn:
         return conn.execute(query, params).fetchone()[0]
+
+
+def get_waiting_entry_today(client_id: str) -> WaitingEntry | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM waiting WHERE client_id = ? AND created_at LIKE ? AND status != 'done' "
+            "ORDER BY created_at DESC LIMIT 1",
+            (client_id, _today_prefix() + "%"),
+        ).fetchone()
+    return WaitingEntry(**dict(row)) if row else None
+
+
+def set_requested_history(entry_id: str, history_id: str | None) -> None:
+    with get_connection() as conn:
+        conn.execute("UPDATE waiting SET requested_history_id = ?, updated_at = ? WHERE id = ?",
+                     (history_id, _now(), entry_id))
+
+
+# --- Historial de cortes -----------------------------------------------------
+
+def add_haircut(client_id: str, style_id: str | None, style_name: str | None, notes: str | None,
+                photo_path: str | None, max_items: int) -> tuple[HaircutRecord, list[HaircutRecord]]:
+    """Añade un corte y devuelve (el nuevo, los que se han quitado por pasar
+    del máximo), para que quien llama borre sus fotos del disco."""
+    record = HaircutRecord(str(uuid.uuid4()), client_id, _now(), style_id, style_name, notes, photo_path)
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO haircut_history (id, client_id, created_at, style_id, style_name, notes, photo_path) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (record.id, client_id, record.created_at, style_id, style_name, notes, photo_path),
+        )
+        rows = conn.execute("SELECT * FROM haircut_history WHERE client_id = ? ORDER BY created_at DESC",
+                            (client_id,)).fetchall()
+        removed = [HaircutRecord(**dict(r)) for r in rows[max_items:]]
+        for r in removed:
+            conn.execute("DELETE FROM haircut_history WHERE id = ?", (r.id,))
+    return record, removed
+
+
+def list_haircuts(client_id: str) -> list[HaircutRecord]:
+    with get_connection() as conn:
+        rows = conn.execute("SELECT * FROM haircut_history WHERE client_id = ? ORDER BY created_at DESC",
+                            (client_id,)).fetchall()
+    return [HaircutRecord(**dict(r)) for r in rows]
+
+
+def get_haircut(client_id: str, record_id: str) -> HaircutRecord | None:
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM haircut_history WHERE id = ? AND client_id = ?",
+                           (record_id, client_id)).fetchone()
+    return HaircutRecord(**dict(row)) if row else None
+
+
+def delete_haircut(client_id: str, record_id: str) -> HaircutRecord | None:
+    record = get_haircut(client_id, record_id)
+    if record:
+        with get_connection() as conn:
+            conn.execute("DELETE FROM haircut_history WHERE id = ?", (record_id,))
+            conn.execute("UPDATE waiting SET requested_history_id = NULL WHERE requested_history_id = ?", (record_id,))
+    return record
+
+
+def clear_haircut_photos(client_id: str) -> list[str]:
+    """Quita las fotos del historial (se conserva qué corte fue y las notas).
+    Devuelve las rutas para borrarlas del disco."""
+    with get_connection() as conn:
+        rows = conn.execute("SELECT photo_path FROM haircut_history WHERE client_id = ? AND photo_path IS NOT NULL",
+                            (client_id,)).fetchall()
+        conn.execute("UPDATE haircut_history SET photo_path = NULL WHERE client_id = ?", (client_id,))
+    return [r["photo_path"] for r in rows]

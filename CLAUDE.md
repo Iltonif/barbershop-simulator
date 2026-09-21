@@ -618,6 +618,36 @@ con otro. La web se organiza alrededor de eso.
   proveedor simulado), segunda visita por teléfono, modo QR y salida
   automática.
 
+## Historial de cortes del cliente (sept 2026)
+
+Pedro: que al terminar cada corte el peluquero registre en la ficha una
+foto del resultado y el corte hecho, para que el cliente tenga su historial
+y pueda enseñar fácilmente "quiero este", con un máximo por cliente.
+
+- **Registrar** (`ficha.html`, sección "Historial de cortes"): al pulsar
+  "Terminado" en la ficha se abre "Corte de hoy" (foto del resultado con la
+  cámara trasera, corte del catálogo con los favoritos y el pedido arriba,
+  u "Otro" escrito, y notas técnicas de hasta 500 caracteres) con "Guardar y
+  terminar" o "Terminar sin guardar". También "Registrar corte de hoy" en
+  cualquier momento. `POST /api/clients/{id}/history` (multipart).
+- **Máximo**: `MAX_HAIRCUT_HISTORY` (12). Al pasar, se borran los más
+  antiguos con su foto. Fotos reducidas a 1400 px, JPEG 85, en
+  `CLIENT_PHOTOS_DIR/<id>/history/` (Volume).
+- **Fotos solo con `consent_save_photo`**; sin él se guarda el corte y las
+  notas, sin foto (la web lo avisa). Retirar ese permiso (cliente o
+  peluquero) borra TODAS sus fotos: la de simular y las del historial (los
+  cortes se conservan). Sin foto propia, se enseña la del catálogo marcada
+  como tal.
+- **Cliente** (`mis-cortes.html`, "Mis cortes" en su espacio): sus cortes
+  con foto, fecha y nombre; tocar amplía; puede borrar uno. "Quiero este"
+  (`PUT /api/me/request`) lo apunta en la entrada de hoy de la lista de
+  espera (`waiting.requested_history_id`; si no estaba, le apunta).
+- **Peluquero**: en la sala sale "Quiere repetir: <corte>" y en la ficha un
+  aviso con la foto, el corte y las notas de aquel día; al registrar el
+  corte de hoy, ese corte y sus notas vienen ya rellenos.
+- Tabla `haircut_history`. Tests en `tests/test_sessions.py` (máximo y
+  borrado de fotos, petición, que un cliente no ve cortes de otro, permiso).
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

@@ -278,7 +278,7 @@ details.info > .info-body p:last-child { margin-bottom: 0; }
 
 /* Piezas comunes del flujo cliente/peluquero */
 .big-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-@media (min-width: 720px) { .big-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 720px) { .big-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .big-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
             aspect-ratio: 1; padding: 14px; border-radius: 20px; background: var(--glass); border: 1px solid var(--glass-border);
             color: var(--text-main); text-decoration: none; font-weight: 700; font-size: 15px; text-align: center;

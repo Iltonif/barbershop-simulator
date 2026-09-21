@@ -58,6 +58,37 @@
   .likes span { display: block; font-size: 11px; padding: 4px 2px 0; color: var(--text-dim); line-height: 1.2; }
   .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   #status { margin: 10px 0; min-height: 1px; }
+  .request { border-color: rgba(255, 79, 216, 0.5); display: flex; gap: 14px; align-items: center; }
+  .request img { width: 84px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 10px; }
+  .request .t { font-weight: 800; color: #ff9fee; display: flex; align-items: center; gap: 6px; }
+  .request .d { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+  .log-grid { display: flex; gap: 14px; flex-wrap: wrap; }
+  .log-photo { width: 140px; aspect-ratio: 3 / 4; border-radius: 14px; border: 1.5px dashed var(--glass-border); overflow: hidden;
+               display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0;
+               color: var(--text-dim); font-size: 12.5px; cursor: pointer; text-align: center; padding: 8px; }
+  .log-photo .ico { width: 30px; height: 30px; color: var(--accent-cyan); }
+  .log-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+  .log-photo.has { padding: 0; border-style: solid; border-color: rgba(52, 211, 153, 0.6); }
+  .log-fields { flex: 1; min-width: 220px; }
+  .log-fields label { margin-top: 0; }
+  .log-fields input, .log-fields select { margin-bottom: 10px; }
+  .log-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .log-actions button { width: auto; margin: 0; }
+  .hist { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .h-item { position: relative; border-radius: 12px; overflow: hidden; background: var(--glass); border: 1px solid var(--glass-border); }
+  .h-item img, .h-item .noimg { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 0; display: flex;
+                                align-items: center; justify-content: center; color: var(--text-faint); cursor: zoom-in; }
+  .h-item .noimg .ico { width: 26px; height: 26px; }
+  .h-item .cap { padding: 6px 8px 8px; font-size: 11.5px; line-height: 1.3; }
+  .h-item .cap b { display: block; font-size: 12px; }
+  .h-item .cap span { color: var(--text-faint); }
+  .h-item .del { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; min-height: 0; margin: 0; padding: 0;
+                 border-radius: 50%; background: rgba(5, 6, 15, 0.65); display: inline-flex; align-items: center; justify-content: center; }
+  .h-item .del .ico { width: 14px; height: 14px; }
+  .h-item.req { border-color: #ff4fd8; }
+  .zoom { position: fixed; inset: 0; z-index: 60; background: rgba(3, 4, 10, 0.92); display: flex; flex-direction: column;
+          align-items: center; justify-content: center; padding: 16px; gap: 10px; color: var(--text-dim); text-align: center; }
+  .zoom img { max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; }
   @media (max-width: 480px) { .pelo-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
@@ -77,6 +108,37 @@
     <button type="button" id="wait-btn" hidden></button>
   </div>
   <div id="status" role="status"></div>
+
+  <!-- "Quiero repetir este": lo elige el cliente en "Mis cortes" -->
+  <section class="glass-card sec request" id="request-sec" hidden></section>
+
+  <!-- Registrar el corte de hoy (se abre también al pulsar "Terminado") -->
+  <section class="glass-card sec" id="log-sec" hidden>
+    <h2 class="sec-title"><span data-icon="scissors"></span>Corte de hoy</h2>
+    <div class="log-grid">
+      <label class="log-photo" for="log-photo-input" id="log-photo-box"><span data-icon="camera"></span><span>Foto del resultado</span></label>
+      <input type="file" id="log-photo-input" accept="image/*" capture="environment" class="visually-hidden" />
+      <div class="log-fields">
+        <label for="log-style">Corte</label>
+        <select id="log-style"></select>
+        <input type="text" id="log-free" placeholder="¿Cuál? (si no está en el catálogo)" hidden />
+        <label for="log-notes">Notas</label>
+        <textarea id="log-notes" rows="3" maxlength="500" placeholder="Máquina, números, largos, producto…"></textarea>
+      </div>
+    </div>
+    <p class="hint" id="log-photo-hint"></p>
+    <div class="log-actions">
+      <button type="button" id="log-save"><span data-icon="save"></span>Guardar</button>
+      <button type="button" class="secondary" id="log-skip" hidden>Terminar sin guardar</button>
+      <button type="button" class="secondary" id="log-cancel">Cancelar</button>
+    </div>
+  </section>
+
+  <section class="glass-card sec">
+    <h2 class="sec-title"><span data-icon="history"></span>Historial de cortes<span class="n" id="hist-n"></span></h2>
+    <div class="hist" id="hist"></div>
+    <button type="button" class="secondary btn-ico" id="log-open" style="margin-top:12px"><span data-icon="scissors"></span>Registrar corte de hoy</button>
+  </section>
 
   <!-- Lo que ha rellenado el cliente -->
   <section class="glass-card sec">
@@ -221,7 +283,105 @@
     client = await api(`/api/clients/${id}`);
     render();
     renderLikes();
+    renderHistory();
   }
+
+  // ---- Historial de cortes ----
+  let history = [];
+  let requestedId = null;
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+  const histPhoto = (h) => h.has_photo ? `/api/clients/${id}/history/${h.id}/photo` : (h.reference_image || "");
+
+  async function renderHistory() {
+    history = await api(`/api/clients/${id}/history`);
+    q("hist-n").textContent = history.length ? String(history.length) : "";
+    q("hist").innerHTML = history.map((h) => `
+      <div class="h-item ${h.id === requestedId ? "req" : ""}">
+        ${h.has_photo || h.reference_image
+          ? `<img src="${histPhoto(h)}" alt="" loading="lazy" data-zoom="${h.id}" />`
+          : `<div class="noimg" data-zoom="${h.id}">${UI.icon("scissors")}</div>`}
+        <button type="button" class="del secondary" data-del="${h.id}" aria-label="Borrar del historial">${UI.icon("trash-2")}</button>
+        <div class="cap"><b>${esc(h.style_name || "Corte")}</b><span>${fmtDate(h.created_at)}</span></div>
+      </div>`).join("") || `<p class="hint" style="margin:0">Todavía no hay cortes registrados.</p>`;
+    q("hist").querySelectorAll("[data-zoom]").forEach((el) => el.addEventListener("click", () => zoom(history.find((h) => h.id === el.dataset.zoom))));
+    q("hist").querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
+      if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.style.background = "var(--warning)"; return; }
+      history = await api(`/api/clients/${id}/history/${b.dataset.del}`, { method: "DELETE" });
+      renderHistory();
+    }));
+  }
+
+  function zoom(h) {
+    if (!h) return;
+    const z = document.createElement("div");
+    z.className = "zoom";
+    z.innerHTML = `${h.has_photo || h.reference_image ? `<img src="${histPhoto(h)}" alt="" />` : ""}
+      <div><b style="color:#fff">${esc(h.style_name || "Corte")}</b> · ${fmtDate(h.created_at)}</div>
+      ${h.notes ? `<div>${esc(h.notes)}</div>` : ""}${!h.has_photo && h.reference_image ? `<div class="hint">(foto del catálogo)</div>` : ""}`;
+    z.addEventListener("click", () => z.remove());
+    document.body.appendChild(z);
+  }
+
+  // Formulario "Corte de hoy"
+  let logPhoto = null;
+  let finishAfterSave = false;
+  async function openLog(finishing) {
+    finishAfterSave = finishing;
+    const styles = await api("/api/styles");
+    const liked = new Set(client.liked_styles || []);
+    const req = history.find((h) => h.id === requestedId);
+    const first = [req && req.style_id, ...liked].filter(Boolean);
+    const ordered = [...styles.filter((s) => first.includes(s.id)), ...styles.filter((s) => !first.includes(s.id))];
+    q("log-style").innerHTML = `<option value="">— Elige el corte —</option>` +
+      ordered.map((s) => `<option value="${s.id}">${liked.has(s.id) ? "♥ " : ""}${esc(s.name)}</option>`).join("") +
+      `<option value="__otro">Otro (escribirlo)</option>`;
+    if (req && req.style_id) q("log-style").value = req.style_id;
+    q("log-free").hidden = true;
+    q("log-notes").value = req && req.notes ? req.notes : "";
+    logPhoto = null;
+    q("log-photo-box").className = "log-photo";
+    q("log-photo-box").innerHTML = `${UI.icon("camera")}<span>Foto del resultado</span>`;
+    q("log-photo-hint").textContent = client.consent_save_photo ? "" : "Sin permiso del cliente para guardar fotos: se guarda el corte y las notas, sin foto.";
+    q("log-photo-box").style.display = client.consent_save_photo ? "" : "none";
+    q("log-skip").hidden = !finishing;
+    q("log-save").lastChild.textContent = finishing ? "Guardar y terminar" : "Guardar";
+    q("log-sec").hidden = false;
+    q("log-sec").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  q("log-open").addEventListener("click", () => openLog(false));
+  q("log-cancel").addEventListener("click", () => { q("log-sec").hidden = true; });
+  q("log-style").addEventListener("change", (e) => { q("log-free").hidden = e.target.value !== "__otro"; });
+  q("log-photo-input").addEventListener("change", (e) => {
+    logPhoto = e.target.files[0] || null;
+    if (logPhoto) {
+      q("log-photo-box").className = "log-photo has";
+      q("log-photo-box").innerHTML = `<img src="${URL.createObjectURL(logPhoto)}" alt="" />`;
+    }
+    e.target.value = "";
+  });
+  async function finishWaiting() {
+    const w = await currentWaiting();
+    if (w) await api(`/api/waiting/${w.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "done" }) });
+    location.href = "sala.html";
+  }
+  q("log-skip").addEventListener("click", finishWaiting);
+  q("log-save").addEventListener("click", async () => {
+    const styleSel = q("log-style").value;
+    const free = q("log-free").value.trim();
+    if (!styleSel || (styleSel === "__otro" && !free)) { say("warn", "Elige el corte o escribe cuál ha sido"); return; }
+    const fd = new FormData();
+    if (styleSel === "__otro") fd.append("style_name", free); else fd.append("style_id", styleSel);
+    if (q("log-notes").value.trim()) fd.append("notes", q("log-notes").value.trim());
+    if (logPhoto) fd.append("photo", logPhoto);
+    say("busy", "Guardando…");
+    try {
+      await api(`/api/clients/${id}/history`, { method: "POST", body: fd });
+      q("log-sec").hidden = true;
+      say("ok", "Corte guardado en su historial");
+      if (finishAfterSave) { await finishWaiting(); return; }
+      renderHistory();
+    } catch (e) { say("warn", e.message); }
+  });
 
   async function setTexture(t) {
     try { await api(`/api/clients/${id}/hair-type`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texture: t }) });
@@ -255,20 +415,34 @@
     catch (err) { say("warn", err.message); }
   });
 
-  // Estado en la sala de espera (si se ha llegado desde ella).
-  async function renderWaiting() {
-    if (!waitingId) return;
+  // Estado en la sala de espera: la entrada de hoy de este cliente.
+  async function currentWaiting() {
     const list = await api("/api/waiting");
-    const w = list.find((x) => x.id === waitingId);
+    return list.find((x) => x.id === waitingId) || list.find((x) => x.client.id === id) || null;
+  }
+  async function renderWaiting() {
+    const w = await currentWaiting();
     const btn = q("wait-btn");
+    requestedId = w && w.requested ? w.requested.id : null;
+    const reqSec = q("request-sec");
+    if (w && w.requested) {
+      const r = w.requested;
+      const img = r.has_photo ? `/api/clients/${id}/history/${r.id}/photo` : (r.reference_image || "");
+      reqSec.innerHTML = `${img ? `<img src="${img}" alt="" />` : ""}<div><div class="t">${UI.icon("repeat")}Quiere repetir este corte</div>
+        <div class="d"><b>${esc(r.style_name || "Corte")}</b> · ${fmtDate(r.created_at)}</div>${r.notes ? `<div class="d">${esc(r.notes)}</div>` : ""}</div>`;
+      reqSec.hidden = false;
+    } else reqSec.hidden = true;
     if (!w) { btn.hidden = true; return; }
     btn.hidden = false;
     btn.className = w.status === "waiting" ? "" : "secondary";
     btn.innerHTML = w.status === "waiting" ? `${UI.icon("scissors")}Atender` : `${UI.icon("check")}Terminado`;
     btn.onclick = async () => {
-      await api(`/api/waiting/${waitingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: w.status === "waiting" ? "in_service" : "done" }) });
-      if (w.status !== "waiting") location.href = "sala.html"; else renderWaiting();
+      if (w.status === "waiting") {
+        await api(`/api/waiting/${w.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "in_service" }) });
+        renderWaiting();
+      } else {
+        openLog(true);  // al terminar, registrar el corte (o terminar sin guardar)
+      }
     };
   }
 
@@ -277,8 +451,9 @@
     try {
       const providers = await api("/api/simulate/providers");
       if (providers.length) q("sim-info").textContent = `Márcalo solo si el cliente te lo dice ahora. La foto se envía a ${providers.map((p) => p.company).join(" y ")} para generar cada simulación.`;
+      client = await api(`/api/clients/${id}`);
+      await renderWaiting();
       await reload();
-      renderWaiting();
     } catch (e) { say("warn", e.message); }
   })();
 </script>

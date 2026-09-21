@@ -115,6 +115,7 @@
       <a class="big-tile" href="recomendaciones.html"><span data-icon="sparkles"></span>Para ti</a>
       <a class="big-tile" href="catalogo.html"><span data-icon="layout-grid"></span>Catálogo</a>
       <a class="big-tile" id="try-tile" href="probar.html"><span data-icon="wand-sparkles"></span>Probar cortes<span class="tile-note" id="try-note"></span></a>
+      <a class="big-tile" id="cuts-tile" href="mis-cortes.html"><span data-icon="history"></span>Mis cortes<span class="tile-note" id="cuts-note"></span></a>
       <a class="big-tile" href="cuestionario.html"><span data-icon="clipboard-list"></span>Mi perfil</a>
     </div>
   </section>
@@ -197,6 +198,11 @@
     const chips = [`<span class="chip ok">${UI.icon("clock")}En lista de espera</span>`];
     if (me.liked_styles.length) chips.push(`<span class="chip">${UI.icon("heart")}${me.liked_styles.length}</span>`);
     document.getElementById("state-chips").innerHTML = chips.join("");
+    try {
+      const cuts = await (await fetch("/api/me/history")).json();
+      document.getElementById("cuts-note").textContent = cuts.length ? `${cuts.length}` : "Tras tu primer corte";
+      if (!cuts.length) document.getElementById("cuts-tile").classList.add("locked");
+    } catch (e) { /* no crítico */ }
     if (!me.has_simulation_photo) {
       document.getElementById("try-tile").classList.add("locked");
       document.getElementById("try-note").textContent = "Tras tu primera visita";

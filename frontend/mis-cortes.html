@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Mis cortes</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  /* Historial de cortes del cliente (los registra el peluquero al
+     terminar). Mientras espera, puede elegir "Quiero repetir este" y el
+     peluquero lo ve en la sala de espera y en su ficha. */
+  .page-shell { max-width: 900px; }
+  .page-head { margin-bottom: 14px; }
+  .cuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 720px) { .cuts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .cut { border-radius: 16px; overflow: hidden; background: var(--glass); border: 1.5px solid var(--glass-border);
+         display: flex; flex-direction: column; transition: border-color 0.2s; }
+  .cut.chosen { border-color: #ff4fd8; box-shadow: 0 0 0 1px #ff4fd8 inset; }
+  .cut .ph { position: relative; aspect-ratio: 3 / 4; background: rgba(255,255,255,0.03); display: flex; align-items: center;
+             justify-content: center; color: var(--text-faint); cursor: zoom-in; }
+  .cut .ph img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+  .cut .ph .ico { width: 28px; height: 28px; }
+  .cut .tag { position: absolute; left: 8px; top: 8px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+              background: rgba(5, 6, 15, 0.7); border: 1px solid var(--glass-border); }
+  .cut .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .cut .name { font-weight: 700; font-size: 14px; line-height: 1.25; }
+  .cut .date { color: var(--text-faint); font-size: 12px; }
+  .cut button { margin: auto 0 0; min-height: 40px; padding: 8px 10px; font-size: 13px; }
+  .cut.chosen button { background: linear-gradient(120deg, #ff4fd8, #7a5cff); border-color: transparent; }
+  .empty { padding: 22px; text-align: center; color: var(--text-dim); display: grid; gap: 10px; justify-items: center; }
+  .empty .ico { width: 30px; height: 30px; color: var(--accent-cyan); }
+  #status { margin: 0 0 12px; min-height: 1px; }
+  .zoom { position: fixed; inset: 0; z-index: 60; background: rgba(3, 4, 10, 0.92); display: flex; flex-direction: column;
+          align-items: center; justify-content: center; padding: 16px; gap: 10px; color: var(--text-dim); text-align: center; }
+  .zoom img { max-width: 100%; max-height: 78vh; object-fit: contain; border-radius: 10px; }
+  .zoom .del { width: auto; margin: 0; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="cliente.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="catalogo.html" title="Catálogo"><span data-icon="layout-grid"></span><span class="lbl">Catálogo</span></a>
+  </nav>
+  <div class="head-row page-head">
+    <h1 class="page-title">Mis cortes</h1>
+    <details class="info"><summary></summary><div class="info-body">
+      Los cortes que te han hecho aquí, con la foto del resultado. Si quieres repetir uno, toca "Quiero este" y tu peluquero lo verá antes de empezar. Toca una foto para verla en grande.
+    </div></details>
+  </div>
+  <div id="status" role="status"></div>
+  <div class="cuts" id="cuts"></div>
+</div>
+<script src="assets/ui.js"></script>
+<script src="assets/session.js"></script>
+<script>
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+  const statusEl = document.getElementById("status");
+  function say(kind, text) {
+    const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
+    statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
+  }
+  let cuts = [], chosen = null;
+  const photo = (c) => c.has_photo ? `/api/me/history/${c.id}/photo` : (c.reference_image || "");
+
+  function render() {
+    const box = document.getElementById("cuts");
+    if (!cuts.length) {
+      box.style.display = "block";
+      box.innerHTML = `<div class="glass-card empty">${UI.icon("history")}<div>Aquí verás tus cortes cuando el peluquero los registre.</div>
+        <a class="chip" href="catalogo.html">${UI.icon("layout-grid")}Mira el catálogo</a></div>`;
+      return;
+    }
+    box.innerHTML = cuts.map((c, i) => `
+      <div class="cut ${c.id === chosen ? "chosen" : ""}">
+        <div class="ph" data-zoom="${c.id}">${photo(c) ? `<img src="${photo(c)}" alt="" loading="lazy" />` : UI.icon("scissors")}
+          ${i === 0 ? `<span class="tag">Último</span>` : ""}</div>
+        <div class="body">
+          <div class="name">${esc(c.style_name || "Corte")}</div>
+          <div class="date">${fmtDate(c.created_at)}</div>
+          <button type="button" class="${c.id === chosen ? "" : "secondary"}" data-pick="${c.id}">${UI.icon(c.id === chosen ? "check" : "repeat")}${c.id === chosen ? "Pedido" : "Quiero este"}</button>
+        </div>
+      </div>`).join("");
+    box.querySelectorAll("[data-pick]").forEach((b) => b.addEventListener("click", () => pick(b.dataset.pick)));
+    box.querySelectorAll("[data-zoom]").forEach((el) => el.addEventListener("click", () => zoom(el.dataset.zoom)));
+  }
+
+  async function pick(idToPick) {
+    const next = chosen === idToPick ? null : idToPick;
+    const res = await fetch("/api/me/request", { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ history_id: next }) });
+    if (!res.ok) { say("warn", "No se pudo guardar"); return; }
+    chosen = next;
+    render();
+    say("ok", next ? "Tu peluquero verá que quieres este corte" : "Petición quitada");
+  }
+
+  function zoom(cid) {
+    const c = cuts.find((x) => x.id === cid);
+    const z = document.createElement("div");
+    z.className = "zoom";
+    z.innerHTML = `${photo(c) ? `<img src="${photo(c)}" alt="" />` : ""}
+      <div><b style="color:#fff">${esc(c.style_name || "Corte")}</b> · ${fmtDate(c.created_at)}</div>
+      ${!c.has_photo && c.reference_image ? `<div class="hint">Foto del catálogo</div>` : ""}
+      <button type="button" class="secondary del btn-ico" data-del>${UI.icon("trash-2")}Borrar de mi historial</button>`;
+    z.addEventListener("click", async (e) => {
+      const del = e.target.closest("[data-del]");
+      if (!del) { z.remove(); return; }
+      if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.lastChild.textContent = "Toca otra vez para borrar"; return; }
+      cuts = await (await fetch(`/api/me/history/${cid}`, { method: "DELETE" })).json();
+      if (chosen === cid) chosen = null;
+      z.remove(); render();
+    });
+    document.body.appendChild(z);
+  }
+
+  (async () => {
+    await Session.requireClient();
+    if (Session.isQr()) document.querySelector('nav a[aria-label="Inicio"]').href = "cliente.html";
+    cuts = await (await fetch("/api/me/history")).json();
+    chosen = (await (await fetch("/api/me/request")).json()).history_id;
+    render();
+  })();
+</script>
+</body>
+</html>

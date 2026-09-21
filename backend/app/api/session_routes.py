@@ -28,7 +28,7 @@ import io
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 
 from app import config
@@ -39,6 +39,8 @@ from app.api.schemas import (
     ClientOut,
     ClientRegisterIn,
     ConsentsIn,
+    HaircutOut,
+    HaircutRequestIn,
     LikesIn,
     QuestionnaireIn,
     RecommendationsOut,
@@ -48,7 +50,7 @@ from app.api.schemas import (
     WaitingStatusIn,
 )
 from app.db import repository
-from app.pipeline.style_catalog import load_catalog
+from app.pipeline.style_catalog import get_style_by_id, load_catalog
 
 router = APIRouter()
 
@@ -101,11 +103,16 @@ def _waiting_out(entry) -> WaitingOut | None:
     hair = ((client.visagismo_profile or {}).get("hair_physical_metrics") or {})
     questionnaire_done = bool(client.face_shape_override or hair.get("hair_pattern_shape")
                               or life.get("daily_maintenance_commitment") or life.get("beard_preference"))
+    requested = None
+    if entry.requested_history_id:
+        record = repository.get_haircut(client.id, entry.requested_history_id)
+        requested = _haircut_out(record) if record else None
     return WaitingOut(
         id=entry.id, status=entry.status, created_at=entry.created_at, client=_client_out(client),
         is_new=not client.hair_texture_override and not client.simulation_photo_path,
         questionnaire_done=questionnaire_done,
         has_hair_texture=bool(client.hair_texture_override),
+        requested=requested,
     )
 
 
@@ -142,9 +149,13 @@ def _get_client_or_404(client_id: str):
 @router.patch("/clients/{client_id}/consents", response_model=ClientOut, dependencies=[Depends(auth.require_barber)])
 def barber_set_consents(client_id: str, payload: ConsentsIn):
     """El peluquero marca un consentimiento que el cliente le da en ese
-    momento (p.ej. para guardar la foto en la primera visita)."""
+    momento (p.ej. para guardar la foto en la primera visita). Si se retira
+    el de guardar fotos, se borran todas las suyas."""
     _get_client_or_404(client_id)
-    return _client_out(repository.update_consents(client_id, payload.consent_save_photo, payload.consent_simulation))
+    updated = repository.update_consents(client_id, payload.consent_save_photo, payload.consent_simulation)
+    if payload.consent_save_photo is False:
+        _delete_all_photos(updated)
+    return _client_out(repository.get_client(client_id))
 
 
 @router.put("/clients/{client_id}/simulation-photo", response_model=ClientOut, dependencies=[Depends(auth.require_barber)])
@@ -181,6 +192,21 @@ def _photo_response(client) -> FileResponse:
 @router.get("/clients/{client_id}/simulation-photo", dependencies=[Depends(auth.require_barber)])
 def barber_get_photo(client_id: str):
     return _photo_response(_get_client_or_404(client_id))
+
+
+def _unlink(path: str | None) -> None:
+    if path:
+        try:
+            from pathlib import Path
+            Path(path).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _delete_all_photos(client) -> None:
+    _delete_photo(client)
+    for path in repository.clear_haircut_photos(client.id):
+        _unlink(path)
 
 
 def _delete_photo(client) -> None:
@@ -291,9 +317,10 @@ def my_likes(payload: LikesIn, request: Request):
 def my_consents(payload: ConsentsIn, request: Request):
     client = _me(request)
     updated = repository.update_consents(client.id, payload.consent_save_photo, payload.consent_simulation)
-    # Si retira el permiso de guardar la foto, se borra.
+    # Si retira el permiso de guardar fotos, se borran todas las suyas
+    # (la de simular y las del historial de cortes).
     if payload.consent_save_photo is False:
-        _delete_photo(updated)
+        _delete_all_photos(updated)
         updated = repository.get_client(client.id)
     return _client_out(updated)
 
@@ -349,3 +376,118 @@ def my_simulations_left(request: Request):
     used = repository.count_simulations_today(client.id, "cliente")
     return {"left": max(0, config.MAX_CLIENT_SIMULATIONS_PER_DAY - used),
             "max": config.MAX_CLIENT_SIMULATIONS_PER_DAY}
+
+
+# ---------------------------------------------------------- historial de cortes
+
+_HISTORY_PHOTO_SIDE = 1400
+
+
+def _haircut_out(record) -> HaircutOut:
+    style = get_style_by_id(record.style_id) if record.style_id else None
+    return HaircutOut(id=record.id, created_at=record.created_at, style_id=record.style_id,
+                      style_name=record.style_name or (style.name if style else None), notes=record.notes,
+                      reference_image=style.reference_image if style else None, photo_path=record.photo_path)
+
+
+def _history(client) -> list[HaircutOut]:
+    return [_haircut_out(r) for r in repository.list_haircuts(client.id)]
+
+
+@router.get("/clients/{client_id}/history", response_model=list[HaircutOut], dependencies=[Depends(auth.require_barber)])
+def barber_history(client_id: str):
+    return _history(_get_client_or_404(client_id))
+
+
+@router.post("/clients/{client_id}/history", response_model=list[HaircutOut], dependencies=[Depends(auth.require_barber)])
+async def barber_add_haircut(client_id: str, style_id: str | None = Form(None), style_name: str | None = Form(None),
+                             notes: str | None = Form(None), photo: UploadFile | None = File(None)):
+    """El peluquero registra el corte que acaba de hacer: del catálogo
+    (`style_id`) o uno libre (`style_name`), notas técnicas y, si el cliente
+    dio permiso para guardar fotos, la foto del resultado. Al pasar de
+    `MAX_HAIRCUT_HISTORY` se borran los más antiguos con su foto."""
+    client = _get_client_or_404(client_id)
+    if style_id and get_style_by_id(style_id) is None:
+        raise HTTPException(status_code=404, detail="Corte no encontrado en el catálogo")
+    if not style_id and not (style_name or "").strip():
+        raise HTTPException(status_code=422, detail="Elige el corte del catálogo o escribe cuál ha sido.")
+    photo_path = None
+    if photo is not None and photo.filename:
+        if not client.consent_save_photo:
+            raise HTTPException(status_code=422, detail="El cliente no ha dado permiso para guardar fotos suyas.")
+        image = cv2.imdecode(np.frombuffer(await photo.read(), np.uint8), cv2.IMREAD_COLOR)
+        if image is None:
+            raise HTTPException(status_code=400, detail="No se pudo leer la foto")
+        h, w = image.shape[:2]
+        scale = min(1.0, _HISTORY_PHOTO_SIDE / max(h, w))
+        if scale < 1:
+            image = cv2.resize(image, (round(w * scale), round(h * scale)), interpolation=cv2.INTER_AREA)
+        folder = config.CLIENT_PHOTOS_DIR / client.id / "history"
+        folder.mkdir(parents=True, exist_ok=True)
+        import uuid as _uuid
+        path = folder / f"{_uuid.uuid4().hex}.jpg"
+        cv2.imwrite(str(path), image, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        photo_path = str(path)
+    _, removed = repository.add_haircut(client.id, style_id, (style_name or "").strip() or None,
+                                        (notes or "").strip()[:500] or None, photo_path, config.MAX_HAIRCUT_HISTORY)
+    for r in removed:
+        _unlink(r.photo_path)
+    return _history(client)
+
+
+def _history_photo(client, record_id: str) -> FileResponse:
+    record = repository.get_haircut(client.id, record_id)
+    if record is None or not record.photo_path:
+        raise HTTPException(status_code=404, detail="Sin foto")
+    return FileResponse(record.photo_path, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
+@router.get("/clients/{client_id}/history/{record_id}/photo", dependencies=[Depends(auth.require_barber)])
+def barber_history_photo(client_id: str, record_id: str):
+    return _history_photo(_get_client_or_404(client_id), record_id)
+
+
+@router.delete("/clients/{client_id}/history/{record_id}", response_model=list[HaircutOut], dependencies=[Depends(auth.require_barber)])
+def barber_delete_haircut(client_id: str, record_id: str):
+    client = _get_client_or_404(client_id)
+    record = repository.delete_haircut(client.id, record_id)
+    if record:
+        _unlink(record.photo_path)
+    return _history(client)
+
+
+@router.get("/me/history", response_model=list[HaircutOut])
+def my_history(request: Request):
+    return _history(_me(request))
+
+
+@router.get("/me/history/{record_id}/photo")
+def my_history_photo(record_id: str, request: Request):
+    return _history_photo(_me(request), record_id)
+
+
+@router.delete("/me/history/{record_id}", response_model=list[HaircutOut])
+def my_delete_haircut(record_id: str, request: Request):
+    client = _me(request)
+    record = repository.delete_haircut(client.id, record_id)
+    if record:
+        _unlink(record.photo_path)
+    return _history(client)
+
+
+@router.get("/me/request")
+def my_request(request: Request):
+    entry = repository.get_waiting_entry_today(_me(request).id)
+    return {"in_waiting": bool(entry), "history_id": entry.requested_history_id if entry else None}
+
+
+@router.put("/me/request")
+def my_set_request(payload: HaircutRequestIn, request: Request):
+    """"Quiero repetir este": el cliente elige un corte de su historial y el
+    peluquero lo ve en la sala de espera y en su ficha."""
+    client = _me(request)
+    if payload.history_id and repository.get_haircut(client.id, payload.history_id) is None:
+        raise HTTPException(status_code=404, detail="Ese corte no está en tu historial")
+    entry = repository.get_waiting_entry_today(client.id) or repository.check_in(client.id)
+    repository.set_requested_history(entry.id, payload.history_id)
+    return {"in_waiting": True, "history_id": payload.history_id}

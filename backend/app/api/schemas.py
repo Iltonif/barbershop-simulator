@@ -357,6 +357,28 @@ class QuestionnaireIn(BaseModel):
     beard_preference: str | None = None
 
 
+class HaircutOut(BaseModel):
+    """Un corte del historial del cliente. La foto se pide aparte
+    (`.../history/{id}/photo`); aquí solo si hay."""
+
+    id: str
+    created_at: str
+    style_id: str | None = None
+    style_name: str | None = None
+    notes: str | None = None
+    reference_image: str | None = None  # foto del catálogo, si es un corte del catálogo
+    photo_path: str | None = Field(default=None, exclude=True)
+
+    @computed_field
+    @property
+    def has_photo(self) -> bool:
+        return bool(self.photo_path)
+
+
+class HaircutRequestIn(BaseModel):
+    history_id: str | None = None  # None = quitar la petición
+
+
 class WaitingOut(BaseModel):
     id: str
     status: str
@@ -365,6 +387,8 @@ class WaitingOut(BaseModel):
     is_new: bool  # primera visita (sin datos del peluquero todavía)
     questionnaire_done: bool
     has_hair_texture: bool
+    # Corte del historial que el cliente ha pedido repetir hoy.
+    requested: HaircutOut | None = None
 
 
 class WaitingStatusIn(BaseModel):

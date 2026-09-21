@@ -32,6 +32,8 @@
   .w-card .chip { font-size: 12px; padding: 4px 9px; }
   .w-actions { display: flex; flex-direction: column; gap: 6px; }
   .w-actions button { width: auto; margin: 0; min-height: 38px; padding: 7px 12px; font-size: 13px; }
+  .chip.req { border-color: rgba(255, 79, 216, 0.55); color: #ff9fee; }
+  .chip.req .ico { color: #ff9fee; }
   .new-badge { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--accent-pink); color: #05060f; }
   .empty { color: var(--text-dim); padding: 22px; text-align: center; }
   .empty .ico { width: 30px; height: 30px; color: var(--accent-cyan); display: block; margin: 0 auto 8px; }
@@ -117,6 +119,7 @@
         w.has_hair_texture ? chip("scissors", "Pelo", "ok") : chip("scissors", "Falta pelo", "warn"),
         c.has_simulation_photo ? chip("camera", "Foto", "ok") : chip("camera", c.consent_save_photo ? "Falta foto" : "Sin permiso foto", "warn"),
         c.liked_styles.length ? chip("heart", String(c.liked_styles.length)) : "",
+        w.requested ? `<span class="chip req">${UI.icon("repeat")}Quiere repetir: ${esc(w.requested.style_name || "un corte")}</span>` : "",
       ].join("");
       const action = w.status === "waiting"
         ? `<button type="button" data-st="in_service" data-id="${w.id}">Atender</button>`

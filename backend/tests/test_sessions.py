@@ -138,6 +138,51 @@ class SessionFlowTest(unittest.TestCase):
         self.assertEqual(codes, [200, 200, 429])
         self.assertEqual(barber_code, 200)
 
+    def test_haircut_history_max_request_and_privacy(self):
+        cid = self._register().json()["id"]
+        self._barber_login()
+        style_id = self.client_tab.get("/api/me/recommendations").json()["recommendations"][0]["style"]["id"]
+        with patch.object(config, "MAX_HAIRCUT_HISTORY", 3):
+            for i in range(4):
+                r = self.barber.post(f"/api/clients/{cid}/history",
+                                     data={"style_id": style_id, "notes": f"visita {i}"},
+                                     files={"photo": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg")})
+                self.assertEqual(r.status_code, 200)
+        history = r.json()
+        # Solo los 3 últimos, y la foto del más antiguo se ha borrado del disco.
+        self.assertEqual([h["notes"] for h in history], ["visita 3", "visita 2", "visita 1"])
+        self.assertTrue(all(h["has_photo"] and h["reference_image"] for h in history))
+        self.assertEqual(len(list((Path(self.tmp.name) / "photos").rglob("history/*.jpg"))), 3)
+        # Corte libre, sin foto.
+        self.assertEqual(self.barber.post(f"/api/clients/{cid}/history", data={"style_name": "Rapado a máquina"}).status_code, 200)
+        self.assertEqual(self.barber.post(f"/api/clients/{cid}/history", data={}).status_code, 422)
+
+        # El cliente lo ve y pide repetir uno; el peluquero lo ve en la sala.
+        mine = self.client_tab.get("/api/me/history").json()
+        self.assertEqual(self.client_tab.get(f"/api/me/history/{mine[1]['id']}/photo").status_code, 200)
+        self.client_tab.put("/api/me/request", json={"history_id": mine[1]["id"]})
+        waiting = self.barber.get("/api/waiting").json()
+        self.assertEqual(waiting[0]["requested"]["id"], mine[1]["id"])
+        # Otro cliente no puede ver ni pedir cortes ajenos.
+        other = TestClient(self.app)
+        other.post("/api/me/register", json={"display_name": "Otro", "phone": "699000111", "consent_history": True})
+        self.assertEqual(other.get(f"/api/me/history/{mine[1]['id']}/photo").status_code, 404)
+        self.assertEqual(other.put("/api/me/request", json={"history_id": mine[1]["id"]}).status_code, 404)
+        # Retirar el permiso de fotos borra las del historial, no los cortes.
+        self.client_tab.patch("/api/me/consents", json={"consent_save_photo": False})
+        after = self.client_tab.get("/api/me/history").json()
+        self.assertEqual(len(after), 4)
+        self.assertFalse(any(h["has_photo"] for h in after))
+        self.assertFalse(list((Path(self.tmp.name) / "photos").rglob("*.jpg")))
+
+    def test_history_photo_needs_consent(self):
+        cid = self._register(consent_save_photo=False).json()["id"]
+        self._barber_login()
+        style_id = self.client_tab.get("/api/me/recommendations").json()["recommendations"][0]["style"]["id"]
+        r = self.barber.post(f"/api/clients/{cid}/history", data={"style_id": style_id},
+                             files={"photo": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg")})
+        self.assertEqual(r.status_code, 422)
+
 
 if __name__ == "__main__":
     unittest.main()

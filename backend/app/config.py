@@ -102,3 +102,8 @@ CLIENT_SESSION_DAYS = int(os.environ.get("CLIENT_SESSION_DAYS", "30"))
 # Tope de simulaciones con modelo externo que puede lanzar un cliente él
 # solo al día (cada una cuesta ~0,04-0,05 $). El peluquero no tiene tope.
 MAX_CLIENT_SIMULATIONS_PER_DAY = int(os.environ.get("MAX_CLIENT_SIMULATIONS_PER_DAY", "6"))
+
+# Historial de cortes por cliente (foto del corte terminado + corte + notas
+# del peluquero). Al pasar de este número se borran los más antiguos, con su
+# foto, para no llenar el Volume.
+MAX_HAIRCUT_HISTORY = int(os.environ.get("MAX_HAIRCUT_HISTORY", "12"))
