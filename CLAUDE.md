@@ -350,7 +350,7 @@ la piel, 3/4 en vez de perfil). Pedro la pidió como "imágenes
 artificiales de diferentes perfiles de hombre que sirvan como guía".
 
 - Las ilustraciones NO son fotos ni dibujos a ojo: las genera
-  `frontend/tools/generar_perfiles_guia.py`, que coloca los puntos de
+  `tools/generar_perfiles_guia.py`, que coloca los puntos de
   cada perfil (glabela, subnasal, labio inferior, pogonion, mentón, punto
   cervical) para que su ángulo sea exactamente el que ilustra, con las
   mismas definiciones que las referencias publicadas (convexidad de Legan

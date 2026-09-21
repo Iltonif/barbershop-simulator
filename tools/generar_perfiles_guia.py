@@ -19,14 +19,15 @@ El script comprueba al final que cada ilustración mide lo que dice y
 escribe `frontend/assets/guia/perfiles.json` (SVG listo para incrustar).
 
 Uso (desde la raíz del repo):
-    python3 frontend/tools/generar_perfiles_guia.py
+    python3 tools/generar_perfiles_guia.py
 """
 
 import json
 import math
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parents[1] / "assets" / "guia" / "perfiles.json"
+# Fuera de frontend/ a propósito: el backend sirve esa carpeta entera como web.
+OUT = Path(__file__).resolve().parents[1] / "frontend" / "assets" / "guia" / "perfiles.json"
 W, H = 240, 360
 
 
