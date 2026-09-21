@@ -40,6 +40,8 @@
   @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
 
   /* Cámara con marco */
+  .step-title { font-size: 15px; font-weight: 700; margin: 0 0 12px; color: var(--text-main); }
+  #search-section .step-title + label { margin-top: 0; }
   .cam-btn { margin: 0 0 6px; }
   .file-alt { font-size: 11.5px; color: var(--text-faint); margin: 4px 0 4px; }
   .photo-slot input[type="file"] { min-height: 38px; padding: 6px 8px; font-size: 12px; }
@@ -89,6 +91,7 @@
   </p>
 
   <div id="search-section" class="glass-card form-card">
+    <h2 class="step-title">1. Cliente</h2>
     <label for="client-name">Nombre del cliente</label>
     <input type="text" id="client-name" placeholder="Ej: Pedro Gómez Martínez" />
     <label class="checkbox-row">
@@ -100,7 +103,11 @@
 
   <div id="status"></div>
 
-  <form id="analysis-form" class="glass-card form-card" style="display:none;">
+  <!-- Fotos: visibles siempre (antes solo aparecían tras cargar el cliente y
+       la cámara con marco pasaba desapercibida). Solo "Analizar" necesita
+       el cliente cargado. -->
+  <section id="photos-card" class="glass-card form-card">
+    <h2 class="step-title">2. Fotos</h2>
     <fieldset>
       <legend>Análisis automático (opcional)</legend>
       <p class="photo-hint">
@@ -140,12 +147,17 @@
       <button id="analyze-btn" type="button" class="secondary" style="margin-top: 14px;">
         Analizar fotos y rellenar campos
       </button>
+      <p class="field-hint" id="analyze-hint">Puedes hacer las fotos ya; para analizarlas, carga o crea antes el perfil del cliente (paso 1).</p>
     </fieldset>
 
     <div id="results-section">
       <div id="anomaly-note-box"></div>
       <ul id="warning-list" class="warning-list"></ul>
     </div>
+  </section>
+
+  <form id="analysis-form" class="glass-card form-card" style="display:none;">
+    <h2 class="step-title">3. Rasgos del cliente</h2>
 
     <fieldset>
       <legend>Nariz y perfil</legend>
@@ -309,6 +321,7 @@
       const features = ((fullVisagismoProfile.anatomical_metrics || {}).facial_features_profile) || {};
       fillFormFromFeatures(features);
       analysisForm.style.display = "block";
+      document.getElementById("analyze-hint").style.display = "none";
       growthMapLink.href = `growth-map.html?client_id=${encodeURIComponent(client.id)}`;
       recomendacionesLink.href = `recomendaciones.html?client_id=${encodeURIComponent(client.id)}`;
     }
@@ -367,7 +380,12 @@
     });
 
     document.getElementById("analyze-btn").addEventListener("click", async () => {
-      if (!currentClient) return;
+      if (!currentClient) {
+        statusEl.innerHTML = '<span class="warning">Primero carga o crea el perfil del cliente (paso 1): el análisis se guarda en su ficha. Las fotos que ya has hecho se mantienen.</span>';
+        document.getElementById("client-name").focus();
+        statusEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
       const frontal = photoFor("frontal");
       const izq = photoFor("izq");
       const dcha = photoFor("dcha");

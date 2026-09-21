@@ -390,6 +390,12 @@ foto guardada (sin espejo) quede con la nariz hacia el lado correcto.
   subió de 0,5% a 7,1% solo por eso (con el fotograma completo, 0,8%).
 - La foto hecha con la cámara (Blob) tiene prioridad sobre el archivo del
   selector; elegir un archivo la descarta.
+- La página va en tres pasos: 1. Cliente, 2. Fotos, 3. Rasgos del
+  cliente. Las fotos están SIEMPRE visibles: en la primera versión iban
+  dentro del formulario que solo aparece tras cargar o crear el cliente, y
+  Pedro no encontraba la cámara (las pruebas forzaban el formulario visible
+  y no lo detectaron). Se pueden hacer las fotos antes de elegir cliente;
+  solo "Analizar" lo necesita, y si falta lo avisa sin perder las fotos.
 - **Necesita HTTPS** (o `localhost`): `getUserMedia` no existe en
   `http://192.168.x.x`. En ese caso, o si se deniega el permiso, se avisa
   y se abre el selector de fotos normal (que en el móvil abre la cámara
