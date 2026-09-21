@@ -38,6 +38,38 @@
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .field-row > div { min-width: 0; }
   @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
+
+  /* Cámara con marco */
+  .cam-btn { margin: 0 0 6px; }
+  .file-alt { font-size: 11.5px; color: var(--text-faint); margin: 4px 0 4px; }
+  .photo-slot input[type="file"] { min-height: 38px; padding: 6px 8px; font-size: 12px; }
+  .slot-status { font-size: 12px; color: var(--ok); margin: 6px 0 0; min-height: 1em; }
+  .camera { position: fixed; inset: 0; z-index: 50; background: #000; overflow: hidden; }
+  .camera[hidden] { display: none; }
+  .camera video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .camera video.mirrored { transform: scaleX(-1); }
+  .camera svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  .cam-dim { fill: rgba(0, 0, 0, 0.45); fill-rule: evenodd; }
+  .cam-outline { fill: none; stroke: #fff; stroke-width: 1.6; stroke-dasharray: 6 5; }
+  .cam-guide { stroke: var(--accent-cyan); stroke-width: 1.2; stroke-dasharray: 3 4; opacity: 0.9; }
+  .cam-top, .cam-bottom { position: absolute; left: 0; right: 0; padding: 14px 16px; display: flex; }
+  .cam-top { top: 0; flex-direction: column; gap: 4px; background: linear-gradient(rgba(0,0,0,0.7), transparent);
+             padding-top: max(14px, env(safe-area-inset-top)); }
+  .cam-top strong { font-size: 16px; }
+  .cam-top span { font-size: 13px; color: rgba(255, 255, 255, 0.8); line-height: 1.4; max-width: 520px; }
+  .cam-level { position: absolute; left: 50%; top: 104px; transform: translateX(-50%); font-size: 13px; font-weight: 600;
+               padding: 6px 12px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); max-width: calc(100% - 32px);
+               text-align: center; }
+  .cam-level:empty { display: none; }
+  .cam-level.ok { color: var(--ok); }
+  .cam-level.bad { color: var(--warning); }
+  .cam-bottom { bottom: 0; justify-content: space-around; align-items: center;
+                background: linear-gradient(transparent, rgba(0,0,0,0.7));
+                padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+  .camera button.cam-round { width: 52px; height: 52px; min-height: 0; margin: 0; padding: 0; border-radius: 50%;
+                             background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); font-size: 20px; }
+  .camera button.cam-shutter { width: 76px; height: 76px; min-height: 0; margin: 0; padding: 0; border-radius: 50%;
+                               background: #fff; border: 5px solid rgba(255, 255, 255, 0.45); background-clip: padding-box; }
 </style>
 </head>
 <body>
@@ -46,6 +78,7 @@
     <a href="inicio.html">← Inicio</a>
     <a id="growth-map-link" href="growth-map.html">Mapa de remolinos y dirección del pelo</a>
     <a id="recomendaciones-link" href="recomendaciones.html">Recomendaciones</a>
+    <a href="guia-visagismo.html">Guía de perfil</a>
   </nav>
   <h1 class="page-title">Análisis de visajismo</h1>
   <p class="page-lead">
@@ -71,27 +104,37 @@
     <fieldset>
       <legend>Análisis automático (opcional)</legend>
       <p class="photo-hint">
-        3 fotos con buena luz. Lo importante es la frontal: cliente mirando
-        directamente a la cámara, sin girar la cabeza. Las de perfil todavía no
-        se analizan automáticamente (nariz y orejas se rellenan a mano). Las fotos
-        se analizan al vuelo y no se guardan en ningún sitio — solo se guarda el
-        resultado ya resumido.
+        3 fotos con buena luz, mejor con la cámara con marco: encaja la cara en
+        la guía y avisa si el móvil no está recto. Lo importante es la frontal
+        (cliente mirando a la cámara, sin girar la cabeza); las de perfil todavía
+        no se analizan automáticamente, pero conviene hacerlas bien desde ya (ver
+        la <a href="guia-visagismo.html#fotos">guía</a>). Las fotos se analizan al
+        vuelo y no se guardan en ningún sitio.
       </p>
       <div class="photo-grid">
         <div class="photo-slot">
           <label for="photo-frontal">Frontal</label>
+          <button type="button" class="secondary cam-btn" data-slot="frontal">📷 Hacer foto con marco</button>
+          <p class="file-alt">o elige una foto ya hecha:</p>
           <input type="file" id="photo-frontal" accept="image/*" capture="environment" />
           <img class="photo-preview" id="preview-frontal" alt="" />
+          <p class="slot-status" id="status-frontal"></p>
         </div>
         <div class="photo-slot">
           <label for="photo-izq">Perfil izquierdo</label>
+          <button type="button" class="secondary cam-btn" data-slot="izq">📷 Hacer foto con marco</button>
+          <p class="file-alt">o elige una foto ya hecha:</p>
           <input type="file" id="photo-izq" accept="image/*" capture="environment" />
           <img class="photo-preview" id="preview-izq" alt="" />
+          <p class="slot-status" id="status-izq"></p>
         </div>
         <div class="photo-slot">
           <label for="photo-dcha">Perfil derecho</label>
+          <button type="button" class="secondary cam-btn" data-slot="dcha">📷 Hacer foto con marco</button>
+          <p class="file-alt">o elige una foto ya hecha:</p>
           <input type="file" id="photo-dcha" accept="image/*" capture="environment" />
           <img class="photo-preview" id="preview-dcha" alt="" />
+          <p class="slot-status" id="status-dcha"></p>
         </div>
       </div>
       <button id="analyze-btn" type="button" class="secondary" style="margin-top: 14px;">
@@ -182,6 +225,18 @@
   </form>
 </div>
 
+<div id="camera" class="camera" hidden>
+  <video id="camera-video" playsinline autoplay muted></video>
+  <svg id="camera-overlay" viewBox="0 0 240 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+  <div class="cam-top"><strong id="cam-title"></strong><span id="cam-hint"></span></div>
+  <div class="cam-level" id="cam-level"></div>
+  <div class="cam-bottom">
+    <button type="button" class="cam-round" id="cam-close" aria-label="Cerrar cámara">✕</button>
+    <button type="button" class="cam-shutter" id="cam-shoot" aria-label="Hacer foto"></button>
+    <button type="button" class="cam-round" id="cam-switch" aria-label="Cambiar de cámara">⟲</button>
+  </div>
+</div>
+
   <script>
     // Ruta relativa: ver nota igual en index.html/growth-map.html — el
     // backend sirve este HTML como estático, así que /api siempre resuelve
@@ -202,18 +257,34 @@
     // que ese endpoint sustituye el perfil entero, no solo un campo).
     let fullVisagismoProfile = {};
 
-    function wirePreview(inputId, previewId) {
-      const input = document.getElementById(inputId);
-      const preview = document.getElementById(previewId);
+    // Foto de cada casilla: la hecha con la cámara con marco (Blob) tiene
+    // prioridad; si no hay, se usa el archivo elegido en el selector.
+    const SLOTS = {
+      frontal: { input: "photo-frontal", preview: "preview-frontal" },
+      izq: { input: "photo-izq", preview: "preview-izq" },
+      dcha: { input: "photo-dcha", preview: "preview-dcha" },
+    };
+    const captured = { frontal: null, izq: null, dcha: null };
+
+    function showPreview(slot, blob) {
+      const preview = document.getElementById(SLOTS[slot].preview);
+      if (!blob) { preview.style.display = "none"; return; }
+      preview.src = URL.createObjectURL(blob);
+      preview.style.display = "block";
+    }
+
+    function photoFor(slot) {
+      return captured[slot] || document.getElementById(SLOTS[slot].input).files[0] || null;
+    }
+
+    for (const slot of Object.keys(SLOTS)) {
+      const input = document.getElementById(SLOTS[slot].input);
       input.addEventListener("change", () => {
-        if (!input.files[0]) { preview.style.display = "none"; return; }
-        preview.src = URL.createObjectURL(input.files[0]);
-        preview.style.display = "block";
+        captured[slot] = null;
+        document.getElementById(`status-${slot}`).textContent = "";
+        showPreview(slot, input.files[0] || null);
       });
     }
-    wirePreview("photo-frontal", "preview-frontal");
-    wirePreview("photo-izq", "preview-izq");
-    wirePreview("photo-dcha", "preview-dcha");
 
     function fillFormFromFeatures(features) {
       const f = features || {};
@@ -297,9 +368,9 @@
 
     document.getElementById("analyze-btn").addEventListener("click", async () => {
       if (!currentClient) return;
-      const frontal = document.getElementById("photo-frontal").files[0];
-      const izq = document.getElementById("photo-izq").files[0];
-      const dcha = document.getElementById("photo-dcha").files[0];
+      const frontal = photoFor("frontal");
+      const izq = photoFor("izq");
+      const dcha = photoFor("dcha");
       if (!frontal || !izq || !dcha) {
         statusEl.innerHTML = '<span class="warning">Sube las 3 fotos (frontal + ambos perfiles) para analizar.</span>';
         return;
@@ -308,9 +379,9 @@
       statusEl.textContent = "Analizando fotos...";
       resultsSection.style.display = "none";
       const formData = new FormData();
-      formData.append("photo_frontal", frontal);
-      formData.append("photo_perfil_izquierdo", izq);
-      formData.append("photo_perfil_derecho", dcha);
+      formData.append("photo_frontal", frontal, "frontal.jpg");
+      formData.append("photo_perfil_izquierdo", izq, "perfil_izquierdo.jpg");
+      formData.append("photo_perfil_derecho", dcha, "perfil_derecho.jpg");
 
       try {
         const res = await fetch(`${API_BASE}/clients/${currentClient.id}/visagismo-auto-analysis`, {
@@ -347,7 +418,12 @@
       // desde esta pantalla).
       const merged = JSON.parse(JSON.stringify(fullVisagismoProfile));
       merged.anatomical_metrics = merged.anatomical_metrics || {};
+      // Se parte de lo que ya había guardado y se sobrescriben solo los
+      // campos del formulario: así no se pierden los valores medidos que no
+      // tienen campo propio (p.ej. eye_symmetry_percent), que antes se
+      // borraban al pulsar "Guardar".
       merged.anatomical_metrics.facial_features_profile = {
+        ...(merged.anatomical_metrics.facial_features_profile || {}),
         profile_type: document.getElementById("profile-type").value || null,
         eye_spacing: document.getElementById("eye-spacing").value || null,
         eyebrow_type: document.getElementById("eyebrow-type").value || null,
@@ -376,6 +452,167 @@
       } catch (e) {
         statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
       }
+    });
+
+    // ---------------- Cámara con marco ----------------
+    // Encuadre guiado: óvalo para la frontal y silueta de perfil (la misma
+    // que usa la guía, assets/guia/perfiles.json) para los perfiles.
+    // "Perfil izquierdo" = se ve el lado izquierdo de la cara, así que la
+    // nariz apunta a la izquierda de la foto. Necesita HTTPS (o localhost):
+    // si no hay cámara disponible, se abre el selector de fotos normal.
+    const cam = {
+      el: document.getElementById("camera"),
+      video: document.getElementById("camera-video"),
+      overlay: document.getElementById("camera-overlay"),
+      level: document.getElementById("cam-level"),
+      stream: null,
+      slot: null,
+      facing: "environment",
+      silhouette: null,
+    };
+    const CAM_TEXT = {
+      frontal: ["Foto frontal", "Cara dentro del óvalo y ojos sobre la línea. Que mire a la cámara, sin girar ni inclinar la cabeza."],
+      izq: ["Perfil izquierdo", "Nariz hacia la izquierda, encajando el perfil en la silueta. Cámara a la altura de la cara y cliente mirando al horizonte. Frente y cuello despejados."],
+      dcha: ["Perfil derecho", "Nariz hacia la derecha, encajando el perfil en la silueta. Cámara a la altura de la cara y cliente mirando al horizonte. Frente y cuello despejados."],
+    };
+
+    async function loadSilhouette() {
+      if (cam.silhouette) return cam.silhouette;
+      try {
+        const res = await fetch("assets/guia/perfiles.json");
+        cam.silhouette = (await res.json()).marco_perfil;
+      } catch (e) {
+        cam.silhouette = null;
+      }
+      return cam.silhouette;
+    }
+
+    function drawOverlay() {
+      const mirrored = cam.facing === "user";
+      const big = "M-2000,-2000 H2240 V2360 H-2000 Z";
+      let shape, guides;
+      if (cam.slot === "frontal" || !cam.silhouette) {
+        shape = "M120,52 C168,52 190,104 190,160 C190,226 158,282 120,282 C82,282 50,226 50,160 C50,104 72,52 120,52 Z";
+        guides = '<line class="cam-guide" x1="40" y1="150" x2="200" y2="150"/>' +
+                 '<line class="cam-guide" x1="120" y1="40" x2="120" y2="300"/>';
+      } else {
+        shape = cam.silhouette.d;
+        const eyeY = cam.silhouette.ojo[1];
+        guides = `<line class="cam-guide" x1="0" y1="${eyeY}" x2="240" y2="${eyeY}"/>`;
+      }
+      // Hacia dónde mira la silueta EN PANTALLA: el perfil base mira a la
+      // derecha; con la cámara frontal la vista previa sale en espejo, y la
+      // foto guardada no.
+      const flip = cam.slot !== "frontal" && ((cam.slot === "izq") !== mirrored);
+      const t = flip ? ' transform="translate(240,0) scale(-1,1)"' : "";
+      cam.overlay.innerHTML =
+        `<g${t}><path class="cam-dim" d="${big} ${shape}"/><path class="cam-outline" d="${shape}"/>${guides}</g>`;
+    }
+
+    function onOrientation(event) {
+      if (event.beta === null || event.gamma === null) return;
+      let msg, ok = false;
+      if (window.innerWidth > window.innerHeight) {
+        msg = "Pon el móvil en vertical";
+      } else if (event.beta > 97) {
+        msg = "El móvil apunta hacia arriba: súbelo a la altura de la cara y ponlo recto";
+      } else if (event.beta < 83) {
+        msg = "El móvil apunta hacia abajo: ponlo recto, a la altura de la cara";
+      } else if (Math.abs(event.gamma) > 7) {
+        msg = "Endereza el móvil (está torcido hacia un lado)";
+      } else {
+        msg = "Móvil recto ✓";
+        ok = true;
+      }
+      cam.level.textContent = msg;
+      cam.level.className = `cam-level ${ok ? "ok" : "bad"}`;
+    }
+
+    async function startStream() {
+      if (cam.stream) cam.stream.getTracks().forEach((t) => t.stop());
+      cam.stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: cam.facing }, width: { ideal: 1920 }, height: { ideal: 1440 } },
+        audio: false,
+      });
+      cam.video.srcObject = cam.stream;
+      cam.video.classList.toggle("mirrored", cam.facing === "user");
+      drawOverlay();
+    }
+
+    async function openCamera(slot) {
+      const canUseCamera = window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+      if (!canUseCamera) {
+        statusEl.innerHTML = '<span class="warning">La cámara con marco necesita la web con HTTPS (la versión publicada). ' +
+          "Aquí se abre la cámara normal del móvil: sigue las indicaciones de la guía.</span>";
+        document.getElementById(SLOTS[slot].input).click();
+        return;
+      }
+      // iOS pide permiso para el sensor de inclinación, y tiene que ser
+      // dentro del toque del usuario. Si lo deniega, no hay indicador de nivel.
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        try { await DeviceOrientationEvent.requestPermission(); } catch (e) { /* sin indicador de nivel */ }
+      }
+      cam.slot = slot;
+      document.getElementById("cam-title").textContent = CAM_TEXT[slot][0];
+      document.getElementById("cam-hint").textContent = CAM_TEXT[slot][1];
+      cam.level.textContent = "";
+      await loadSilhouette();
+      cam.el.hidden = false;
+      document.body.style.overflow = "hidden";
+      window.addEventListener("deviceorientation", onOrientation);
+      try {
+        await startStream();
+      } catch (e) {
+        closeCamera();
+        statusEl.innerHTML = '<span class="warning">No se ha podido abrir la cámara (¿permiso denegado?). ' +
+          "Se abre el selector de fotos.</span>";
+        document.getElementById(SLOTS[slot].input).click();
+      }
+    }
+
+    function closeCamera() {
+      if (cam.stream) cam.stream.getTracks().forEach((t) => t.stop());
+      cam.stream = null;
+      cam.video.srcObject = null;
+      cam.el.hidden = true;
+      document.body.style.overflow = "";
+      window.removeEventListener("deviceorientation", onOrientation);
+    }
+
+    function capture() {
+      const v = cam.video;
+      if (!v.videoWidth) return;
+      // Se guarda el fotograma COMPLETO, no solo lo que se ve en pantalla:
+      // el marco sirve para colocar la cara, y recortar a la pantalla (con
+      // una cámara apaisada y la pantalla en vertical) perdía resolución y
+      // subía el ruido de las medidas. Sin espejo: la foto es la real.
+      const out = Math.min(1, 2000 / Math.max(v.videoWidth, v.videoHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(v.videoWidth * out);
+      canvas.height = Math.round(v.videoHeight * out);
+      canvas.getContext("2d").drawImage(v, 0, 0, canvas.width, canvas.height);
+      const slot = cam.slot;
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        captured[slot] = blob;
+        document.getElementById(SLOTS[slot].input).value = "";
+        showPreview(slot, blob);
+        document.getElementById(`status-${slot}`).textContent = "Foto hecha con marco ✓";
+        closeCamera();
+      }, "image/jpeg", 0.92);
+    }
+
+    document.querySelectorAll(".cam-btn").forEach((btn) => {
+      btn.addEventListener("click", () => openCamera(btn.dataset.slot));
+    });
+    document.getElementById("cam-close").addEventListener("click", closeCamera);
+    document.getElementById("cam-shoot").addEventListener("click", capture);
+    document.getElementById("cam-switch").addEventListener("click", async () => {
+      cam.facing = cam.facing === "environment" ? "user" : "environment";
+      try { await startStream(); } catch (e) { /* se queda la cámara anterior */ }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !cam.el.hidden) closeCamera();
     });
 
     loadClientFromUrl();

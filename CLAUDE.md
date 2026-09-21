@@ -336,6 +336,74 @@ sección) -- `hair_physical_metrics`, `lifestyle_and_preferences`,
 API" que ya tenían antes de esta feature, ver nota al final de la
 sección de reglas de visagismo).
 
+## Guía de visajismo de perfil y cámara con marco (sept 2026)
+
+**`frontend/guia-visagismo.html`** (enlazada desde `inicio.html` y desde el
+nav de `visagismo.html`): guía para valorar a mano tres rasgos de perfil
+con el mismo criterio -- perfil facial (recto/convexo/cóncavo), mentón
+(retraído/equilibrado/prominente) y línea mandibular (definida/poco
+definida) --, con el consejo de corte y barba habitual en visajismo para
+cada categoría y una sección de cómo hacer las fotos de perfil (correcta
+frente a los errores que cambian la medida: cámara por debajo, cabeza
+inclinada, flequillo sobre la frente, cuello tapado, fondo del color de
+la piel, 3/4 en vez de perfil). Pedro la pidió como "imágenes
+artificiales de diferentes perfiles de hombre que sirvan como guía".
+
+- Las ilustraciones NO son fotos ni dibujos a ojo: las genera
+  `frontend/tools/generar_perfiles_guia.py`, que coloca los puntos de
+  cada perfil (glabela, subnasal, labio inferior, pogonion, mentón, punto
+  cervical) para que su ángulo sea exactamente el que ilustra, con las
+  mismas definiciones que las referencias publicadas (convexidad de Legan
+  8-16°, ángulo labio inferior-mentón de -5° a 15°, ángulo cervicomental
+  105-120°), y comprueba al generar que cada dibujo mide lo que dice.
+  Salida: `frontend/assets/guia/perfiles.json` (SVG ya listo, la página lo
+  carga con `fetch`). Si se cambia el dibujo, volver a ejecutar el script.
+- Los consejos de corte/barba vienen de fuentes de visajismo y barbería
+  enlazadas al final de la propia página (Luc Vincent, Castlebeard, Beard
+  Resource, el visagista Igor Cuts); son orientaciones, no reglas, y la
+  página lo dice.
+- La página deja claro que esos tres rasgos se rellenan a mano: la
+  detección automática desde la foto de perfil sigue en pruebas en la
+  rama `wip-perfil-automatico` (su CLAUDE.md explica en qué punto está y
+  qué falta: calibrar con fotos de perfil de 10-15 personas).
+
+**Cámara con marco en `frontend/visagismo.html`**: cada foto (frontal,
+perfil izquierdo, perfil derecho) tiene un botón "Hacer foto con marco"
+que abre la cámara a pantalla completa (`getUserMedia`) con la guía
+superpuesta: óvalo + línea de ojos para la frontal, y la silueta del
+perfil normal de la guía (misma `marco_perfil` del JSON) mirando hacia el
+lado que toca. "Perfil izquierdo" = se ve el lado izquierdo de la cara,
+así que la nariz apunta a la izquierda de la foto. Con la cámara frontal
+la vista previa va en espejo y la silueta también se gira, para que la
+foto guardada (sin espejo) quede con la nariz hacia el lado correcto.
+
+- Indicador de nivel con el sensor del móvil (`deviceorientation`): avisa
+  si el móvil apunta hacia arriba o hacia abajo o está torcido. Es el
+  error que más cambió las medidas en las pruebas (cámara por debajo de
+  la cara). En iOS hay que pedir permiso dentro del toque del usuario
+  (`DeviceOrientationEvent.requestPermission`); si lo deniega, simplemente
+  no hay indicador. El sensor mide la inclinación del móvil, no su altura:
+  la altura sigue dependiendo de quien hace la foto.
+- Se guarda el fotograma COMPLETO a hasta 2000 px, no solo lo que se ve
+  en pantalla: recortar a la pantalla (cámara apaisada, pantalla en
+  vertical) perdía resolución, y en la prueba la asimetría ocular medida
+  subió de 0,5% a 7,1% solo por eso (con el fotograma completo, 0,8%).
+- La foto hecha con la cámara (Blob) tiene prioridad sobre el archivo del
+  selector; elegir un archivo la descarta.
+- **Necesita HTTPS** (o `localhost`): `getUserMedia` no existe en
+  `http://192.168.x.x`. En ese caso, o si se deniega el permiso, se avisa
+  y se abre el selector de fotos normal (que en el móvil abre la cámara
+  del sistema, sin marco). En la web publicada en Railway funciona.
+- Probado con Playwright y una cámara simulada que emite las fotos de
+  Pedro: encuadre de los tres tipos, aviso de nivel, captura, subida al
+  backend real y formulario relleno con el resultado; y el caso sin
+  cámara.
+
+Arreglado de paso en la misma página: el botón "Guardar" reconstruía
+`facial_features_profile` solo con los campos del formulario y borraba
+los valores medidos sin campo propio (`eye_symmetry_percent`). Ahora parte
+de lo ya guardado y sobrescribe solo los campos del formulario.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Guía de visajismo de perfil</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  .section { margin: 0 0 40px; }
+  .section h2 { font-size: 20px; margin: 0 0 6px; }
+  .section .how { color: var(--text-dim); font-size: 13.5px; line-height: 1.55; max-width: 720px; margin: 0 0 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .card { padding: 12px 14px 16px; display: flex; flex-direction: column; }
+  .card .art { background: rgba(0, 0, 0, 0.25); border-radius: 12px; overflow: hidden; aspect-ratio: 3 / 4; display: flex; }
+  .card .art svg { width: 100%; height: 100%; display: block; }
+  .card h3 { font-size: 15px; margin: 12px 0 2px; }
+  .card .rule { font-size: 12px; color: var(--accent-cyan); margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+  .card .advice { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0; }
+  .card .advice strong { color: var(--text-main); font-weight: 600; }
+  .card .advice + .advice { margin-top: 6px; }
+  .note { font-size: 12.5px; color: var(--text-faint); line-height: 1.5; max-width: 720px; }
+  .sources { font-size: 12px; color: var(--text-faint); line-height: 1.7; padding-left: 18px; }
+  .sources a { color: var(--text-dim); }
+  .callout { padding: 14px 16px; margin: 0 0 32px; font-size: 13.5px; color: var(--text-dim); line-height: 1.55; max-width: 720px; }
+  .callout a { font-weight: 600; }
+
+  /* Ilustraciones (el SVG viene de assets/guia/perfiles.json) */
+  .f-skin { fill: #e9c9ad; stroke: #f5e2d0; stroke-width: 1.5; }
+  .f-hair { fill: #2a2233; }
+  .f-ear { fill: #dcb698; stroke: #b98f70; stroke-width: 1.2; }
+  .f-line { fill: none; stroke: #5b4636; stroke-width: 1.6; stroke-linecap: round; }
+  .f-brow { fill: none; stroke: #2a2233; stroke-width: 3; stroke-linecap: round; }
+  .f-jaw { fill: none; stroke: #c9a283; stroke-width: 1.4; opacity: 0.8; }
+  .m-line { stroke: var(--accent-cyan); stroke-width: 2; }
+  .m-dash { stroke: var(--accent-cyan); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: 0.8; }
+  .m-arc { fill: none; stroke: var(--accent-pink); stroke-width: 2; }
+  .m-dot { fill: #fff; stroke: var(--accent-cyan); stroke-width: 1.5; }
+  .m-label { fill: var(--accent-pink); font-size: 13px; font-weight: 700; }
+  .k-chin .m-label { font-size: 11px; }
+  .k-chin .m-line, .k-chin .m-arc { stroke-width: 1.4; }
+  .k-chin .m-dash { stroke-width: 1; }
+  .k-chin .m-dot { stroke-width: 1; }
+  .p-phone rect { fill: #1b1f2e; stroke: #cfd6ff; stroke-width: 2; }
+  .p-phone circle { fill: var(--accent-cyan); }
+  .p-guide { stroke: var(--ok); stroke-width: 2; stroke-dasharray: 5 4; }
+  .p-guide.bad { stroke: #f87171; }
+  .p-ok circle { fill: var(--ok); }
+  .p-bad circle { fill: #f87171; }
+  .p-ok path, .p-bad path { fill: none; stroke: #05060f; stroke-width: 3; stroke-linecap: round; }
+  .p-collar { fill: #5b6478; stroke: #8792aa; stroke-width: 1.5; }
+  .p-wall { fill: #e2c3a6; }
+  .p-top ellipse, .p-nose { fill: #e9c9ad; stroke: #f5e2d0; stroke-width: 1.5; }
+  .p-cap { fill: #fff; font-size: 15px; }
+  .p-cap.small { font-size: 12px; opacity: 0.7; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="inicio.html">← Inicio</a>
+    <a href="visagismo.html">Análisis de visajismo</a>
+  </nav>
+
+  <h1 class="page-title">Guía de visajismo de perfil</h1>
+  <p class="page-lead">
+    Tres rasgos que se ven de perfil y cómo se valoran. Cada dibujo está hecho con el ángulo
+    exacto que indica, medido igual que en las referencias publicadas, para que todo el
+    equipo clasifique con el mismo criterio.
+  </p>
+
+  <div class="glass-card callout">
+    Estos tres rasgos todavía se rellenan a mano en
+    <a href="visagismo.html">Análisis de visajismo</a>: la detección automática desde la foto de
+    perfil está en pruebas. Las fotos, en cambio, conviene hacerlas ya con la cámara con marco
+    de esa misma página, siguiendo la última sección de esta guía.
+  </div>
+
+  <section class="section" id="perfil">
+    <h2>Perfil facial</h2>
+    <p class="how">
+      Se unen tres puntos: el entrecejo (glabela), la base de la nariz (subnasal) y el punto
+      más adelantado del mentón. El ángulo que forma la segunda línea con la prolongación de
+      la primera es la convexidad. Lo normal son 8-16° (media 12°).
+    </p>
+    <div class="cards" data-group="perfil"></div>
+  </section>
+
+  <section class="section" id="menton">
+    <h2>Mentón</h2>
+    <p class="how">
+      Con el cliente mirando al frente, se traza una vertical desde el punto más adelantado
+      del labio inferior y se mira dónde queda el mentón. Lo aceptable va de 5° por delante a
+      15° por detrás de esa vertical; lo ideal es justo debajo.
+    </p>
+    <div class="cards" data-group="menton"></div>
+  </section>
+
+  <section class="section" id="mandibula">
+    <h2>Línea mandibular</h2>
+    <p class="how">
+      El ángulo entre la línea de debajo de la barbilla y la línea del cuello (ángulo
+      cervicomental). Entre 105° y 120° la mandíbula se ve marcada; por encima de 120°, el
+      paso de la barbilla al cuello se difumina.
+    </p>
+    <div class="cards" data-group="mandibula"></div>
+  </section>
+
+  <section class="section" id="fotos">
+    <h2>Cómo hacer las fotos de perfil</h2>
+    <p class="how">
+      Los ángulos cambian mucho según cómo se haga la foto: con las fotos de prueba, la misma
+      persona dio 15° de convexidad con la cámara a la altura de la cara y 33° con la cámara por
+      debajo y la cabeza agachada. La cámara con marco de
+      <a href="visagismo.html">Análisis de visajismo</a> ayuda a encuadrar y avisa si el móvil
+      no está recto.
+    </p>
+    <div class="cards" id="photo-cards"></div>
+  </section>
+
+  <section class="section">
+    <h2>De dónde sale cada dato</h2>
+    <ul class="sources">
+      <li>Convexidad (Legan, 12°, 8-16°) y ángulo cervicomental (121° de media en hombres):
+        <a href="https://www.sciencedirect.com/science/article/pii/S1808869415002608" target="_blank" rel="noopener">Clinical evaluation for chin augmentation: literature review and algorithm proposal</a></li>
+      <li>Ángulo labio inferior-mentón (0° ideal, de 15° por detrás a 5° por delante aceptable):
+        <a href="https://www.sciencedirect.com/science/article/abs/pii/S1010518219302768" target="_blank" rel="noopener">Analysing chin prominence in relation to the lower lip</a></li>
+      <li>Ángulo cervicomental ideal de 105-120° (Ellenbogen y Karlin):
+        <a href="https://plasticsurgerykey.com/3-analysis-of-the-neck/" target="_blank" rel="noopener">Analysis of the Neck</a></li>
+      <li>Peinado según perfil, mentón y nariz:
+        <a href="https://lucvincent.com/en/blogs/articles/morphological-problems-and-their-corrections" target="_blank" rel="noopener">Luc Vincent, Morphological problems and their corrections</a></li>
+      <li>Perfil cóncavo y convexo en visajismo masculino:
+        <a href="https://www.tiktok.com/@igorcuts/video/7318417886794517766" target="_blank" rel="noopener">Igor Cuts (cóncavo)</a>,
+        <a href="https://www.tiktok.com/@igorcuts/video/7327791603781864710" target="_blank" rel="noopener">Igor Cuts (convexo)</a></li>
+      <li>Barba para mentón retraído:
+        <a href="https://castlebeard.com/blogs/castle-memos/beard-shape-for-weak-chin" target="_blank" rel="noopener">Castlebeard, Beard shape for weak chin</a></li>
+      <li>Barba para mandíbula poco definida:
+        <a href="https://beardresource.com/hide-weak-jawline-double-chin-beard/" target="_blank" rel="noopener">Beard Resource, Hide a weak jawline &amp; double chin</a></li>
+    </ul>
+    <p class="note">
+      Los consejos de corte son orientaciones habituales de visajismo, no reglas: el criterio del
+      barbero y lo que quiere el cliente van primero. Los ángulos son de estética facial, no un
+      diagnóstico médico.
+    </p>
+  </section>
+</div>
+
+<script>
+  // Consejos por categoría. Los dibujos y los valores vienen de
+  // assets/guia/perfiles.json (generado por tools/generar_perfiles_guia.py,
+  // que comprueba que cada dibujo mide lo que dice).
+  const ADVICE = {
+    perfil: {
+      concave: [
+        "Frente y mentón por delante de la zona central de la cara.",
+        "<strong>Pelo:</strong> volumen hacia arriba, para dar presencia a la parte central.",
+        "<strong>Barba:</strong> base de la barba horizontal que dé peso a la mandíbula; evitar mucho volumen en el mentón. Un bigote algo más poblado ayuda a equilibrar.",
+      ],
+      straight: [
+        "Perfil equilibrado: no hace falta compensar nada.",
+        "<strong>Pelo y barba:</strong> admite casi cualquier opción; se elige por gusto, tipo de pelo y forma de cara.",
+      ],
+      convex: [
+        "Nariz y labios por delante; frente y mentón hacia atrás.",
+        "<strong>Pelo:</strong> evitar peinados planos y flequillos muy voluminosos; mejor algo de volumen, medido, en la parte de atrás de la cabeza.",
+        "<strong>Barba:</strong> dar presencia al mentón para adelantar la parte baja de la cara.",
+      ],
+    },
+    menton: {
+      prominent: [
+        "El mentón queda claramente por delante del labio inferior.",
+        "<strong>Pelo:</strong> algo de volumen o flequillo delante, para equilibrar el perfil.",
+        "<strong>Barba:</strong> no dejar largo en el mentón; si se quiere barba, mejor con peso en los laterales.",
+      ],
+      balanced: [
+        "El mentón queda aproximadamente bajo el labio inferior.",
+        "<strong>Pelo y barba:</strong> no hace falta compensar nada.",
+      ],
+      retruded: [
+        "El mentón queda claramente por detrás del labio inferior.",
+        "<strong>Barba:</strong> dejar más largo en el mentón (unos 2-3 cm) para adelantarlo: barba completa, perilla cerrada o perilla extendida por la mandíbula. Si es barba de pocos días, que sea densa: una sombra clara lo marca más.",
+        "<strong>Pelo:</strong> evitar peinados planos y pegados; algo de volumen en la nuca y a los lados.",
+      ],
+    },
+    mandibula: {
+      defined: [
+        "El paso de la barbilla al cuello se ve marcado.",
+        "<strong>Barba:</strong> se puede lucir la mandíbula: sin barba, barba corta o perfilada siguiendo el hueso.",
+      ],
+      soft: [
+        "La barbilla se funde con el cuello.",
+        "<strong>Barba:</strong> el contorno del cuello no más de unos 2,5 cm por encima de la nuez: si se sube más, se ve la zona blanda. Laterales más cortos, más volumen abajo y líneas rectas y anguladas que dibujen la mandíbula.",
+      ],
+    },
+  };
+
+  function el(tag, cls, html) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (html !== undefined) node.innerHTML = html;
+    return node;
+  }
+
+  function describeValue(group, value) {
+    if (group === "menton") {
+      if (Math.abs(value) < 0.5) return "justo debajo del labio";
+      return `mentón ${Math.abs(value).toFixed(0)}° ${value > 0 ? "por detrás" : "por delante"} del labio`;
+    }
+    return `${value.toFixed(0)}°`;
+  }
+
+  fetch("assets/guia/perfiles.json")
+    .then((res) => res.json())
+    .then((data) => {
+      for (const [group, items] of Object.entries(data.categorias)) {
+        const container = document.querySelector(`.cards[data-group="${group}"]`);
+        for (const item of items) {
+          const card = el("article", "card glass-card");
+          card.appendChild(el("div", "art", item.svg));
+          card.appendChild(el("h3", "", item.nombre));
+          card.appendChild(el("p", "rule", `${item.regla} · dibujo: ${describeValue(group, item.valor)}`));
+          for (const line of ADVICE[group][item.clave]) card.appendChild(el("p", "advice", line));
+          container.appendChild(card);
+        }
+      }
+      const photos = document.getElementById("photo-cards");
+      for (const item of data.fotos) {
+        const card = el("article", "card glass-card");
+        card.appendChild(el("div", "art", item.svg));
+        card.appendChild(el("h3", "", item.titulo));
+        card.appendChild(el("p", "advice", item.texto));
+        photos.appendChild(card);
+      }
+    })
+    .catch(() => {
+      document.querySelector(".page-lead").insertAdjacentHTML(
+        "afterend",
+        '<p class="note">No se han podido cargar los dibujos. Recarga la página.</p>'
+      );
+    });
+</script>
+</body>
+</html>
