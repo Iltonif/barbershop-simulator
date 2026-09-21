@@ -267,27 +267,27 @@ def photo_cards():
                 f'<path class="f-hair" d="{_catmull_rom(hair(p), True)}"/>' + features(p) + extra_front + '</g>')
 
     horizon = f'<line class="p-guide" x1="{eye[0]:.1f}" y1="{eye[1]:.1f}" x2="232" y2="{eye[1]:.1f}"/>'
-    cards.append(("ok", "Correcta", "Cámara a la altura de la cara, cliente mirando al horizonte, perfil completo, fondo liso.",
+    cards.append(("ok", "Correcta", "Cámara a la altura de la cara · mirada al horizonte · fondo liso.",
                   head() + horizon + _phone(226, eye[1]) + _mark(True)))
     cards.append(("camara-baja", "Cámara por debajo",
-                  "Se ve más la parte de abajo de la barbilla y cambian los ángulos (en las pruebas, la misma persona pasó de 15° a 33° de convexidad).",
+                  "Cambia los ángulos: la misma cara pasó de 15° a 33°.",
                   head() + f'<line class="p-guide bad" x1="{eye[0]:.1f}" y1="{eye[1]:.1f}" x2="228" y2="318"/>' + _phone(228, 318, -30) + _mark(False)))
-    cards.append(("cabeza-agachada", "Cabeza agachada o echada atrás",
-                  "El mentón se mide respecto a la vertical: con la cabeza inclinada, cambia aunque la cara sea la misma.",
+    cards.append(("cabeza-agachada", "Cabeza inclinada",
+                  "El mentón se mide con la vertical: inclinada, cambia.",
                   head(transform="rotate(14 150 180)") + horizon + _phone(226, eye[1]) + _mark(False)))
     fringe = ('<path class="f-hair" d="M150,60 C176,70 184,96 178,128 C172,134 164,128 160,118 C152,104 140,96 128,94 Z"/>')
-    cards.append(("flequillo", "Flequillo sobre la frente",
-                  "Tapa la glabela (el punto de la frente entre las cejas), que es uno de los tres puntos del perfil facial.",
+    cards.append(("flequillo", "Flequillo en la frente",
+                  "Tapa el entrecejo, un punto clave del perfil.",
                   head(extra_front=fringe) + horizon + _phone(226, eye[1]) + _mark(False)))
     c = base["C"]
     collar = (f'<path class="p-collar" d="M40,366 L50,300 C60,262 90,252 112,254 C{c[0]:.1f},{c[1] - 6:.1f} '
               f'{c[0] + 18:.1f},{c[1] - 4:.1f} {c[0] + 30:.1f},{c[1] + 2:.1f} C{c[0] + 34:.1f},{c[1] + 40:.1f} '
               f'174,330 178,366 Z"/>')
     cards.append(("cuello", "Cuello tapado",
-                  "Con cuello alto, capucha o bufanda no se ve el ángulo entre mentón y cuello (la línea mandibular).",
+                  "Sin cuello visible no se mide la mandíbula.",
                   head(extra_front=collar) + horizon + _phone(226, eye[1]) + _mark(False)))
-    cards.append(("fondo", "Fondo del color de la piel",
-                  "Si la pared se parece al tono de piel, el sistema no distingue bien el borde de la cara. Mejor una pared lisa y de otro color.",
+    cards.append(("fondo", "Fondo color piel",
+                  "No se distingue el borde de la cara. Mejor otro color.",
                   '<rect class="p-wall" x="0" y="0" width="240" height="360"/>' + head() + _mark(False)))
     # Vista desde arriba: perfil completo frente a 3/4.
     top = ('<g class="p-top">'
@@ -302,8 +302,8 @@ def photo_cards():
            '<ellipse cx="180" cy="140" rx="34" ry="40"/><path class="p-nose" d="M198,166 L214,186 L190,182"/>'
            '<line class="p-guide bad" x1="180" y1="190" x2="180" y2="276"/>' + _phone(180, 292) +
            '<text class="p-cap small" x="120" y="340" text-anchor="middle">visto desde arriba</text></g>')
-    cards.append(("tres-cuartos", "Perfil completo, no de 3/4",
-                  "La nariz tiene que apuntar hacia un lado, no hacia la cámara. Una foto de 3/4 no enseña el contorno del perfil.",
+    cards.append(("tres-cuartos", "Perfil, no 3/4",
+                  "La nariz apunta al lado, no a la cámara.",
                   top))
     return [dict(clave=k, titulo=t, texto=x, svg=f'<svg viewBox="0 0 {W} {H}" class="photo-svg" role="img">{body}</svg>')
             for k, t, x, body in cards]

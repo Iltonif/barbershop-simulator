@@ -20,17 +20,18 @@
 <link rel="stylesheet" href="assets/theme.css" />
 <style>
   .page-shell { max-width: 1180px; }
-  #subtitle { color: var(--text-dim); margin-top: 0; max-width: 640px; font-size: 14px; }
-  #status { font-size: 14px; color: var(--text-dim); margin: 16px 0; }
+  .page-head { margin-bottom: 16px; }
+  #status { font-size: 13px; color: var(--text-faint); margin: 12px 0; }
 
-  .filters {
-    display: flex; flex-wrap: wrap; gap: 16px; margin: 20px 0;
-    padding: 16px 18px; border-radius: 14px;
-  }
-  .filter-group { display: flex; flex-direction: column; gap: 4px; }
-  .filter-group label { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-dim); }
-  .filter-group select { padding: 8px 10px; font-size: 13px; width: auto; min-width: 160px; }
-  .filters button { align-self: flex-end; width: auto; padding: 9px 16px; font-size: 13px; margin: 0; }
+  /* Filtros: una fila de desplegables compactos, sin etiquetas (el propio
+     desplegable dice qué filtra). Se resaltan los que están activos. */
+  .filters { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters-ico { color: var(--text-faint); flex: none; }
+  .filters select { width: auto; flex: none; min-width: 0; min-height: 40px; padding: 8px 28px 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .filters select.active { border-color: var(--accent-cyan); color: var(--accent-cyan); background: rgba(79, 227, 255, 0.08); }
+  .filters .icon-btn { width: 40px; height: 40px; min-height: 40px; border-radius: 50%; }
+  .filters .icon-btn[hidden] { display: none; }
 
   .grid {
     display: grid;
@@ -109,7 +110,8 @@
     margin: 0 0 3px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em;
     color: var(--text-main);
   }
-  .family-hint { margin: 0 0 14px; font-size: 12px; color: var(--text-faint); line-height: 1.4; }
+  .family-hint { margin: 0 0 10px; font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+  .card-body h3 { margin-bottom: 8px; }
 
   .cut-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
   .cut-item { border-top: 1px solid var(--glass-border); padding-top: 12px; }
@@ -126,14 +128,12 @@
   .badge.fade { background: rgba(52, 211, 153, 0.15); color: #86e6c4; border-color: rgba(52, 211, 153, 0.3); }
   .source { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
 
-  details > summary {
+  .card details > summary {
     cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--accent-cyan);
     padding-top: 10px; list-style: none;
   }
-  details > summary::-webkit-details-marker { display: none; }
-  details > summary::before { content: "＋ "; }
-  details[open] > summary::before { content: "－ "; }
-  details[open] > summary { margin-bottom: 8px; }
+  .card details > summary::-webkit-details-marker { display: none; }
+  .card details[open] > summary { margin-bottom: 8px; }
 
   /* --- Lightbox / zoom -------------------------------------------------- */
   .lightbox {
@@ -190,58 +190,58 @@
     cursor: pointer;
     transition: background 0.2s, transform 0.2s;
   }
+  .lightbox-close .ico { width: 18px; height: 18px; }
+  .lb-hair { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--text-faint); font-size: 12.5px; }
   .lightbox-close:hover { background: rgba(5, 6, 15, 0.85); transform: scale(1.06); }
 
   @media (max-width: 640px) {
-    .grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-    .card-body { padding: 14px 14px 16px; }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .card-body { padding: 10px 10px 12px; }
+    .card-body h3 { font-size: 14px; }
+    .zoom-hint { display: none; }
   }
 </style>
 </head>
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html">← Inicio</a>
-    <a href="index.html">Simulación de cortes</a>
-    <a href="growth-map.html">Mapa de remolinos y dirección del pelo</a>
+    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="index.html" title="Simular corte"><span data-icon="wand-sparkles"></span><span class="lbl">Simular</span></a>
+    <a href="recomendaciones.html" title="Mis recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Recomendaciones</span></a>
   </nav>
 
-  <h1 class="page-title">Catálogo de cortes</h1>
-  <p id="subtitle">Todos los cortes disponibles en la barbería, para que explores estilos antes de tu cita. Usa los filtros si buscas algo concreto, y toca cualquier foto para ampliarla.</p>
+  <div class="head-row page-head">
+    <h1 class="page-title">Catálogo</h1>
+    <details class="info"><summary></summary><div class="info-body">
+      Todos los cortes de la barbería. Filtra por tipo de pelo, largo o degradado, y toca una foto para ampliarla y leer la descripción.
+    </div></details>
+  </div>
 
-  <div class="filters glass-card">
-    <div class="filter-group">
-      <label for="filter-hair">Tipo de pelo</label>
-      <select id="filter-hair">
-        <option value="">Todos</option>
-        <option value="liso">Liso</option>
-        <option value="ondulado">Ondulado</option>
-        <option value="rizado">Rizado</option>
-        <option value="afro">Afro</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label for="filter-length">Longitud</label>
-      <select id="filter-length">
-        <option value="">Todas</option>
-        <option value="corto">Corto</option>
-        <option value="medio">Medio</option>
-        <option value="largo">Largo</option>
-        <option value="extra_largo">Extra largo</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label for="filter-fade">Degradado</label>
-      <select id="filter-fade">
-        <option value="">Todos</option>
-        <option value="ninguno">Sin degradado</option>
-        <option value="bajo">Fade bajo</option>
-        <option value="medio">Fade medio</option>
-        <option value="alto">Fade alto</option>
-        <option value="skin">Fade a piel</option>
-      </select>
-    </div>
-    <button id="clear-filters" type="button" class="secondary">Quitar filtros</button>
+  <div class="filters">
+    <span class="filters-ico" data-icon="sliders-horizontal"></span>
+    <select id="filter-hair" aria-label="Tipo de pelo">
+      <option value="">Pelo</option>
+      <option value="liso">Liso</option>
+      <option value="ondulado">Ondulado</option>
+      <option value="rizado">Rizado</option>
+      <option value="afro">Afro</option>
+    </select>
+    <select id="filter-length" aria-label="Longitud">
+      <option value="">Largo</option>
+      <option value="corto">Corto</option>
+      <option value="medio">Medio</option>
+      <option value="largo">Largo</option>
+      <option value="extra_largo">Extra largo</option>
+    </select>
+    <select id="filter-fade" aria-label="Degradado">
+      <option value="">Degradado</option>
+      <option value="ninguno">Sin degradado</option>
+      <option value="bajo">Fade bajo</option>
+      <option value="medio">Fade medio</option>
+      <option value="alto">Fade alto</option>
+      <option value="skin">Fade a piel</option>
+    </select>
+    <button id="clear-filters" type="button" class="secondary icon-btn" aria-label="Quitar filtros" title="Quitar filtros" hidden><span data-icon="filter-x"></span></button>
   </div>
 
   <div id="status"></div>
@@ -251,7 +251,7 @@
 <!-- Lightbox / zoom de foto ------------------------------------------- -->
 <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="lightbox-inner">
-    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Cerrar">✕</button>
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Cerrar"><span data-icon="x"></span></button>
     <div class="lightbox-img-wrap">
       <img id="lightbox-img" src="" alt="" />
     </div>
@@ -262,6 +262,7 @@
   </div>
 </div>
 
+  <script src="assets/ui.js"></script>
   <script>
     // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
     // estaba antes): el backend sirve este mismo HTML como estático (ver
@@ -316,20 +317,17 @@
       const badges = [];
       if (s.length_category) badges.push(`<span class="badge">${LENGTH_LABELS[s.length_category] || s.length_category}</span>`);
       badges.push(`<span class="badge fade">${FADE_LABELS[s.fade_type] || s.fade_type}</span>`);
-      for (const t of s.suitable_hair_types || []) {
-        badges.push(`<span class="badge">${t}</span>`);
-      }
+      // Los tipos de pelo no van en la tarjeta (demasiadas etiquetas): se
+      // filtran con el desplegable "Pelo" y se ven al ampliar la foto.
       return `<div class="badges">${badges.join("")}</div>`;
     }
 
     function cutItemHtml(s) {
-      const sourceHtml = s.source ? `<div class="source">${s.source}</div>` : "";
       return `
         <li class="cut-item">
           <div class="cut-name">${s.name}</div>
           ${cutBadgesHtml(s)}
-          <p class="cut-desc">${s.description || ""}</p>
-          ${sourceHtml}
+
         </li>
       `;
     }
@@ -339,22 +337,31 @@
       card.className = "card";
 
       const photoHtml = family.referenceImage
-        ? `<div class="card-photo" data-img="${family.referenceImage}" data-title="${family.label}" data-desc="${(family.items[0] && family.items[0].description) || ""}">
+        ? `<div class="card-photo" data-img="${family.referenceImage}" data-title="${family.label}" data-desc="${(family.items[0] && family.items[0].description) || ""}" data-hair="${((family.items[0] && family.items[0].suitable_hair_types) || []).join(",")}">
              <img src="${family.referenceImage}" alt="Foto de referencia: ${family.label}" loading="lazy" />
-             <span class="zoom-hint">${ZOOM_ICON_SVG} Ampliar</span>
+             <span class="zoom-hint">${UI.icon("zoom-in")}</span>
            </div>`
-        : `<div class="card-photo" style="cursor:default;"><div class="no-photo">No encontramos una foto de stock que representara bien este estilo todavía</div></div>`;
+        : `<div class="card-photo" style="cursor:default;"><div class="no-photo">${UI.icon("image")}</div></div>`;
 
       const visible = family.items.slice(0, MAX_VISIBLE_PER_FAMILY);
       const rest = family.items.slice(MAX_VISIBLE_PER_FAMILY);
 
-      const hintText = family.items.length === 1
-        ? "1 corte de este estilo"
-        : `${family.items.length} cortes de este estilo — comparten esta foto de referencia por ser visualmente muy similares`;
-
+      // Un corte por foto (lo normal): solo nombre y etiquetas; la
+      // descripción se lee al ampliar la foto. Si varios comparten foto, se
+      // listan sus nombres y el resto va plegado.
+      if (family.items.length === 1) {
+        card.innerHTML = `
+          ${photoHtml}
+          <div class="card-body">
+            <h3>${family.label}</h3>
+            ${cutBadgesHtml(family.items[0])}
+          </div>
+        `;
+        return card;
+      }
       const visibleHtml = visible.map(cutItemHtml).join("");
       const restHtml = rest.length
-        ? `<details><summary>Ver ${rest.length} corte${rest.length === 1 ? "" : "s"} más de este estilo</summary>
+        ? `<details><summary>+${rest.length}</summary>
              <ul class="cut-list">${rest.map(cutItemHtml).join("")}</ul>
            </details>`
         : "";
@@ -363,7 +370,7 @@
         ${photoHtml}
         <div class="card-body">
           <h3>${family.label}</h3>
-          <p class="family-hint">${hintText}</p>
+          <p class="family-hint">${UI.icon("scissors")}${family.items.length}</p>
           <ul class="cut-list">${visibleHtml}</ul>
           ${restHtml}
         </div>
@@ -399,6 +406,8 @@
     }
 
     function applyFiltersAndRender() {
+      for (const sel of [hairSelect, lengthSelect, fadeSelect]) sel.classList.toggle("active", !!sel.value);
+      document.getElementById("clear-filters").hidden = !(hairSelect.value || lengthSelect.value || fadeSelect.value);
       const hair = hairSelect.value;
       const length = lengthSelect.value;
       const fade = fadeSelect.value;
@@ -411,13 +420,13 @@
       });
 
       if (filtered.length === 0) {
-        statusEl.textContent = "Ningún corte del catálogo coincide con estos filtros.";
+        statusEl.textContent = "Sin resultados";
         gridEl.innerHTML = "";
         return;
       }
 
       const families = groupByFamily(filtered);
-      statusEl.textContent = `${filtered.length} cortes, agrupados en ${families.length} estilos.`;
+      statusEl.textContent = `${filtered.length} cortes`;
       gridEl.innerHTML = "";
       for (const family of families) {
         gridEl.appendChild(renderFamilyCard(family));
@@ -425,7 +434,7 @@
     }
 
     async function load() {
-      statusEl.textContent = "Cargando catálogo...";
+      statusEl.textContent = "Cargando…";
       try {
         const res = await fetch(`${API_BASE}/styles`);
         if (!res.ok) {
@@ -435,7 +444,7 @@
         allStyles = await res.json();
         applyFiltersAndRender();
       } catch (e) {
-        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}. Comprueba que el backend esté corriendo en ${API_BASE}.</span>`;
+        statusEl.innerHTML = `<span class="warning">Sin conexión: ${e.message}</span>`;
       }
     }
 
@@ -462,6 +471,8 @@
       lightboxImgEl.alt = title || "";
       lightboxTitleEl.textContent = title || "";
       lightboxDescEl.textContent = desc || "";
+      const hairTypes = (arguments[3] || []).join(" · ");
+      if (hairTypes) lightboxDescEl.insertAdjacentHTML("beforeend", `<span class="lb-hair">${UI.icon("scissors")}${hairTypes}</span>`);
       lightboxEl.classList.add("open");
       lightboxEl.setAttribute("aria-hidden", "false");
       lastFocusedEl = document.activeElement;
@@ -480,7 +491,7 @@
     gridEl.addEventListener("click", (ev) => {
       const photo = ev.target.closest(".card-photo[data-img]");
       if (!photo) return;
-      openLightbox(photo.dataset.img, photo.dataset.title, photo.dataset.desc);
+      openLightbox(photo.dataset.img, photo.dataset.title, photo.dataset.desc, (photo.dataset.hair || "").split(",").filter(Boolean));
     });
 
     lightboxCloseEl.addEventListener("click", closeLightbox);

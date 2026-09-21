@@ -209,3 +209,60 @@ button.toolbar-btn.active {
 .hint { font-size: 12.5px; color: var(--text-faint); }
 
 img { border-radius: 8px; }
+
+/* ------------------------------------------------------------------
+   Iconos de línea (assets/ui.js) y ayudas ⓘ plegables.
+   Criterio de toda la web: poco texto a la vista; lo que antes era un
+   párrafo explicativo va dentro de un ⓘ que se abre al tocarlo.
+   ------------------------------------------------------------------ */
+.ico { width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex-shrink: 0; }
+.ico-wrap { display: inline-flex; align-items: center; justify-content: center; }
+button:has(> .ico-wrap), .btn-ico { display: flex; align-items: center; justify-content: center; gap: 8px; }
+button.icon-btn { width: 44px; height: 44px; padding: 0; margin: 0; flex: none; display: inline-flex;
+                  align-items: center; justify-content: center; background: var(--glass); }
+button.icon-btn .ico { width: 20px; height: 20px; }
+
+/* Navegación compacta: una sola fila con icono + palabra corta. */
+nav.top-nav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 22px; }
+nav.top-nav::-webkit-scrollbar { display: none; }
+nav.top-nav a { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; padding: 9px 13px; }
+nav.top-nav a .ico { width: 16px; height: 16px; }
+
+/* Fila de título con ⓘ al lado (la ayuda se despliega debajo, a lo ancho). */
+.head-row { position: relative; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.head-row > h1, .head-row > h2, .head-row > h3, .head-row > label, .head-row > legend { margin-bottom: 0; }
+h1.page-title + .page-sub, .head-row + .page-sub { margin-top: 6px; }
+.page-sub { color: var(--text-dim); font-size: 14px; margin: 0 0 24px; }
+
+details.info { display: inline-block; }
+details.info > summary {
+  list-style: none; cursor: pointer; width: 28px; height: 28px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-dim); border: 1px solid var(--glass-border); background: var(--glass);
+  -webkit-tap-highlight-color: transparent; transition: color 0.2s, border-color 0.2s;
+}
+details.info > summary::-webkit-details-marker { display: none; }
+details.info > summary .ico { width: 15px; height: 15px; }
+details.info > summary:hover, details.info[open] > summary { color: var(--accent-cyan); border-color: var(--accent-cyan); }
+details.info > .info-body {
+  position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 30;
+  max-width: 560px; padding: 12px 14px; border-radius: 12px;
+  background: #151a2c; border: 1px solid var(--glass-border); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  color: var(--text-dim); font-size: 13px; font-weight: 400; line-height: 1.5; text-align: left;
+  animation: info-in 0.18s ease-out;
+}
+details.info > .info-body p { margin: 0 0 6px; }
+details.info > .info-body p:last-child { margin-bottom: 0; }
+@keyframes info-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* Mensajes de estado cortos con icono */
+.status-line { display: flex; align-items: center; gap: 8px; }
+.status-line.ok { color: var(--ok); }
+.status-line.warn { color: var(--warning); }
+.ico.spin { animation: ico-spin 0.9s linear infinite; }
+@keyframes ico-spin { to { transform: rotate(360deg); } }
+/* En pantallas estrechas el menú queda solo con iconos (salvo .keep-label). */
+@media (max-width: 520px) {
+  nav.top-nav a:not(.keep-label) .lbl { display: none; }
+  nav.top-nav a:not(.keep-label) { padding: 9px 12px; }
+}

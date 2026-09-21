@@ -19,57 +19,107 @@
 <title>Simulador de Cortes de Pelo</title>
 <link rel="stylesheet" href="assets/theme.css" />
 <style>
-  .form-card { max-width: 640px; padding: 24px 26px 30px; margin-bottom: 24px; }
+  .form-card { max-width: 640px; padding: 20px 22px 24px; margin-bottom: 20px; }
+  .page-shell > .head-row { margin-bottom: 18px; }
+  .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  #simulate-form { position: relative; }
+  .photo-drop { position: relative; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;
+                width: 100%; max-width: 220px; aspect-ratio: 3 / 4; border-radius: 16px; overflow: hidden; cursor: pointer;
+                border: 1.5px dashed var(--glass-border); background: rgba(255, 255, 255, 0.03); transition: border-color 0.2s; }
+  .photo-drop:hover { border-color: var(--accent-cyan); }
+  .photo-drop-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-dim); font-size: 13px; }
+  .photo-drop-empty .ico { width: 34px; height: 34px; color: var(--accent-cyan); stroke-width: 1.6; }
+  #photo-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; display: none; }
+  .photo-drop.has-photo { border-style: solid; border-color: rgba(52, 211, 153, 0.6); }
+  .photo-drop.has-photo #photo-preview { display: block; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .field-grid > div { min-width: 0; }
+  @media (max-width: 480px) { .field-grid { grid-template-columns: 1fr; } }
+  .field-grid label, .lbl-row label { display: flex; align-items: center; gap: 6px; }
+  .field-grid label .ico { color: var(--accent-cyan); width: 15px; height: 15px; }
+  .lbl-row { margin: 18px 0 6px; }
+  .lbl-row label { margin: 0; }
+  .lbl-row details.info > summary { width: 24px; height: 24px; }
+  .color-row { display: flex; align-items: center; gap: 12px; margin: 16px 0 14px; }
+  .color-row .checkbox-row { margin: 0; }
+  .color-row .checkbox-row > span, .consent-row .checkbox-row > span { display: inline-flex; align-items: center; gap: 6px; }
+  .color-row input[type="color"] { width: 54px; min-height: 36px; height: 36px; padding: 3px; }
+  .consent-row { margin: 8px 0 12px; }
+  .consent-row .checkbox-row { margin: 0; }
   #result-image { max-width: 100%; margin-top: 16px; display: block; }
-  #result-meta { font-size: 14px; color: var(--text-dim); }
+  #result-meta { font-size: 14px; color: var(--text-dim); max-width: 640px; display: grid; gap: 6px; }
   #result-meta a { color: var(--accent-cyan); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+          background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-main); font-size: 13px; width: fit-content; }
 </style>
 </head>
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html">← Inicio</a>
-    <a href="growth-map.html">Mapa de remolinos y dirección del pelo</a>
-    <a href="catalogo.html">Catálogo de cortes</a>
+    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="growth-map.html" title="Remolinos"><span data-icon="compass"></span><span class="lbl">Remolinos</span></a>
+    <a href="catalogo.html" title="Catálogo"><span data-icon="layout-grid"></span><span class="lbl">Catálogo</span></a>
   </nav>
-  <h1 class="page-title">Simulador de Cortes de Pelo/Barba</h1>
-  <p class="page-lead">Prueba del pipeline de simulación.</p>
+  <div class="head-row">
+    <h1 class="page-title">Simular corte</h1>
+    <details class="info"><summary></summary><div class="info-body">
+      Sube una foto del cliente, elige un corte y genera cómo le quedaría. Es una prueba del sistema de simulación.
+    </div></details>
+  </div>
 
   <form id="simulate-form" class="glass-card form-card">
-    <label for="photo">Foto del cliente</label>
-    <input type="file" id="photo" accept="image/*" required />
-
-    <label for="style">Corte</label>
-    <select id="style" required></select>
-
-    <label for="hair-texture">Tipo de pelo del cliente</label>
-    <select id="hair-texture">
-      <option value="">Detectar automáticamente (puede fallar, revisa el resultado)</option>
-      <option value="liso">Liso</option>
-      <option value="ondulado">Ondulado</option>
-      <option value="rizado">Rizado</option>
-      <option value="afro">Afro</option>
-    </select>
-
-    <label for="color">Nuevo color de pelo (opcional)</label>
-    <input type="color" id="color" />
-    <label class="checkbox-row"><input type="checkbox" id="use-color" /> Aplicar cambio de color</label>
-
-    <label for="client-name">Nombre del cliente (opcional)</label>
-    <input type="text" id="client-name" placeholder="Ej: Pedro Gómez Martínez" />
-    <label class="checkbox-row">
-      <input type="checkbox" id="save-history" />
-      <span>Guardar tipo de pelo, forma de cara y remolinos de este cliente para próximas visitas
-      (requiere su consentimiento explícito — es dato biométrico)</span>
+    <label class="photo-drop" for="photo">
+      <img id="photo-preview" alt="" />
+      <span class="photo-drop-empty"><span data-icon="upload"></span>Foto del cliente</span>
     </label>
+    <input type="file" id="photo" accept="image/*" required class="visually-hidden" />
 
-    <button type="submit">Generar simulación</button>
+    <div class="field-grid">
+      <div>
+        <label for="style"><span data-icon="scissors"></span>Corte</label>
+        <select id="style" required></select>
+      </div>
+      <div>
+        <div class="head-row lbl-row">
+          <label for="hair-texture"><span data-icon="sparkles"></span>Tipo de pelo</label>
+          <details class="info"><summary></summary><div class="info-body">
+            "Automático" lo detecta de la foto, pero puede fallar: si lo sabes, elígelo tú.
+          </div></details>
+        </div>
+        <select id="hair-texture">
+          <option value="">Automático</option>
+          <option value="liso">Liso</option>
+          <option value="ondulado">Ondulado</option>
+          <option value="rizado">Rizado</option>
+          <option value="afro">Afro</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="color-row">
+      <label class="checkbox-row"><input type="checkbox" id="use-color" /><span><span data-icon="palette"></span>Cambiar color</span></label>
+      <input type="color" id="color" aria-label="Nuevo color de pelo" />
+    </div>
+
+    <input type="text" id="client-name" placeholder="Cliente (opcional)" aria-label="Nombre del cliente" />
+    <div class="head-row consent-row">
+      <label class="checkbox-row">
+        <input type="checkbox" id="save-history" />
+        <span>Guardar en su ficha</span>
+      </label>
+      <details class="info"><summary></summary><div class="info-body">
+        Guarda su tipo de pelo, forma de cara y remolinos para próximas visitas. Necesita su consentimiento explícito: es un dato biométrico.
+      </div></details>
+    </div>
+
+    <button type="submit"><span data-icon="wand-sparkles"></span>Generar</button>
   </form>
 
   <div id="result-meta"></div>
   <img id="result-image" alt="" />
 </div>
 
+  <script src="assets/ui.js"></script>
   <script>
     // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
     // estaba antes): el backend sirve este mismo HTML como estático (ver
@@ -81,6 +131,19 @@
     // "Failed to fetch" porque intentaban llamar al localhost del propio
     // dispositivo del cliente, no al servidor real).
     const API_BASE = "/api";
+
+    // Mensajes cortos con icono en el bloque de resultado.
+    const resultMetaEl = () => document.getElementById("result-meta");
+    function say(kind, text) {
+      const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
+      resultMetaEl().innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
+    }
+    document.getElementById("photo").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      const drop = document.querySelector(".photo-drop");
+      drop.classList.toggle("has-photo", !!file);
+      if (file) document.getElementById("photo-preview").src = URL.createObjectURL(file);
+    });
 
     async function loadStyles() {
       const res = await fetch(`${API_BASE}/styles`);
@@ -110,7 +173,7 @@
       // se escriba un nombre: no se crea ni se toca ningún perfil.
       let clientId = null;
       if (saveHistory && clientName) {
-        resultMeta.textContent = "Buscando perfil del cliente...";
+        say("busy", "Buscando cliente…");
         try {
           const listRes = await fetch(`${API_BASE}/clients`);
           const clients = await listRes.json();
@@ -128,14 +191,14 @@
             });
             if (!createRes.ok) {
               const err = await createRes.json();
-              resultMeta.textContent = `No se pudo crear el perfil del cliente: ${err.detail || createRes.statusText}`;
+              say("warn", `No se pudo crear la ficha: ${err.detail || createRes.statusText}`);
               return;
             }
             const created = await createRes.json();
             clientId = created.id;
           }
         } catch (e) {
-          resultMeta.textContent = `Error de red buscando/creando el cliente: ${e.message}`;
+          say("warn", `Sin conexión: ${e.message}`);
           return;
         }
       }
@@ -147,30 +210,30 @@
       if (clientId) formData.append("client_id", clientId);
       if (hairTexture) formData.append("manual_hair_texture", hairTexture);
 
-      resultMeta.textContent = "Generando...";
+      say("busy", "Generando…");
 
       try {
         const res = await fetch(`${API_BASE}/simulate`, { method: "POST", body: formData });
         if (!res.ok) {
           const err = await res.json();
-          resultMeta.textContent = `Error: ${err.detail || res.statusText}`;
+          say("warn", `Error: ${err.detail || res.statusText}`);
           return;
         }
         const data = await res.json();
 
         document.getElementById("result-image").src = `data:image/jpeg;base64,${data.image_base64}`;
-        const warningsHtml = data.warnings.map((w) => `<div class="warning">⚠️ ${w}</div>`).join("");
+        const warningsHtml = data.warnings.map((w) => `<div class="status-line warn">${UI.icon("triangle-alert")}<span>${w}</span></div>`).join("");
         const recommendationsHtml = clientId
-          ? `<div style="margin-top: 8px;"><a href="recomendaciones.html?client_id=${encodeURIComponent(clientId)}">Ver recomendaciones de corte para este cliente →</a></div>`
+          ? `<a class="chip" href="recomendaciones.html?client_id=${encodeURIComponent(clientId)}">${UI.icon("sparkles")}Recomendaciones ${UI.icon("arrow-right")}</a>`
           : "";
         resultMeta.innerHTML = `
-          <div>Tipo de pelo detectado: ${data.detected_hair_texture}</div>
-          <div>Forma de cara detectada: ${data.detected_face_shape}</div>
+          <span class="chip" title="Tipo de pelo detectado">${UI.icon("scissors")}${data.detected_hair_texture}</span>
+          <span class="chip" title="Forma de cara detectada">${UI.icon("scan-face")}${data.detected_face_shape}</span>
           ${warningsHtml}
           ${recommendationsHtml}
         `;
       } catch (e) {
-        resultMeta.textContent = `Error de red: ${e.message}`;
+        say("warn", `Sin conexión: ${e.message}`);
       }
     });
 

@@ -19,48 +19,88 @@
 <title>Análisis de visajismo</title>
 <link rel="stylesheet" href="assets/theme.css" />
 <style>
-  .form-card { max-width: 680px; padding: 24px 26px 30px; margin-bottom: 24px; }
-  #status { font-size: 14px; color: var(--text-dim); margin: 10px 0 20px; }
-  #search-section { max-width: 420px; margin-bottom: 20px; }
-  #search-section button { width: auto; padding: 10px 18px; }
+  .form-card { max-width: 680px; padding: 20px 22px 24px; margin-bottom: 18px; }
+  #status { font-size: 14px; color: var(--text-dim); margin: 0 0 16px; min-height: 1px; max-width: 680px; }
+  .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  fieldset { border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px 16px 18px; margin: 0 0 18px; }
-  legend { padding: 0 8px; font-size: 13px; font-weight: 700; color: var(--text-main); }
-  .photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
-  .photo-slot label { margin-top: 0; }
-  .photo-hint { font-size: 12px; color: var(--text-faint); margin: -4px 0 8px; }
-  .field-hint { font-size: 12px; color: var(--text-faint); margin: 6px 0 0; }
-  .photo-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; margin-top: 8px; display: none; }
+  .step-num .ico { width: 14px; height: 14px; stroke-width: 3; }
+  .step-num.done { background: var(--ok); color: #05260f; }
+  .step-num { transition: background 0.3s; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 8px;
+              border-radius: 50%; background: var(--glass-strong); font-size: 12.5px; }
+  .step-head { margin-bottom: 14px; }
+  .step-head .help-link { margin-left: auto; }
 
-  #results-section { display: none; }
-  .anomaly-note { background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--text-main); margin-bottom: 14px; }
-  .warning-list { margin: 0 0 14px; padding-left: 18px; font-size: 12.5px; color: var(--warning); }
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .field-row > div { min-width: 0; }
-  @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
+  .inline-form { display: flex; gap: 8px; }
+  .inline-form input { flex: 1; min-width: 0; }
+  .inline-form button { width: auto; margin: 0; white-space: nowrap; }
+  .consent-row { margin-top: 6px; }
+  .consent-row .checkbox-row { margin: 0; }
+
+  /* Fotos: tres casillas visuales con la silueta que toca */
+  .page-shell > .head-row { margin-bottom: 18px; }
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 auto 14px; max-width: 480px; }
+  .photo-slot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+  .slot-tile { position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: 14px; overflow: hidden;
+               border: 1.5px dashed var(--glass-border); background: rgba(255, 255, 255, 0.03);
+               display: flex; align-items: center; justify-content: center; transition: border-color 0.3s; }
+  .slot-tile svg.frame { width: 96%; height: 96%; }
+  .slot-tile svg.frame path { fill: rgba(79, 227, 255, 0.08); stroke: var(--accent-cyan); stroke-width: 2; stroke-dasharray: 5 4; opacity: 0.8; }
+  .photo-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; display: none; }
+  .slot-check { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%;
+                background: var(--ok); color: #05260f; display: none !important; }
+  .slot-check .ico { width: 16px; height: 16px; stroke-width: 3; }
+  .photo-slot.done .slot-tile { border-style: solid; border-color: rgba(52, 211, 153, 0.6); }
+  .photo-slot.done .slot-check { display: inline-flex !important; }
+  .slot-label { font-size: 12.5px; font-weight: 700; color: var(--text-dim); }
+  .slot-actions { display: flex; gap: 8px; }
+  .slot-actions .cam-btn, .slot-actions .gallery-btn {
+    width: 44px; height: 44px; min-height: 0; margin: 0; padding: 0; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    border: 1px solid var(--glass-border); color: #fff; }
+  .slot-actions .gallery-btn { background: var(--glass); color: var(--text-dim); }
+  .slot-actions .ico { width: 20px; height: 20px; }
+  .slot-status { font-size: 11.5px; color: var(--warning); margin: 0; min-height: 0; text-align: center; }
+  .slot-status:empty { display: none; }
+  @media (max-width: 420px) { .photo-grid { gap: 8px; } .slot-actions { gap: 6px; } .slot-actions .cam-btn, .slot-actions .gallery-btn { width: 40px; height: 40px; } }
+  .field-hint { font-size: 12.5px; color: var(--text-faint); margin: 6px 0 0; display: flex; align-items: center; gap: 6px; }
+
+  #results-section { display: none; margin-top: 12px; }
+  .anomaly-note { display: flex; gap: 8px; align-items: flex-start; background: var(--warning-bg); border: 1px solid var(--warning-border);
+                  border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--text-main); margin-bottom: 10px; }
+  .anomaly-note .ico { color: var(--warning); margin-top: 1px; }
+  .warning-list { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--warning); }
+
+  /* Rasgos */
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; }
+  .field-grid > div { min-width: 0; }
+  .field-grid label { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+  .tag-auto { color: var(--accent-cyan); }
+  .tag-manual { color: var(--text-faint); }
+  .tag-auto .ico, .tag-manual .ico { width: 14px; height: 14px; }
+  @media (max-width: 480px) { .field-grid { grid-template-columns: 1fr; } }
+  .glasses-row { margin: 14px 0 10px; }
+  .glasses-row .checkbox-row { margin: 0; }
+  .glasses-row .checkbox-row > span { display: inline-flex; align-items: center; gap: 6px; }
+  #eye-symmetry-percent-hint { margin: 4px 0 0; }
+  #eye-symmetry-percent-hint:empty { display: none; }
+  #analysis-form textarea { margin-bottom: 6px; }
+  .info-body .ico { width: 14px; height: 14px; vertical-align: -2px; color: var(--accent-cyan); }
+
+  .help-link { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+               border: 1px solid var(--glass-border); background: var(--glass-strong);
+               color: var(--text-main); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .help-link:hover { border-color: var(--accent-cyan); }
+  .help-link .ico { width: 16px; height: 16px; color: var(--accent-cyan); }
+  nav.top-nav a.nav-help { color: var(--text-main); border-color: rgba(79, 227, 255, 0.45); }
+  nav.top-nav a.nav-help .ico { color: var(--accent-cyan); }
 
   /* Cámara con marco */
-  .step-title { font-size: 15px; font-weight: 700; margin: 0 0 12px; color: var(--text-main); }
-  #search-section .step-title + label { margin-top: 0; }
-  .cam-btn { margin: 0 0 6px; }
-  /* Enlace de ayuda a la guía (cómo hacer las fotos, cómo valorar el perfil) */
-  .title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 14px; }
-  .title-row .page-title { margin-right: auto; }
-  .help-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px;
-               border: 1px solid var(--glass-border); background: var(--glass-strong);
-               color: var(--text-main); font-size: 13.5px; font-weight: 600; text-decoration: none; white-space: nowrap; }
-  .help-link:hover { border-color: var(--accent-cyan); }
-  .help-link.small { padding: 5px 11px; font-size: 12.5px; }
-  .step-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-  .step-head .step-title { margin: 0; }
-  .file-alt { font-size: 11.5px; color: var(--text-faint); margin: 4px 0 4px; }
-  .photo-slot input[type="file"] { min-height: 38px; padding: 6px 8px; font-size: 12px; }
-  .slot-status { font-size: 12px; color: var(--ok); margin: 6px 0 0; min-height: 1em; }
+  .step-title { display: flex; align-items: center; font-size: 16px; font-weight: 700; margin: 0; color: var(--text-main); }
   .camera { position: fixed; inset: 0; z-index: 50; background: #000; overflow: hidden; }
   .camera[hidden] { display: none; }
   .camera video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .camera video.mirrored { transform: scaleX(-1); }
-  .camera svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  .camera > svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
   .cam-dim { fill: rgba(0, 0, 0, 0.45); fill-rule: evenodd; }
   .cam-outline { fill: none; stroke: #fff; stroke-width: 1.6; stroke-dasharray: 6 5; }
   .cam-guide { stroke: var(--accent-cyan); stroke-width: 1.2; stroke-dasharray: 3 4; opacity: 0.9; }
@@ -87,83 +127,93 @@
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html">← Inicio</a>
-    <a id="growth-map-link" href="growth-map.html">Mapa de remolinos y dirección del pelo</a>
-    <a id="recomendaciones-link" href="recomendaciones.html">Recomendaciones</a>
+    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a id="growth-map-link" href="growth-map.html" title="Remolinos"><span data-icon="compass"></span><span class="lbl">Remolinos</span></a>
+    <a id="recomendaciones-link" href="recomendaciones.html" title="Recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Recomendaciones</span></a>
+    <a class="nav-help keep-label" href="guia-visagismo.html#fotos"><span data-icon="circle-help"></span><span class="lbl">Ayuda</span></a>
   </nav>
-  <div class="title-row">
-    <h1 class="page-title">Análisis de visajismo</h1>
-    <a class="help-link" href="guia-visagismo.html#fotos">❓ Ayuda: cómo hacer las fotos</a>
+  <div class="head-row">
+    <h1 class="page-title">Visajismo</h1>
+    <details class="info"><summary></summary><div class="info-body">
+      <p>Rasgos de la cara del cliente para afinar las recomendaciones de corte.</p>
+      <p>Con las fotos se detectan solos la simetría y separación de los ojos y las gafas (<span data-icon="sparkles"></span>); el resto se marca a mano. Todo se puede corregir.</p>
+    </div></details>
   </div>
-  <p class="page-lead">
-    Rasgos faciales (nariz, ojos, orejas, cejas, simetría, gafas) para afinar las
-    recomendaciones de corte de este cliente. A partir de las fotos, el sistema estima
-    la simetría y separación de los ojos y si lleva gafas; el resto se rellena a mano.
-    Todo es revisable después.
-  </p>
 
   <div id="search-section" class="glass-card form-card">
-    <h2 class="step-title">1. Cliente</h2>
-    <label for="client-name">Nombre del cliente</label>
-    <input type="text" id="client-name" placeholder="Ej: Pedro Gómez Martínez" />
-    <label class="checkbox-row">
-      <input type="checkbox" id="consent" />
-      <span>El cliente da su consentimiento para guardar estos datos en su ficha (dato biométrico)</span>
-    </label>
-    <button id="load-btn" type="button">Cargar / crear perfil</button>
+    <div class="head-row step-head">
+      <h2 class="step-title"><span class="step-num" id="step-num-1">1</span>Cliente</h2>
+    </div>
+    <div class="inline-form">
+      <input type="text" id="client-name" placeholder="Nombre del cliente" aria-label="Nombre del cliente" />
+      <button id="load-btn" type="button" aria-label="Cargar o crear perfil"><span data-icon="user-check"></span>Abrir ficha</button>
+    </div>
+    <div class="head-row consent-row">
+      <label class="checkbox-row">
+        <input type="checkbox" id="consent" />
+        <span>Consentimiento del cliente</span>
+      </label>
+      <details class="info"><summary></summary><div class="info-body">
+        Los rasgos de la cara son un dato biométrico: hace falta su permiso para guardarlos en su ficha.
+      </div></details>
+    </div>
   </div>
 
-  <div id="status"></div>
+  <div id="status" role="status"></div>
 
-  <!-- Fotos: visibles siempre (antes solo aparecían tras cargar el cliente y
-       la cámara con marco pasaba desapercibida). Solo "Analizar" necesita
-       el cliente cargado. -->
   <section id="photos-card" class="glass-card form-card">
-    <div class="step-head">
-      <h2 class="step-title">2. Fotos</h2>
-      <a class="help-link small" href="guia-visagismo.html#fotos">¿Cómo hacer las fotos?</a>
+    <div class="head-row step-head">
+      <h2 class="step-title"><span class="step-num" id="step-num-2">2</span>Fotos</h2>
+      <details class="info"><summary></summary><div class="info-body">
+        <p><span data-icon="camera"></span> abre la cámara con un marco donde encajar la cara, y avisa si el móvil no está recto. <span data-icon="image"></span> usa una foto ya hecha.</p>
+        <p>Lo importante es la frontal: mirando a la cámara, sin girar la cabeza. Los perfiles aún no se analizan solos, pero conviene hacerlos bien.</p>
+        <p>Las fotos se analizan al momento y no se guardan.</p>
+      </div></details>
+      <a class="help-link small" href="guia-visagismo.html#fotos" aria-label="Cómo hacer las fotos"><span data-icon="circle-help"></span>Cómo hacerlas</a>
     </div>
-    <fieldset>
-      <legend>Análisis automático (opcional)</legend>
-      <p class="photo-hint">
-        3 fotos con buena luz, mejor con la cámara con marco: encaja la cara en
-        la guía y avisa si el móvil no está recto. Lo importante es la frontal
-        (cliente mirando a la cámara, sin girar la cabeza); las de perfil todavía
-        no se analizan automáticamente, pero conviene hacerlas bien desde ya (ver
-        la <a href="guia-visagismo.html#fotos">guía</a>). Las fotos se analizan al
-        vuelo y no se guardan en ningún sitio.
-      </p>
-      <div class="photo-grid">
-        <div class="photo-slot">
-          <label for="photo-frontal">Frontal</label>
-          <button type="button" class="secondary cam-btn" data-slot="frontal">📷 Hacer foto con marco</button>
-          <p class="file-alt">o elige una foto ya hecha:</p>
-          <input type="file" id="photo-frontal" accept="image/*" capture="environment" />
-          <img class="photo-preview" id="preview-frontal" alt="" />
+    <div class="photo-grid">
+        <div class="photo-slot" id="slot-frontal">
+          <div class="slot-tile" data-frame="frontal">
+            <img class="photo-preview" id="preview-frontal" alt="" />
+            <span class="slot-check" aria-hidden="true" data-icon="check"></span>
+          </div>
+          <span class="slot-label">Frontal</span>
+          <div class="slot-actions">
+            <button type="button" class="cam-btn" data-slot="frontal" aria-label="Hacer foto con marco: Frontal"><span data-icon="camera"></span></button>
+            <label class="gallery-btn" for="photo-frontal" aria-label="Elegir foto de la galería: Frontal"><span data-icon="image"></span></label>
+          </div>
+          <input type="file" id="photo-frontal" accept="image/*" class="visually-hidden" />
           <p class="slot-status" id="status-frontal"></p>
         </div>
-        <div class="photo-slot">
-          <label for="photo-izq">Perfil izquierdo</label>
-          <button type="button" class="secondary cam-btn" data-slot="izq">📷 Hacer foto con marco</button>
-          <p class="file-alt">o elige una foto ya hecha:</p>
-          <input type="file" id="photo-izq" accept="image/*" capture="environment" />
-          <img class="photo-preview" id="preview-izq" alt="" />
+        <div class="photo-slot" id="slot-izq">
+          <div class="slot-tile" data-frame="izq">
+            <img class="photo-preview" id="preview-izq" alt="" />
+            <span class="slot-check" aria-hidden="true" data-icon="check"></span>
+          </div>
+          <span class="slot-label">Perfil izq.</span>
+          <div class="slot-actions">
+            <button type="button" class="cam-btn" data-slot="izq" aria-label="Hacer foto con marco: Perfil izq."><span data-icon="camera"></span></button>
+            <label class="gallery-btn" for="photo-izq" aria-label="Elegir foto de la galería: Perfil izq."><span data-icon="image"></span></label>
+          </div>
+          <input type="file" id="photo-izq" accept="image/*" class="visually-hidden" />
           <p class="slot-status" id="status-izq"></p>
         </div>
-        <div class="photo-slot">
-          <label for="photo-dcha">Perfil derecho</label>
-          <button type="button" class="secondary cam-btn" data-slot="dcha">📷 Hacer foto con marco</button>
-          <p class="file-alt">o elige una foto ya hecha:</p>
-          <input type="file" id="photo-dcha" accept="image/*" capture="environment" />
-          <img class="photo-preview" id="preview-dcha" alt="" />
+        <div class="photo-slot" id="slot-dcha">
+          <div class="slot-tile" data-frame="dcha">
+            <img class="photo-preview" id="preview-dcha" alt="" />
+            <span class="slot-check" aria-hidden="true" data-icon="check"></span>
+          </div>
+          <span class="slot-label">Perfil dcho.</span>
+          <div class="slot-actions">
+            <button type="button" class="cam-btn" data-slot="dcha" aria-label="Hacer foto con marco: Perfil dcho."><span data-icon="camera"></span></button>
+            <label class="gallery-btn" for="photo-dcha" aria-label="Elegir foto de la galería: Perfil dcho."><span data-icon="image"></span></label>
+          </div>
+          <input type="file" id="photo-dcha" accept="image/*" class="visually-hidden" />
           <p class="slot-status" id="status-dcha"></p>
         </div>
-      </div>
-      <button id="analyze-btn" type="button" class="secondary" style="margin-top: 14px;">
-        Analizar fotos y rellenar campos
-      </button>
-      <p class="field-hint" id="analyze-hint">Puedes hacer las fotos ya; para analizarlas, carga o crea antes el perfil del cliente (paso 1).</p>
-    </fieldset>
+    </div>
+    <button id="analyze-btn" type="button"><span data-icon="scan-face"></span>Analizar</button>
+    <p class="field-hint" id="analyze-hint"><span data-icon="user-round"></span> Antes, abre la ficha del cliente (1).</p>
 
     <div id="results-section">
       <div id="anomaly-note-box"></div>
@@ -172,83 +222,79 @@
   </section>
 
   <form id="analysis-form" class="glass-card form-card" style="display:none;">
-    <h2 class="step-title">3. Rasgos del cliente</h2>
+    <div class="head-row step-head">
+      <h2 class="step-title"><span class="step-num" id="step-num-3">3</span>Rasgos</h2>
+      <details class="info"><summary></summary><div class="info-body">
+        <p><span data-icon="sparkles"></span> = lo rellena el análisis de las fotos.</p>
+        <p><span data-icon="hand"></span> = se marca a mano mirando al cliente: las fotos no permiten detectarlo con fiabilidad.</p>
+      </div></details>
+    </div>
 
-    <fieldset>
-      <legend>Nariz y perfil</legend>
-      <label for="profile-type">Perfil de nariz</label>
-      <select id="profile-type">
-        <option value="">Sin especificar</option>
-        <option value="straight">Recto</option>
-        <option value="convex_prominent_nose">Convexo / prominente</option>
-        <option value="concave">Cóncavo</option>
-      </select>
-      <p class="field-hint">Se rellena a mano, mirando al cliente de perfil.</p>
-    </fieldset>
-
-    <fieldset>
-      <legend>Ojos y cejas</legend>
-      <div class="field-row">
-        <div>
-          <label for="eye-spacing">Separación de ojos</label>
-          <select id="eye-spacing">
-            <option value="">Sin especificar</option>
-            <option value="close_set">Juntos</option>
-            <option value="proportional">Proporcional</option>
-            <option value="wide_set">Separados</option>
-          </select>
-        </div>
-        <div>
-          <label for="eyebrow-type">Forma de cejas</label>
-          <select id="eyebrow-type">
-            <option value="">Sin especificar</option>
-            <option value="straight_low">Recta / baja</option>
-            <option value="arched">Arqueada</option>
-            <option value="prominent_ridge">Arco superciliar marcado</option>
-          </select>
-          <p class="field-hint">Se rellena a mano: las fotos no permiten detectarlo con fiabilidad.</p>
-        </div>
+    <div class="field-grid">
+      <div>
+        <label for="eye-spacing"><span data-icon="sparkles" class="tag-auto"></span>Separación de ojos</label>
+        <select id="eye-spacing">
+          <option value="">—</option>
+          <option value="close_set">Juntos</option>
+          <option value="proportional">Proporcional</option>
+          <option value="wide_set">Separados</option>
+        </select>
       </div>
-      <label for="eye-symmetry">Simetría ocular</label>
-      <select id="eye-symmetry">
-        <option value="">Sin especificar</option>
-        <option value="symmetric">Simétrico</option>
-        <option value="asymmetric">Asimétrico (p.ej. un ojo más abierto que otro)</option>
-      </select>
-      <p class="hint" id="eye-symmetry-percent-hint"></p>
-    </fieldset>
-
-    <fieldset>
-      <legend>Orejas, cuello y otros</legend>
-      <div class="field-row">
-        <div>
-          <label for="ears-projection">Proyección de orejas</label>
-          <select id="ears-projection">
-            <option value="">Sin especificar</option>
-            <option value="flat">Pegadas</option>
-            <option value="prominent_protruding">Prominentes / de soplillo</option>
-          </select>
-          <p class="field-hint">Se rellena a mano, mirando al cliente de frente.</p>
-        </div>
-        <div>
-          <label for="neck-proportions">Proporciones de cuello</label>
-          <select id="neck-proportions">
-            <option value="">Sin especificar</option>
-            <option value="short_thick">Corto y grueso</option>
-            <option value="long_thin">Largo y fino</option>
-            <option value="proportional">Proporcional</option>
-          </select>
-        </div>
+      <div>
+        <label for="eye-symmetry"><span data-icon="sparkles" class="tag-auto"></span>Simetría ocular</label>
+        <select id="eye-symmetry">
+          <option value="">—</option>
+          <option value="symmetric">Simétrico</option>
+          <option value="asymmetric">Asimétrico</option>
+        </select>
+        <p class="hint" id="eye-symmetry-percent-hint"></p>
       </div>
+      <div>
+        <label for="profile-type"><span data-icon="hand" class="tag-manual"></span>Perfil de nariz</label>
+        <select id="profile-type">
+          <option value="">—</option>
+          <option value="straight">Recto</option>
+          <option value="convex_prominent_nose">Convexo / prominente</option>
+          <option value="concave">Cóncavo</option>
+        </select>
+      </div>
+      <div>
+        <label for="eyebrow-type"><span data-icon="hand" class="tag-manual"></span>Cejas</label>
+        <select id="eyebrow-type">
+          <option value="">—</option>
+          <option value="straight_low">Recta / baja</option>
+          <option value="arched">Arqueada</option>
+          <option value="prominent_ridge">Arco superciliar marcado</option>
+        </select>
+      </div>
+      <div>
+        <label for="ears-projection"><span data-icon="hand" class="tag-manual"></span>Orejas</label>
+        <select id="ears-projection">
+          <option value="">—</option>
+          <option value="flat">Pegadas</option>
+          <option value="prominent_protruding">De soplillo</option>
+        </select>
+      </div>
+      <div>
+        <label for="neck-proportions"><span data-icon="hand" class="tag-manual"></span>Cuello</label>
+        <select id="neck-proportions">
+          <option value="">—</option>
+          <option value="short_thick">Corto y grueso</option>
+          <option value="long_thin">Largo y fino</option>
+          <option value="proportional">Proporcional</option>
+        </select>
+      </div>
+    </div>
+    <div class="head-row glasses-row">
       <label class="checkbox-row">
         <input type="checkbox" id="has-glasses" />
-        <span>Usa gafas (solo informativo — no cambia las recomendaciones de corte)</span>
+        <span><span data-icon="sparkles" class="tag-auto"></span>Usa gafas</span>
       </label>
-      <label for="anomalies-notes">Otras irregularidades observadas</label>
-      <textarea id="anomalies-notes" rows="3" placeholder="Cualquier rasgo atípico que no encaje arriba (opcional)"></textarea>
-    </fieldset>
+      <details class="info"><summary></summary><div class="info-body">Solo informativo: no cambia las recomendaciones de corte.</div></details>
+    </div>
+    <textarea id="anomalies-notes" rows="2" placeholder="Notas (opcional)" aria-label="Otras irregularidades observadas"></textarea>
 
-    <button id="save-btn" type="submit">Guardar en la ficha del cliente</button>
+    <button id="save-btn" type="submit"><span data-icon="save"></span>Guardar</button>
   </form>
 </div>
 
@@ -258,12 +304,13 @@
   <div class="cam-top"><strong id="cam-title"></strong><span id="cam-hint"></span></div>
   <div class="cam-level" id="cam-level"></div>
   <div class="cam-bottom">
-    <button type="button" class="cam-round" id="cam-close" aria-label="Cerrar cámara">✕</button>
+    <button type="button" class="cam-round" id="cam-close" aria-label="Cerrar cámara"><span data-icon="x"></span></button>
     <button type="button" class="cam-shutter" id="cam-shoot" aria-label="Hacer foto"></button>
-    <button type="button" class="cam-round" id="cam-switch" aria-label="Cambiar de cámara">⟲</button>
+    <button type="button" class="cam-round" id="cam-switch" aria-label="Cambiar de cámara"><span data-icon="switch-camera"></span></button>
   </div>
 </div>
 
+  <script src="assets/ui.js"></script>
   <script>
     // Ruta relativa: ver nota igual en index.html/growth-map.html — el
     // backend sirve este HTML como estático, así que /api siempre resuelve
@@ -271,6 +318,25 @@
     const API_BASE = "/api";
 
     const statusEl = document.getElementById("status");
+    // Mensajes de estado cortos, con icono (ok / warn / busy).
+    function say(kind, text) {
+      const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
+      statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
+    }
+    // Indicador 1-2-3 de arriba: se va poniendo en verde según se avanza.
+    // El número de cada paso se cambia por un ✓ verde al completarlo.
+    function markStep(n, done) {
+      const el = document.getElementById(`step-num-${n}`);
+      el.classList.toggle("done", !!done);
+      el.innerHTML = done ? UI.icon("check") : String(n);
+    }
+    function refreshPhotoStep() {
+      const all = Object.keys(SLOTS).every((k) => photoFor(k));
+      markStep(2, all);
+      for (const k of Object.keys(SLOTS)) {
+        document.getElementById(`slot-${k}`).classList.toggle("done", !!photoFor(k));
+      }
+    }
     const analysisForm = document.getElementById("analysis-form");
     const resultsSection = document.getElementById("results-section");
     const anomalyNoteBox = document.getElementById("anomaly-note-box");
@@ -299,6 +365,19 @@
       preview.src = URL.createObjectURL(blob);
       preview.style.display = "block";
     }
+    // Dibujo de cada casilla vacía: óvalo para la frontal y la silueta de
+    // perfil de la guía (mirando hacia el lado que toca) para los perfiles.
+    async function drawSlotFrames() {
+      const oval = "M120,52 C168,52 190,104 190,160 C190,226 158,282 120,282 C82,282 50,226 50,160 C50,104 72,52 120,52 Z";
+      const sil = await loadSilhouette();
+      document.querySelectorAll(".slot-tile[data-frame]").forEach((tile) => {
+        const kind = tile.dataset.frame;
+        const d = kind === "frontal" || !sil ? oval : sil.d;
+        const flip = kind === "izq" && sil ? ' transform="translate(240,0) scale(-1,1)"' : "";
+        tile.insertAdjacentHTML("afterbegin",
+          `<svg class="frame" viewBox="0 0 240 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g${flip}><path d="${d}"/></g></svg>`);
+      });
+    }
 
     function photoFor(slot) {
       return captured[slot] || document.getElementById(SLOTS[slot].input).files[0] || null;
@@ -310,6 +389,7 @@
         captured[slot] = null;
         document.getElementById(`status-${slot}`).textContent = "";
         showPreview(slot, input.files[0] || null);
+        refreshPhotoStep();
       });
     }
 
@@ -326,7 +406,7 @@
 
       const percentHint = document.getElementById("eye-symmetry-percent-hint");
       percentHint.textContent = (f.eye_symmetry_percent !== undefined && f.eye_symmetry_percent !== null)
-        ? `Diferencia de apertura medida entre ambos ojos: ${f.eye_symmetry_percent}%`
+        ? `Diferencia entre ojos: ${f.eye_symmetry_percent}%`
         : "";
     }
 
@@ -337,6 +417,7 @@
       fillFormFromFeatures(features);
       analysisForm.style.display = "block";
       document.getElementById("analyze-hint").style.display = "none";
+      markStep(1, true);
       growthMapLink.href = `growth-map.html?client_id=${encodeURIComponent(client.id)}`;
       recomendacionesLink.href = `recomendaciones.html?client_id=${encodeURIComponent(client.id)}`;
     }
@@ -345,30 +426,30 @@
       const params = new URLSearchParams(window.location.search);
       const clientId = params.get("client_id");
       if (!clientId) return;
-      statusEl.textContent = "Cargando perfil...";
+      say("busy", "Cargando…");
       try {
         const res = await fetch(`${API_BASE}/clients/${clientId}`);
         if (!res.ok) {
-          statusEl.innerHTML = '<span class="warning">No se encontró el cliente indicado en el enlace.</span>';
+          say("warn", "Cliente no encontrado");
           return;
         }
         const client = await res.json();
         document.getElementById("consent").checked = true;
         if (client.display_name) document.getElementById("client-name").value = client.display_name;
         applyClientToPage(client);
-        statusEl.innerHTML = `<span class="ok">Perfil de ${client.display_name || "cliente"} cargado.</span>`;
+        say("ok", client.display_name || "Ficha abierta");
       } catch (e) {
-        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+        say("warn", `Sin conexión: ${e.message}`);
       }
     }
 
     document.getElementById("load-btn").addEventListener("click", async () => {
       const name = document.getElementById("client-name").value.trim();
       const consent = document.getElementById("consent").checked;
-      if (!name) { statusEl.innerHTML = '<span class="warning">Escribe el nombre del cliente.</span>'; return; }
-      if (!consent) { statusEl.innerHTML = '<span class="warning">Marca la casilla de consentimiento antes de continuar.</span>'; return; }
+      if (!name) { say("warn", "Falta el nombre"); document.getElementById("client-name").focus(); return; }
+      if (!consent) { say("warn", "Falta el consentimiento"); return; }
 
-      statusEl.textContent = "Buscando...";
+      say("busy", "Buscando…");
       try {
         const listRes = await fetch(`${API_BASE}/clients`);
         const clients = await listRes.json();
@@ -382,21 +463,21 @@
           });
           if (!createRes.ok) {
             const err = await createRes.json();
-            statusEl.innerHTML = `<span class="warning">No se pudo crear el perfil: ${err.detail || createRes.statusText}</span>`;
+            say("warn", `No se pudo crear: ${err.detail || createRes.statusText}`);
             return;
           }
           match = await createRes.json();
         }
         applyClientToPage(match);
-        statusEl.innerHTML = `<span class="ok">Perfil listo.</span>`;
+        say("ok", match.display_name || "Ficha abierta");
       } catch (e) {
-        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+        say("warn", `Sin conexión: ${e.message}`);
       }
     });
 
     document.getElementById("analyze-btn").addEventListener("click", async () => {
       if (!currentClient) {
-        statusEl.innerHTML = '<span class="warning">Primero carga o crea el perfil del cliente (paso 1): el análisis se guarda en su ficha. Las fotos que ya has hecho se mantienen.</span>';
+        say("warn", "Antes, abre la ficha del cliente (1). Las fotos se mantienen.");
         document.getElementById("client-name").focus();
         statusEl.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
@@ -405,11 +486,11 @@
       const izq = photoFor("izq");
       const dcha = photoFor("dcha");
       if (!frontal || !izq || !dcha) {
-        statusEl.innerHTML = '<span class="warning">Sube las 3 fotos (frontal + ambos perfiles) para analizar.</span>';
+        say("warn", "Faltan fotos (hacen falta las 3)");
         return;
       }
 
-      statusEl.textContent = "Analizando fotos...";
+      say("busy", "Analizando…");
       resultsSection.style.display = "none";
       const formData = new FormData();
       formData.append("photo_frontal", frontal, "frontal.jpg");
@@ -423,21 +504,23 @@
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          statusEl.innerHTML = `<span class="warning">Error: ${err.detail || res.statusText}</span>`;
+          say("warn", `Error: ${err.detail || res.statusText}`);
           return;
         }
         const data = await res.json();
         applyClientToPage(data.client);
 
         anomalyNoteBox.innerHTML = data.detected_anomalies_notes
-          ? `<div class="anomaly-note">⚠️ ${data.detected_anomalies_notes}</div>`
+          ? `<div class="anomaly-note">${UI.icon("triangle-alert")}<span>${data.detected_anomalies_notes}</span></div>`
           : "";
         warningListEl.innerHTML = (data.warnings || []).map((w) => `<li>${w}</li>`).join("");
         resultsSection.style.display = (data.detected_anomalies_notes || (data.warnings || []).length) ? "block" : "none";
 
-        statusEl.innerHTML = '<span class="ok">Análisis completado. Revisa los campos de abajo antes de guardar.</span>';
+        markStep(3, true);
+        say("ok", "Analizado · revisa y guarda");
+        analysisForm.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (e) {
-        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+        say("warn", `Sin conexión: ${e.message}`);
       }
     });
 
@@ -467,7 +550,7 @@
         detected_anomalies_notes: document.getElementById("anomalies-notes").value || null,
       };
 
-      statusEl.textContent = "Guardando...";
+      say("busy", "Guardando…");
       try {
         const res = await fetch(`${API_BASE}/clients/${currentClient.id}/visagismo-profile`, {
           method: "PATCH",
@@ -476,14 +559,15 @@
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          statusEl.innerHTML = `<span class="warning">No se pudo guardar: ${err.detail || res.statusText}</span>`;
+          say("warn", `No se pudo guardar: ${err.detail || res.statusText}`);
           return;
         }
         const client = await res.json();
         applyClientToPage(client);
-        statusEl.innerHTML = '<span class="ok">Guardado en la ficha del cliente.</span>';
+        markStep(3, true);
+        say("ok", "Guardado");
       } catch (e) {
-        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+        say("warn", `Sin conexión: ${e.message}`);
       }
     });
 
@@ -504,9 +588,9 @@
       silhouette: null,
     };
     const CAM_TEXT = {
-      frontal: ["Foto frontal", "Cara dentro del óvalo y ojos sobre la línea. Que mire a la cámara, sin girar ni inclinar la cabeza."],
-      izq: ["Perfil izquierdo", "Nariz hacia la izquierda, encajando el perfil en la silueta. Cámara a la altura de la cara y cliente mirando al horizonte. Frente y cuello despejados."],
-      dcha: ["Perfil derecho", "Nariz hacia la derecha, encajando el perfil en la silueta. Cámara a la altura de la cara y cliente mirando al horizonte. Frente y cuello despejados."],
+      frontal: ["Frontal", "Cara en el óvalo · ojos en la línea · mirando a la cámara"],
+      izq: ["Perfil izquierdo", "Nariz a la izquierda · mirada al horizonte · frente y cuello despejados"],
+      dcha: ["Perfil derecho", "Nariz a la derecha · mirada al horizonte · frente y cuello despejados"],
     };
 
     async function loadSilhouette() {
@@ -546,15 +630,15 @@
       if (event.beta === null || event.gamma === null) return;
       let msg, ok = false;
       if (window.innerWidth > window.innerHeight) {
-        msg = "Pon el móvil en vertical";
+        msg = "↻ Móvil en vertical";
       } else if (event.beta > 97) {
-        msg = "El móvil apunta hacia arriba: súbelo a la altura de la cara y ponlo recto";
+        msg = "↑ Apunta arriba · súbelo a la altura de la cara";
       } else if (event.beta < 83) {
-        msg = "El móvil apunta hacia abajo: ponlo recto, a la altura de la cara";
+        msg = "↓ Apunta abajo · ponlo recto";
       } else if (Math.abs(event.gamma) > 7) {
-        msg = "Endereza el móvil (está torcido hacia un lado)";
+        msg = "⤺ Móvil torcido · enderézalo";
       } else {
-        msg = "Móvil recto ✓";
+        msg = "✓ Recto";
         ok = true;
       }
       cam.level.textContent = msg;
@@ -575,8 +659,7 @@
     async function openCamera(slot) {
       const canUseCamera = window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
       if (!canUseCamera) {
-        statusEl.innerHTML = '<span class="warning">La cámara con marco necesita la web con HTTPS (la versión publicada). ' +
-          "Aquí se abre la cámara normal del móvil: sigue las indicaciones de la guía.</span>";
+        say("warn", "El marco necesita la web publicada (HTTPS); se abre la cámara normal");
         document.getElementById(SLOTS[slot].input).click();
         return;
       }
@@ -597,8 +680,7 @@
         await startStream();
       } catch (e) {
         closeCamera();
-        statusEl.innerHTML = '<span class="warning">No se ha podido abrir la cámara (¿permiso denegado?). ' +
-          "Se abre el selector de fotos.</span>";
+        say("warn", "Sin permiso de cámara; elige una foto");
         document.getElementById(SLOTS[slot].input).click();
       }
     }
@@ -630,7 +712,8 @@
         captured[slot] = blob;
         document.getElementById(SLOTS[slot].input).value = "";
         showPreview(slot, blob);
-        document.getElementById(`status-${slot}`).textContent = "Foto hecha con marco ✓";
+        document.getElementById(`status-${slot}`).textContent = "";
+        refreshPhotoStep();
         closeCamera();
       }, "image/jpeg", 0.92);
     }
@@ -648,6 +731,7 @@
       if (e.key === "Escape" && !cam.el.hidden) closeCamera();
     });
 
+    drawSlotFrames();
     loadClientFromUrl();
   </script>
 </body>

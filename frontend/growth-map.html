@@ -20,26 +20,46 @@
 <link rel="stylesheet" href="assets/theme.css" />
 <style>
   .page-shell { max-width: 760px; }
-  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
-  .toolbar button { margin: 0; }
+  .page-head { margin-bottom: 18px; }
+  .form-card { padding: 18px 20px 20px; }
+  .inline-form { display: flex; gap: 8px; }
+  .inline-form input { flex: 1; min-width: 0; }
+  .inline-form button { width: auto; margin: 0; white-space: nowrap; }
+  .consent-row { margin-top: 6px; }
+  .consent-row .checkbox-row { margin: 0; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .field-grid > div { min-width: 0; }
+  .field-grid label { display: flex; align-items: center; gap: 6px; }
+  .field-grid label .ico { color: var(--accent-cyan); width: 15px; height: 15px; }
+  .lbl-row { margin: 18px 0 6px; }
+  .lbl-row label { margin: 0; }
+  .lbl-row details.info > summary { width: 24px; height: 24px; }
+  @media (max-width: 480px) { .field-grid { grid-template-columns: 1fr; } }
+  .pill-btn { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 10px 14px; border-radius: 999px;
+              background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-main); font-size: 13px; font-weight: 600; }
+  .pill-btn .ico { color: var(--accent-cyan); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; align-items: center; }
+  .toolbar button { margin: 0; display: inline-flex; align-items: center; gap: 6px; }
+  .toolbar-spacer { flex: 1; }
+  button.icon-only { width: 44px; padding: 0; justify-content: center; }
+  .zone-row .zone-reset { margin-left: auto; display: inline-flex; opacity: 0.7; }
+  .zone-row .zone-reset .ico { width: 16px; height: 16px; pointer-events: none; }
   #three-canvas {
     border: 1px solid var(--glass-border); border-radius: 12px; display: block; margin-top: 8px;
     touch-action: none; cursor: grab; width: 100%; height: 560px;
   }
   #status { font-size: 14px; color: var(--text-dim); margin-top: 12px; min-height: 20px; }
-  .zone-legend {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+  .zone-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  button.zone-row {
+    display: inline-flex; align-items: center; gap: 8px; width: auto; min-height: 38px; margin: 0; padding: 6px 12px;
+    border: 1px solid var(--glass-border); border-radius: 999px; cursor: pointer; background: var(--glass);
+    color: var(--text-main); font-size: 13px; font-weight: 600; text-align: left;
   }
-  .zone-row {
-    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
-    border: 1px solid var(--glass-border); border-radius: 10px; cursor: pointer; background: transparent;
-    color: inherit; font: inherit; text-align: left;
-  }
+  button.zone-row:hover { transform: none; box-shadow: none; }
   .zone-row.armed { border-color: #4fe3ff; box-shadow: 0 0 0 1px #4fe3ff inset; }
   .zone-dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; background: #55607a; }
   .zone-dot.set { background: #4fe3ff; }
-  .zone-row .zone-reset { margin-left: auto; font-size: 12px; opacity: 0.75; text-decoration: underline; }
-  .photo-shape-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+  .photo-shape-row { margin-top: 14px; }
   #canvas-wrap { position: relative; }
   .compass-panel {
     position: absolute; top: 12px; right: 12px; width: 152px; z-index: 5;
@@ -51,11 +71,12 @@
   #compass-svg:active { cursor: grabbing; }
   .compass-readout { font-size: 12px; color: var(--text-dim); margin: 4px 0 8px; }
   .compass-actions { display: flex; gap: 6px; justify-content: center; }
-  .compass-actions button { font-size: 12px; padding: 6px 8px; margin: 0; }
+  .compass-actions button { margin: 0; width: 44px; min-height: 40px; height: 40px; padding: 0; justify-content: center; }
   @media (max-width: 600px) {
     #three-canvas { height: 62vh; min-height: 320px; }
-    .toolbar button { flex: 1 1 auto; }
-    .zone-legend { grid-template-columns: 1fr; }
+    .toolbar button[data-mode="none"] { flex: 1 1 auto; justify-content: center; }
+    .toolbar .lbl { display: none; }
+    .toolbar button[data-mode="whorl-cw"], .toolbar button[data-mode="whorl-ccw"] { width: 44px; padding: 0; flex: none; }
     .compass-panel { top: 8px; right: 8px; width: 128px; padding: 8px; }
   }
 </style>
@@ -63,77 +84,84 @@
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html">← Inicio</a>
-    <a href="index.html">Simulación de cortes</a>
-    <a id="visagismo-link" href="visagismo.html">Análisis de visajismo</a>
+    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="index.html" title="Simular corte"><span data-icon="wand-sparkles"></span><span class="lbl">Simular</span></a>
+    <a id="visagismo-link" href="visagismo.html" title="Visajismo"><span data-icon="scan-face"></span><span class="lbl">Visajismo</span></a>
   </nav>
 
-  <h1 class="page-title">Mapa de remolinos y dirección del pelo</h1>
-  <p class="page-lead">
-    Toca una zona de la cabeza (o su nombre en la lista) y gira el disco que
-    aparece sobre la cabeza para fijar hacia dónde crece el pelo ahí — no
-    hace falta acertar con el dedo justo sobre la piel. Puedes rotar la
-    cabeza arrastrando con un dedo/el ratón en cualquier momento, igual que
-    antes, para ver la nuca, la coronilla o los laterales.
-  </p>
+  <div class="head-row page-head">
+    <h1 class="page-title">Remolinos</h1>
+    <details class="info"><summary></summary><div class="info-body">
+      <p>Ficha del cliente: tipo de pelo, forma de cara y hacia dónde crece el pelo.</p>
+      <p>Toca una zona (en la cabeza o en la lista) y gira el disco que aparece para marcar la dirección. Arrastra para girar la cabeza; pellizca o usa la rueda para acercar.</p>
+    </div></details>
+  </div>
 
-  <label for="client-name">Nombre del cliente</label>
-  <input type="text" id="client-name" placeholder="Ej: Pedro Gómez Martínez" />
-  <label class="checkbox-row">
-    <input type="checkbox" id="consent" />
-    <span>Tengo su consentimiento explícito para guardar esta información en su perfil (es dato biométrico)</span>
-  </label>
-  <button id="load-btn" type="button">Cargar / crear perfil de este cliente</button>
-
-  <div id="hair-type-section" style="display: none;">
-    <label for="hair-texture">Tipo de pelo del cliente</label>
-    <select id="hair-texture">
-      <option value="">-- Selecciona --</option>
-      <option value="liso">Liso</option>
-      <option value="ondulado">Ondulado</option>
-      <option value="rizado">Rizado</option>
-      <option value="afro">Afro</option>
-    </select>
-
-    <label for="face-shape">Forma de cara del cliente (opcional)</label>
-    <select id="face-shape">
-      <option value="">-- Sin especificar --</option>
-      <option value="ovalada">Ovalada</option>
-      <option value="redonda">Redonda</option>
-      <option value="cuadrada">Cuadrada</option>
-      <option value="alargada">Alargada</option>
-    </select>
-    <p class="hint">Es opcional, pero si la rellenas las recomendaciones de corte tendrán en cuenta también la forma de cara, no solo el tipo de pelo.</p>
-
-    <div class="photo-shape-row">
-      <label for="shape-photo" class="toolbar-btn secondary" style="cursor:pointer;">
-        📷 Ajustar la cabeza a la foto del cliente (opcional)
-      </label>
-      <input type="file" id="shape-photo" accept="image/*" capture="environment" style="display:none;" />
-      <span id="shape-photo-status" class="hint" style="margin:0;"></span>
+  <div class="glass-card form-card">
+    <div class="inline-form">
+      <input type="text" id="client-name" placeholder="Nombre del cliente" aria-label="Nombre del cliente" />
+      <button id="load-btn" type="button" aria-label="Cargar o crear perfil de este cliente"><span data-icon="user-check"></span>Abrir ficha</button>
     </div>
-    <p class="hint">
-      No se guarda la foto en ningún sitio: solo se usa un instante para medir
-      el ancho/alto de la cara y ensanchar o estrechar el maniquí genérico. No
-      reconstruye la cabeza real del cliente (eso necesitaría más de una foto),
-      así que la nuca/coronilla siguen siendo el maniquí estándar.
-    </p>
+    <div class="head-row consent-row">
+      <label class="checkbox-row">
+        <input type="checkbox" id="consent" />
+        <span>Consentimiento del cliente</span>
+      </label>
+      <details class="info"><summary></summary><div class="info-body">
+        Es un dato biométrico: hace falta su permiso explícito para guardarlo en su ficha.
+      </div></details>
+    </div>
+
+    <div id="hair-type-section" style="display: none;">
+      <div class="field-grid">
+        <div>
+          <label for="hair-texture"><span data-icon="scissors"></span>Tipo de pelo</label>
+          <select id="hair-texture">
+            <option value="">—</option>
+            <option value="liso">Liso</option>
+            <option value="ondulado">Ondulado</option>
+            <option value="rizado">Rizado</option>
+            <option value="afro">Afro</option>
+          </select>
+        </div>
+        <div>
+          <div class="head-row lbl-row">
+            <label for="face-shape"><span data-icon="scan-face"></span>Forma de cara</label>
+            <details class="info"><summary></summary><div class="info-body">
+              Opcional: si la marcas, las recomendaciones de corte la tienen en cuenta además del tipo de pelo.
+            </div></details>
+          </div>
+          <select id="face-shape">
+            <option value="">—</option>
+            <option value="ovalada">Ovalada</option>
+            <option value="redonda">Redonda</option>
+            <option value="cuadrada">Cuadrada</option>
+            <option value="alargada">Alargada</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="head-row photo-shape-row">
+        <label for="shape-photo" class="pill-btn" style="cursor:pointer;">
+          <span data-icon="camera"></span>Ajustar a su foto
+        </label>
+        <details class="info"><summary></summary><div class="info-body">
+          Opcional. Mide el ancho y alto de su cara en una foto para ensanchar o estrechar la cabeza del maniquí. La foto no se guarda. La nuca y la coronilla siguen siendo las del maniquí.
+        </div></details>
+        <input type="file" id="shape-photo" accept="image/*" capture="environment" style="display:none;" />
+        <span id="shape-photo-status" class="hint" style="margin:0;"></span>
+      </div>
+    </div>
   </div>
 
   <div class="toolbar">
-    <button type="button" class="toolbar-btn active" data-mode="none">🔄 Solo rotar</button>
-    <button type="button" class="toolbar-btn" data-mode="whorl-cw">↻ Remolino horario</button>
-    <button type="button" class="toolbar-btn" data-mode="whorl-ccw">↺ Remolino antihorario</button>
-    <button id="undo-whorl-btn" type="button" class="toolbar-btn secondary">Deshacer último remolino</button>
-    <button id="clear-btn" type="button" class="toolbar-btn secondary">Borrar todo</button>
+    <button type="button" class="toolbar-btn active" data-mode="none" title="Solo girar la cabeza"><span data-icon="rotate-3d"></span>Girar</button>
+    <button type="button" class="toolbar-btn" data-mode="whorl-cw" title="Marcar remolino horario"><span data-icon="rotate-cw"></span><span class="lbl">Horario</span></button>
+    <button type="button" class="toolbar-btn" data-mode="whorl-ccw" title="Marcar remolino antihorario"><span data-icon="rotate-ccw"></span><span class="lbl">Antihorario</span></button>
+    <span class="toolbar-spacer"></span>
+    <button id="undo-whorl-btn" type="button" class="toolbar-btn secondary icon-only" aria-label="Deshacer último remolino" title="Deshacer último remolino"><span data-icon="undo-2"></span></button>
+    <button id="clear-btn" type="button" class="toolbar-btn secondary icon-only" aria-label="Borrar todo" title="Borrar todo"><span data-icon="trash-2"></span></button>
   </div>
-  <p class="hint">
-    Arrastra en cualquier punto de la cabeza (con el ratón, un dedo o el
-    trackpad) para rotarla — ya no hace falta cambiar de modo para eso.
-    Rueda o pellizca con dos dedos para hacer zoom. Para marcar un remolino,
-    activa el modo correspondiente arriba y toca el punto exacto sobre la
-    cabeza.
-  </p>
 
   <div class="zone-legend" id="zone-legend"></div>
 
@@ -150,19 +178,20 @@
       </svg>
       <div class="compass-readout" id="compass-readout">0° (hacia la cara)</div>
       <div class="compass-actions">
-        <button type="button" id="compass-clear-btn" class="toolbar-btn secondary">Quitar</button>
-        <button type="button" id="compass-done-btn" class="toolbar-btn secondary">Listo</button>
+        <button type="button" id="compass-clear-btn" class="toolbar-btn secondary icon-only" aria-label="Quitar dirección" title="Quitar"><span data-icon="trash-2"></span></button>
+        <button type="button" id="compass-done-btn" class="toolbar-btn icon-only" aria-label="Listo" title="Listo"><span data-icon="check"></span></button>
       </div>
     </div>
   </div>
   <p class="hint" id="aim-hint" style="min-height: 20px;"></p>
 
-  <button id="save-btn" type="button" style="margin-top: 16px;">Guardar mapa de este cliente</button>
-  <button id="recommendations-btn" type="button" style="display: none;">Ver recomendaciones →</button>
+  <button id="save-btn" type="button" style="margin-top: 16px;"><span data-icon="save"></span>Guardar</button>
+  <button id="recommendations-btn" type="button" class="secondary" style="display: none;"><span data-icon="sparkles"></span>Recomendaciones</button>
 
   <div id="status"></div>
 </div>
 
+  <script src="assets/ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -179,6 +208,10 @@
     const API_BASE = "/api";
     const canvas = document.getElementById("three-canvas");
     const statusEl = document.getElementById("status");
+    function say(kind, text) {
+      const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
+      statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
+    }
     const aimHintEl = document.getElementById("aim-hint");
 
     let currentClient = null;
@@ -191,9 +224,9 @@
     // otra a mano.
     const HEAD_ZONES = [
       { name: "corona", label: "Coronilla", direction: [0.0, 1.0, -0.1] },
-      { name: "flequillo", label: "Flequillo / frente", direction: [0.0, 0.9, 0.75] },
-      { name: "laterales_izq", label: "Lateral izquierdo", direction: [-0.9, 0.4, 0.15] },
-      { name: "laterales_der", label: "Lateral derecho", direction: [0.9, 0.4, 0.15] },
+      { name: "flequillo", label: "Flequillo", direction: [0.0, 0.9, 0.75] },
+      { name: "laterales_izq", label: "Lateral izq.", direction: [-0.9, 0.4, 0.15] },
+      { name: "laterales_der", label: "Lateral dcho.", direction: [0.9, 0.4, 0.15] },
       { name: "nuca", label: "Nuca", direction: [0.0, -0.05, -1.0] },
     ];
 
@@ -576,7 +609,7 @@
         row.innerHTML = `
           <span class="zone-dot${isSet ? " set" : ""}"></span>
           <span>${zone.label}</span>
-          ${isSet ? '<span class="zone-reset" data-zone-reset="' + zone.name + '">borrar</span>' : ""}
+          ${isSet ? '<span class="zone-reset" role="button" aria-label="Borrar dirección" data-zone-reset="' + zone.name + '">' + UI.icon("x") + '</span>' : ""}
         `;
         row.addEventListener("click", (e) => {
           if (e.target.dataset && e.target.dataset.zoneReset) {
@@ -597,7 +630,7 @@
       renderZoneLegend();
       openCompassFor(zoneName);
       const zone = HEAD_ZONES.find((z) => z.name === zoneName);
-      aimHintEl.innerHTML = `Zona <strong>${zone.label}</strong>: gira el disco de arriba a la derecha de la cabeza para fijar hacia dónde crece el pelo ahí.`;
+      aimHintEl.innerHTML = `${UI.icon("compass")} <strong>${zone.label}</strong> · gira el disco`;
     }
 
     function disarmZone() {
@@ -702,7 +735,7 @@
       compassDragging = false;
       try { if (compassSvg.hasPointerCapture(event.pointerId)) compassSvg.releasePointerCapture(event.pointerId); } catch (err) { /* no crítico */ }
       if (armedZone) {
-        aimHintEl.innerHTML = `Dirección de <strong>${HEAD_ZONES.find((z) => z.name === armedZone).label}</strong> guardada. Puedes seguir girando el disco o tocar "Listo".`;
+        aimHintEl.innerHTML = `${UI.icon("circle-check")} <strong>${HEAD_ZONES.find((z) => z.name === armedZone).label}</strong> marcada`;
       }
     }
     compassSvg.addEventListener("pointerup", finishCompassDrag);
@@ -779,14 +812,14 @@
       const file = event.target.files[0];
       if (!file || !headGroup) return;
       const statusSpan = document.getElementById("shape-photo-status");
-      statusSpan.textContent = "Midiendo cara...";
+      statusSpan.textContent = "Midiendo…";
       try {
         const formData = new FormData();
         formData.append("photo", file);
         const res = await fetch(`${API_BASE}/growth-map/head-shape`, { method: "POST", body: formData });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          statusSpan.textContent = `No se pudo medir la foto: ${err.detail || res.statusText}`;
+          statusSpan.textContent = `No se pudo medir: ${err.detail || res.statusText}`;
           return;
         }
         const shape = await res.json();
@@ -798,9 +831,9 @@
         // un ajuste opcional y de un solo uso al principio, lo más simple y
         // menos sorprendente es avisar en vez de intentar recolocarlos solos.
         const hadDrawing = Object.keys(zoneStrokes).length > 0 || whorls.length > 0;
-        statusSpan.textContent = "Cabeza ajustada a la foto." + (hadDrawing ? " Revisa las flechas/remolinos ya puestos: puede que ya no queden pegados a la piel." : "");
+        statusSpan.textContent = "✓ Ajustada" + (hadDrawing ? " · revisa las flechas y remolinos" : "");
       } catch (e) {
-        statusSpan.textContent = `Error de red: ${e.message}`;
+        statusSpan.textContent = `Sin conexión: ${e.message}`;
       } finally {
         event.target.value = "";
       }
@@ -857,19 +890,19 @@
       const params = new URLSearchParams(window.location.search);
       const clientId = params.get("client_id");
       if (!clientId) return;
-      statusEl.textContent = "Cargando perfil...";
+      say("busy", "Cargando…");
       try {
         const res = await fetch(`${API_BASE}/clients/${clientId}`);
         if (!res.ok) {
-          statusEl.innerHTML = '<span class="warning">No se encontró el cliente indicado en el enlace.</span>';
+          say("warn", "Cliente no encontrado");
           return;
         }
         const client = await res.json();
         document.getElementById("consent").checked = true;
         applyClientToScene(client);
-        statusEl.innerHTML = `<span class="ok">Perfil de ${client.display_name || "cliente"} cargado.</span>`;
+        say("ok", client.display_name || "Ficha abierta");
       } catch (e) {
-        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+        say("warn", `Sin conexión: ${e.message}`);
       }
     }
 
@@ -879,15 +912,15 @@
       const consent = document.getElementById("consent").checked;
 
       if (!name) {
-        statusEl.innerHTML = '<span class="warning">Escribe el nombre del cliente.</span>';
+        say("warn", "Falta el nombre");
         return;
       }
       if (!consent) {
-        statusEl.innerHTML = '<span class="warning">Marca la casilla de consentimiento antes de continuar.</span>';
+        say("warn", "Falta el consentimiento");
         return;
       }
 
-      statusEl.textContent = "Buscando...";
+      say("busy", "Buscando…");
       try {
         const listRes = await fetch(`${API_BASE}/clients`);
         const clients = await listRes.json();
@@ -903,23 +936,23 @@
           });
           if (!createRes.ok) {
             const err = await createRes.json();
-            statusEl.innerHTML = `<span class="warning">No se pudo crear el perfil: ${err.detail || createRes.statusText}</span>`;
+            say("warn", `No se pudo crear: ${err.detail || createRes.statusText}`);
             return;
           }
           match = await createRes.json();
         }
 
         applyClientToScene(match);
-        statusEl.innerHTML = `<span class="ok">Perfil listo (${match.custom_growth_map ? "con mapa guardado, puedes editarlo" : "sin mapa guardado todavía"}).</span>`;
+        say("ok", `${match.display_name || "Ficha abierta"}${match.custom_growth_map ? " · mapa guardado" : ""}`);
       } catch (e) {
-        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+        say("warn", `Sin conexión: ${e.message}`);
       }
     });
 
     // --- Guardar el mapa dibujado ---
     document.getElementById("save-btn").addEventListener("click", async () => {
       if (!currentClient) {
-        statusEl.innerHTML = '<span class="warning">Primero carga o crea el perfil del cliente.</span>';
+        say("warn", "Antes, abre la ficha del cliente");
         return;
       }
 
@@ -928,7 +961,7 @@
       // recomendaciones se encuentre con un cliente a medio rellenar.
       const hairTexture = document.getElementById("hair-texture").value;
       if (!hairTexture) {
-        statusEl.innerHTML = '<span class="warning">Selecciona el tipo de cabello del cliente antes de guardar (hace falta para poder recomendarle cortes).</span>';
+        say("warn", "Falta el tipo de pelo");
         return;
       }
 
@@ -952,7 +985,7 @@
 
       const faceShape = document.getElementById("face-shape").value;
 
-      statusEl.textContent = "Guardando...";
+      say("busy", "Guardando…");
       try {
         const hairRes = await fetch(`${API_BASE}/clients/${currentClient.id}/hair-type`, {
           method: "PATCH",
@@ -961,7 +994,7 @@
         });
         if (!hairRes.ok) {
           const err = await hairRes.json();
-          statusEl.innerHTML = `<span class="warning">Error al guardar el tipo de pelo: ${err.detail || hairRes.statusText}</span>`;
+          say("warn", `Error (tipo de pelo): ${err.detail || hairRes.statusText}`);
           return;
         }
 
@@ -975,7 +1008,7 @@
           });
           if (!faceRes.ok) {
             const err = await faceRes.json();
-            statusEl.innerHTML = `<span class="warning">Error al guardar la forma de cara: ${err.detail || faceRes.statusText}</span>`;
+            say("warn", `Error (forma de cara): ${err.detail || faceRes.statusText}`);
             return;
           }
         }
@@ -987,17 +1020,17 @@
         });
         if (!res.ok) {
           const err = await res.json();
-          statusEl.innerHTML = `<span class="warning">Error al guardar: ${err.detail || res.statusText}</span>`;
+          say("warn", `No se pudo guardar: ${err.detail || res.statusText}`);
           return;
         }
         currentClient = await res.json();
         recommendationsBtn.style.display = "block";
-        statusEl.innerHTML = '<span class="ok">Guardado. Abriendo recomendaciones de corte...</span>';
+        say("ok", "Guardado · abriendo recomendaciones…");
         setTimeout(() => {
           window.location.href = `recomendaciones.html?client_id=${encodeURIComponent(currentClient.id)}`;
         }, 900);
       } catch (e) {
-        statusEl.innerHTML = `<span class="warning">Error de red: ${e.message}</span>`;
+        say("warn", `Sin conexión: ${e.message}`);
       }
     });
 
@@ -1010,7 +1043,7 @@
       })
       .catch((err) => {
         console.error("No se pudo cargar el modelo 3D de la cabeza:", err);
-        statusEl.innerHTML = '<span class="warning">No se pudo cargar el modelo 3D de la cabeza. Prueba a recargar la página.</span>';
+        say("warn", "No se pudo cargar la cabeza 3D · recarga la página");
         animate();
       });
   </script>

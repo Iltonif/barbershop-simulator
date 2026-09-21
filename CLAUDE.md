@@ -414,6 +414,42 @@ Arreglado de paso en la misma página: el botón "Guardar" reconstruía
 los valores medidos sin campo propio (`eye_symmetry_percent`). Ahora parte
 de lo ya guardado y sobrescribe solo los campos del formulario.
 
+## Criterio visual de la web: poco texto, iconos y ⓘ (sept 2026)
+
+Pedro: "no puede haber mucho ruido visual en la web/app, tiene que ser
+dinámica e intuitiva, sustituye el exceso de información por caracteres
+intuitivos". Eligió aplicarlo a toda la web, con iconos de línea (no
+emojis) y guardando las explicaciones detrás de un ⓘ en vez de borrarlas.
+Reglas para cualquier página nueva o cambio:
+
+- **Iconos**: `frontend/assets/ui.js` lleva los iconos de Lucide (licencia
+  ISC, uso comercial permitido) que usa la web. En el HTML,
+  `<span data-icon="camera"></span>`; en JS, `UI.icon("check")`. Para uno
+  nuevo, copiar el interior de su SVG desde el paquete `lucide-static` al
+  objeto `ICONS`. Nada de emojis en la interfaz (se ven distinto en cada
+  móvil).
+- **Explicaciones**: nunca un párrafo a la vista. Van en
+  `<details class="info"><summary></summary><div class="info-body">…</div></details>`
+  junto al título o campo al que se refieren (dentro de un `.head-row`,
+  que hace de ancla para el globo). Solo uno abierto a la vez y se cierra
+  al tocar fuera (lo hace `ui.js`). Estilos en `theme.css`.
+- **Textos**: títulos de 1-2 palabras, botones con icono + verbo corto
+  ("Abrir ficha", "Analizar", "Guardar"), mensajes de estado cortos con
+  icono (`say("ok" | "warn" | "busy", texto)` en cada página).
+- **Menú superior**: una fila, icono + palabra; en pantallas de menos de
+  520 px solo iconos (salvo `.keep-label`, p.ej. "Ayuda").
+- Cambios concretos: la portada es solo icono + palabra (Peluquero /
+  Cliente, y un mosaico de accesos); Visajismo muestra las 3 fotos como
+  casillas con la silueta que toca, botones de cámara/galería y ✓ verde
+  al completar cada paso, y marca con ✨ los campos que rellena el análisis
+  y con ✋ los manuales; el catálogo y las recomendaciones enseñan foto,
+  nombre y etiquetas (la descripción va al ampliar o en el ⓘ), en 2
+  columnas en el móvil; las recomendaciones se agrupan por foto igual que
+  el catálogo (antes por familia, y la tarjeta enseñaba la foto de otro
+  corte). La guía (ahora "Ayuda") empieza por cómo hacer las fotos, con
+  textos de una línea (regenerados con `tools/generar_perfiles_guia.py`)
+  y las fuentes plegadas.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de
