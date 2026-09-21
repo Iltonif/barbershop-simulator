@@ -39,8 +39,30 @@
   .card { position: relative; }
   .card:has(details.info[open]) { z-index: 40; }
   .card-body, .cut-item { position: relative; }
-  .card details.info > .info-body { top: auto; bottom: calc(100% + 6px); }
+  .card details.info > .info-body { max-height: 60vh; overflow-y: auto; }
+  /* En el móvil la tarjeta es estrecha: el "por qué" se abre como una hoja
+     abajo de la pantalla, a todo lo ancho (por eso la tarjeta no lleva
+     backdrop-filter, que haría de contenedor del position: fixed). */
+  @media (max-width: 640px) {
+    .card details.info > .info-body { position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px;
+                                      max-width: none; z-index: 80; font-size: 13.5px; }
+  }
+  .why.more { background: var(--glass); color: var(--text-dim); border: 1px solid var(--glass-border); }
   .note { display: flex; align-items: flex-start; gap: 6px; }
+  .whys { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .why { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: 11.5px;
+         font-weight: 600; line-height: 1.3; }
+  .why .ico { width: 12px; height: 12px; stroke-width: 3; flex: none; }
+  .why.plus { background: rgba(52, 211, 153, 0.12); color: #86e6c4; border: 1px solid rgba(52, 211, 153, 0.3); }
+  .why.minus { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+  .why-line { display: flex; gap: 8px; align-items: flex-start; }
+  .why-line .ico { width: 14px; height: 14px; flex: none; margin-top: 2px; }
+  .why-line.plus .ico { color: var(--ok); }
+  .why-line.minus .ico { color: var(--warning); }
+  .why-line b { color: var(--text-main); }
+  .beard-row { margin: 14px 0 0; gap: 8px; }
+  .beard-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
+  .beard-title .ico { color: var(--accent-cyan); }
 
   .grid {
     display: grid;
@@ -51,8 +73,7 @@
   }
   .card {
     border: 1px solid var(--glass-border); border-radius: 14px; overflow: visible;
-    display: flex; flex-direction: column; background: var(--glass);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    display: flex; flex-direction: column; background: rgba(20, 23, 36, 0.92);
   }
   .card img { width: 100%; height: 220px; object-fit: cover; display: block; background: rgba(255,255,255,0.05); border-radius: 13px 13px 0 0; }
   .no-photo {
@@ -100,7 +121,7 @@
   <div class="head-row page-head">
     <h1 class="page-title">Recomendaciones</h1>
     <details class="info"><summary></summary><div class="info-body">
-      Cortes del catálogo que encajan con el tipo de pelo, la forma de cara y los remolinos guardados en la ficha. Los marcados con <span data-icon="triangle-alert"></span> pueden dar guerra con algún remolino.
+      Cortes del catálogo para tu tipo de pelo, ordenados según tu ficha: forma de cara, rasgos, remolinos y lo que respondiste en "Mi perfil". <span data-icon="check"></span> dice por qué encaja un corte y <span data-icon="triangle-alert"></span> qué no encaja; el <span data-icon="info"></span> de cada corte lo explica.
     </div></details>
   </div>
   <div id="subtitle" class="chips"></div>
@@ -112,6 +133,7 @@
     </div>
   </div>
 
+  <div id="beard"></div>
   <div id="status"></div>
   <div id="grid" class="grid"></div>
 </div>
@@ -178,18 +200,37 @@
       return `<div class="badges">${badges.join("")}</div>`;
     }
 
+    // Por qué encaja (verde) y qué no encaja (ámbar): etiquetas cortas en
+    // la tarjeta; la explicación completa de cada una, en el ⓘ.
+    // Como mucho 3 etiquetas por tarjeta (los avisos primero, que son los
+    // que cambian la decisión); el resto se cuenta en "+N" y está en el ⓘ.
+    const MAX_WHYS = 3;
+    function whyChipsHtml(rec) {
+      const minus = (rec.warnings || []).map((w) => `<span class="why minus">${UI.icon("triangle-alert")}${w.label}</span>`);
+      const plus = (rec.reasons || []).map((r) => `<span class="why plus">${UI.icon("check")}${r.label}</span>`);
+      const all = [...minus, ...plus];
+      if (!all.length) return "";
+      const shown = all.slice(0, MAX_WHYS);
+      const more = all.length - shown.length;
+      return `<div class="whys">${shown.join("")}${more > 0 ? `<span class="why more">+${more}</span>` : ""}</div>`;
+    }
+    function infoHtml(rec) {
+      const s = rec.style;
+      const lines = [
+        ...(rec.reasons || []).map((r) => `<p class="why-line plus">${UI.icon("check")}<span><b>${r.label}.</b> ${r.detail}</span></p>`),
+        ...(rec.warnings || []).map((w) => `<p class="why-line minus">${UI.icon("triangle-alert")}<span><b>${w.label}.</b> ${w.detail}</span></p>`),
+      ];
+      const body = (s.description ? `<p>${s.description}</p>` : "") + lines.join("");
+      return body ? `<details class="info"><summary aria-label="Por qué">${UI.icon("info")}</summary><div class="info-body">${body}</div></details>` : "";
+    }
+
     function cutItemHtml(rec) {
       const s = rec.style;
-      const noteHtml = rec.note ? `<div class="note">${UI.icon("triangle-alert")}<span>${rec.note}</span></div>` : "";
-      // La descripción va plegada en un ⓘ para no llenar la tarjeta de texto.
-      const infoHtml = s.description
-        ? `<details class="info"><summary aria-label="Descripción">${UI.icon("info")}</summary><div class="info-body">${s.description}</div></details>`
-        : "";
       return `
-        <li class="cut-item${rec.note ? " con-aviso" : ""}">
-          <div class="cut-top"><div class="cut-name">${s.name}</div>${infoHtml}</div>
+        <li class="cut-item">
+          <div class="cut-top"><div class="cut-name">${s.name}</div>${infoHtml(rec)}</div>
           ${cutBadgesHtml(s)}
-          ${noteHtml}
+          ${whyChipsHtml(rec)}
         </li>
       `;
     }
@@ -208,15 +249,12 @@
 
       if (family.items.length === 1) {
         const rec = family.items[0];
-        const infoHtml = rec.style.description
-          ? `<details class="info"><summary aria-label="Descripción">${UI.icon("info")}</summary><div class="info-body">${rec.style.description}</div></details>`
-          : "";
         card.innerHTML = `
           ${photoHtml}
-          <div class="card-body${rec.note ? " con-aviso" : ""}">
-            <div class="cut-top"><h3>${family.label}</h3>${infoHtml}</div>
+          <div class="card-body">
+            <div class="cut-top"><h3>${family.label}</h3>${infoHtml(rec)}</div>
             ${cutBadgesHtml(rec.style)}
-            ${rec.note ? `<div class="note">${UI.icon("triangle-alert")}<span>${rec.note}</span></div>` : ""}
+            ${whyChipsHtml(rec)}
           </div>
         `;
         return card;
@@ -294,15 +332,15 @@
         const data = await recRes.json();
 
         const chip = (icon, text, extra = "") => `<span class="chip${extra}">${UI.icon(icon)}${text}</span>`;
-        const growthHref = `growth-map.html?client_id=${encodeURIComponent(id)}`;
         subtitleEl.innerHTML = [
           chip("user-round", name),
           chip("scissors", HAIR_TEXTURE_LABELS[data.hair_texture] || data.hair_texture),
           data.face_shape
             ? chip("scan-face", FACE_SHAPE_LABELS[data.face_shape] || data.face_shape)
             // Sin forma de cara: las recomendaciones solo usan el tipo de pelo.
-            : `<a class="chip missing" href="${growthHref}" title="Añadir la forma de cara en la ficha">${UI.icon("scan-face")}+ forma de cara</a>`,
+            : `<a class="chip missing" href="cuestionario.html?client_id=${encodeURIComponent(id)}" title="Añadir la forma de cara">${UI.icon("scan-face")}+ forma de cara</a>`,
           data.whorl_count > 0 ? chip("rotate-cw", `${data.whorl_count} remolino${data.whorl_count === 1 ? "" : "s"}`) : "",
+          `<a class="chip" href="cuestionario.html?client_id=${encodeURIComponent(id)}" title="Responder o cambiar el cuestionario">${UI.icon("clipboard-list")}Mi perfil</a>`,
         ].join("");
 
         if (data.recommendations.length === 0) {
@@ -310,6 +348,13 @@
           return;
         }
 
+        const beard = data.beard_advice || [];
+        document.getElementById("beard").innerHTML = beard.length
+          ? `<div class="head-row beard-row"><span class="beard-title">${UI.icon("scissors")}Barba</span>${beard.map((b) =>
+              `<span class="why plus">${UI.icon("check")}${b.label}</span>`).join("")}
+              <details class="info"><summary aria-label="Consejo de barba">${UI.icon("info")}</summary><div class="info-body">${beard.map((b) =>
+              `<p><b>${b.label}.</b> ${b.detail}</p>`).join("")}</div></details></div>`
+          : "";
         const families = groupByFamily(data.recommendations);
         statusEl.textContent = `${data.recommendations.length} cortes`;
         gridEl.innerHTML = "";

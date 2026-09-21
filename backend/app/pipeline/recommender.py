@@ -36,9 +36,10 @@ entre sí en los detalles), mientras que "redonda" y "alargada" sí, porque
 ahí todas las fuentes consultadas coinciden en la misma dirección.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from app.pipeline import visagismo_rules
+from app.pipeline import trait_rules, visagismo_rules
+from app.pipeline.rule_effects import AVISO_SUAVE, BOOST_SUAVE, Effect
 from app.pipeline.style_catalog import HaircutStyle, load_catalog
 
 # Un remolino es más difícil de disimular cuanto más corto es el largo
@@ -63,11 +64,47 @@ _FAMILIA_TUPE_POMPADOUR = "tupe_pompadour_clasico"
 @dataclass
 class StyleRecommendation:
     style: HaircutStyle
-    note: str | None
+    note: str | None  # todos los avisos juntos (compatibilidad con la API anterior)
+    # Por qué encaja (razones a favor) y qué no encaja (avisos), cada uno
+    # con etiqueta corta + explicación. Ver rule_effects.py.
+    reasons: list[Effect] = field(default_factory=list)
+    warnings: list[Effect] = field(default_factory=list)
 
 
 def _es_potencialmente_problematico_con_remolinos(style: HaircutStyle) -> bool:
     return style.length_top_mm <= _UMBRAL_LARGO_PROBLEMATICO_MM
+
+
+def _efecto_remolinos(style: HaircutStyle, whorls: list[dict]) -> Effect | None:
+    nota = _nota_remolinos(style, whorls)
+    if nota:
+        return Effect(AVISO_SUAVE, "Deja ver los remolinos", nota)
+    # A favor: con remolinos, algo de largo arriba ayuda a dominarlos.
+    if whorls and style.length_top_mm >= 40:
+        return Effect(BOOST_SUAVE, "Disimula los remolinos",
+                      "Con algo de largo arriba el peso del pelo ayuda a dominar los remolinos marcados.")
+    return None
+
+
+def _efecto_forma_cara(style: HaircutStyle, face_shape: str | None) -> Effect | None:
+    nota = _nota_forma_cara(style, face_shape)
+    if nota:
+        label = "Redondea más la cara" if face_shape == "redonda" else "Alarga más la cara"
+        return Effect(AVISO_SUAVE, label, nota)
+    # A favor, con las mismas fuentes: altura arriba para la cara redonda,
+    # anchura/flequillo para la alargada.
+    # "Altura" = largo arriba claramente mayor que en los laterales; una
+    # melena larga por igual no la da.
+    if (face_shape == "redonda" and 50 <= style.length_top_mm <= 150
+            and style.length_sides_mm <= style.length_top_mm / 2
+            and style.style_family not in _FAMILIAS_REDONDEADAS):
+        return Effect(BOOST_SUAVE, "Alarga la cara",
+                      "Con cara redonda, dar altura arriba alarga visualmente la cara.")
+    if face_shape == "alargada" and (trait_rules._tiene_flequillo(style)
+                                     or style.style_family == "clasico_raya_lateral"):
+        return Effect(BOOST_SUAVE, "Acorta la cara",
+                      "Con cara alargada, un flequillo o una raya lateral suman anchura y acortan la cara.")
+    return None
 
 
 def _nota_remolinos(style: HaircutStyle, whorls: list[dict]) -> str | None:
@@ -139,26 +176,16 @@ def recommend_styles(
 
     recomendaciones = []
     for style in compatibles:
-        notas = [
-            n
-            for n in (_nota_remolinos(style, whorls), _nota_forma_cara(style, face_shape))
-            if n
-        ]
-        ajuste_visagismo = visagismo_rules.evaluate_profile(style, visagismo_profile)
-        if ajuste_visagismo.note:
-            notas.append(ajuste_visagismo.note)
+        effects = [e for e in (_efecto_remolinos(style, whorls), _efecto_forma_cara(style, face_shape)) if e]
+        effects += trait_rules.evaluate_traits(style, visagismo_profile)
+        effects += visagismo_rules.evaluate_profile(style, visagismo_profile).effects
 
-        note = " ".join(notas) if notas else None
-        # Puntuación de orden: cada nota "clásica" (remolinos/forma de cara)
-        # cuenta como +1 (empujan hacia abajo, igual que antes de añadir
-        # visagismo), más la puntuación con signo del motor de visagismo
-        # (negativa = prioriza, positiva = matiza). Cuanto más bajo, más
-        # arriba aparece el corte en la lista.
-        score = sum(1 for n in (_nota_remolinos(style, whorls), _nota_forma_cara(style, face_shape)) if n)
-        score += ajuste_visagismo.score
+        reasons = [e for e in effects if e.is_reason]
+        warnings = [e for e in effects if not e.is_reason]
+        note = " ".join(e.detail for e in warnings) or None
+        score = sum(e.score for e in effects)
+        recomendaciones.append((score, StyleRecommendation(style=style, note=note, reasons=reasons,
+                                                          warnings=warnings)))
 
-        recomendaciones.append((score, StyleRecommendation(style=style, note=note)))
-
-    # Orden estable: a igual puntuación se mantiene el orden del catálogo.
     recomendaciones.sort(key=lambda par: par[0])
     return [rec for _score, rec in recomendaciones]

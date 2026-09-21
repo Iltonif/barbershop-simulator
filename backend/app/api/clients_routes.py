@@ -23,6 +23,7 @@ from app.api.schemas import (
     CustomGrowthMapIn,
     FaceShapeOverrideIn,
     HairTypeOverrideIn,
+    ReasonOut,
     RecommendationsOut,
     StyleOut,
     StyleRecommendationOut,
@@ -33,7 +34,7 @@ from app.api.schemas import (
 )
 from app.config import ANTHROPIC_MODEL
 from app.db import repository
-from app.pipeline import facial_traits_analysis, visagismo_ai_advisor
+from app.pipeline import facial_traits_analysis, trait_rules, visagismo_ai_advisor
 from app.pipeline.recommender import recommend_styles
 
 router = APIRouter()
@@ -272,7 +273,13 @@ def get_recommendations(client_id: str):
         whorl_count=len(whorls),
         face_shape=client.face_shape_override,
         recommendations=[
-            StyleRecommendationOut(style=StyleOut(**r.style.__dict__), note=r.note)
+            StyleRecommendationOut(
+                style=StyleOut(**r.style.__dict__),
+                note=r.note,
+                reasons=[ReasonOut(label=e.label, detail=e.detail) for e in r.reasons],
+                warnings=[ReasonOut(label=e.label, detail=e.detail) for e in r.warnings],
+            )
             for r in recs
         ],
+        beard_advice=[ReasonOut(**b) for b in trait_rules.beard_advice(client.visagismo_profile)],
     )

@@ -75,6 +75,8 @@
   .field-grid > div { min-width: 0; }
   .field-grid label { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
   .tag-auto { color: var(--accent-cyan); }
+  .guide-link { display: inline-flex; color: var(--text-faint); margin-left: 2px; }
+  .guide-link .ico { width: 14px; height: 14px; }
   .tag-manual { color: var(--text-faint); }
   .tag-auto .ico, .tag-manual .ico { width: 14px; height: 14px; }
   @media (max-width: 480px) { .field-grid { grid-template-columns: 1fr; } }
@@ -130,6 +132,7 @@
     <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
     <a id="growth-map-link" href="growth-map.html" title="Remolinos"><span data-icon="compass"></span><span class="lbl">Remolinos</span></a>
     <a id="recomendaciones-link" href="recomendaciones.html" title="Recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Recomendaciones</span></a>
+    <a id="quiz-link" href="cuestionario.html" title="Cuestionario del cliente"><span data-icon="clipboard-list"></span><span class="lbl">Cuestionario</span></a>
     <a class="nav-help keep-label" href="guia-visagismo.html#fotos"><span data-icon="circle-help"></span><span class="lbl">Ayuda</span></a>
   </nav>
   <div class="head-row">
@@ -250,11 +253,11 @@
         <p class="hint" id="eye-symmetry-percent-hint"></p>
       </div>
       <div>
-        <label for="profile-type"><span data-icon="hand" class="tag-manual"></span>Perfil de nariz</label>
+        <label for="profile-type"><span data-icon="hand" class="tag-manual"></span>Perfil <a class="guide-link" href="guia-visagismo.html#perfil" aria-label="Cómo valorar el perfil"><span data-icon="circle-help"></span></a></label>
         <select id="profile-type">
           <option value="">—</option>
           <option value="straight">Recto</option>
-          <option value="convex_prominent_nose">Convexo / prominente</option>
+          <option value="convex_prominent_nose">Convexo / nariz prominente</option>
           <option value="concave">Cóncavo</option>
         </select>
       </div>
@@ -273,6 +276,23 @@
           <option value="">—</option>
           <option value="flat">Pegadas</option>
           <option value="prominent_protruding">De soplillo</option>
+        </select>
+      </div>
+      <div>
+        <label for="chin-projection"><span data-icon="hand" class="tag-manual"></span>Mentón <a class="guide-link" href="guia-visagismo.html#menton" aria-label="Cómo valorar el mentón"><span data-icon="circle-help"></span></a></label>
+        <select id="chin-projection">
+          <option value="">—</option>
+          <option value="retruded">Retraído</option>
+          <option value="balanced">Equilibrado</option>
+          <option value="prominent">Prominente</option>
+        </select>
+      </div>
+      <div>
+        <label for="jawline-definition"><span data-icon="hand" class="tag-manual"></span>Mandíbula <a class="guide-link" href="guia-visagismo.html#mandibula" aria-label="Cómo valorar la mandíbula"><span data-icon="circle-help"></span></a></label>
+        <select id="jawline-definition">
+          <option value="">—</option>
+          <option value="defined">Definida</option>
+          <option value="soft">Poco definida</option>
         </select>
       </div>
       <div>
@@ -401,6 +421,8 @@
       document.getElementById("eye-symmetry").value = f.eye_symmetry || "";
       document.getElementById("ears-projection").value = f.ears_projection || "";
       document.getElementById("neck-proportions").value = f.neck_proportions || "";
+      document.getElementById("chin-projection").value = f.chin_projection || "";
+      document.getElementById("jawline-definition").value = f.jawline_definition || "";
       document.getElementById("has-glasses").checked = !!f.has_glasses;
       document.getElementById("anomalies-notes").value = f.detected_anomalies_notes || "";
 
@@ -420,6 +442,7 @@
       markStep(1, true);
       growthMapLink.href = `growth-map.html?client_id=${encodeURIComponent(client.id)}`;
       recomendacionesLink.href = `recomendaciones.html?client_id=${encodeURIComponent(client.id)}`;
+      document.getElementById("quiz-link").href = `cuestionario.html?client_id=${encodeURIComponent(client.id)}`;
     }
 
     async function loadClientFromUrl() {
@@ -546,6 +569,8 @@
         eye_symmetry: document.getElementById("eye-symmetry").value || null,
         ears_projection: document.getElementById("ears-projection").value || null,
         neck_proportions: document.getElementById("neck-proportions").value || null,
+        chin_projection: document.getElementById("chin-projection").value || null,
+        jawline_definition: document.getElementById("jawline-definition").value || null,
         has_glasses: document.getElementById("has-glasses").checked,
         detected_anomalies_notes: document.getElementById("anomalies-notes").value || null,
       };

@@ -33,8 +33,9 @@ igual que `hair_texture_override`/`face_shape_override`) simplemente no
 activa las reglas que dependen de los campos que faltan.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from app.pipeline.rule_effects import Effect
 from app.pipeline.style_catalog import HaircutStyle
 
 # Puntuaciones: negativo = prioriza (sube en la lista), positivo = matiza
@@ -70,6 +71,11 @@ _FAMILIAS_BAJO_MANTENIMIENTO = {"buzz_corto_uniforme"}
 class VisagismoAdjustment:
     score: int
     note: str | None
+    # Etiqueta corta para la tarjeta ("Ideal sin peinarte"); `note` es la
+    # explicación completa. En `evaluate_profile`, `effects` lleva cada
+    # regla aplicada por separado (ver rule_effects.py).
+    label: str | None = None
+    effects: list[Effect] = field(default_factory=list)
 
 
 def _get(profile: dict, *path, default=None):
@@ -102,6 +108,7 @@ def _regla_morfologia_craneal(style: HaircutStyle, profile: dict) -> VisagismoAd
             _BOOST_SUAVE,
             "Cabeza de morfología braquicéfala: este corte combina laterales "
             "compactos con volumen arriba, que suele quedar bien en este caso.",
+            label="Encaja con tu forma de cabeza",
         )
     return None
 
@@ -124,6 +131,7 @@ def _regla_geometria_facial(style: HaircutStyle, profile: dict) -> VisagismoAdju
             _BOOST_SUAVE,
             "Cara redonda: un pompadour con volumen definido o un fade alto "
             "suelen estilizar más que una silueta redondeada.",
+            label="Estiliza la cara redonda",
         )
     return None
 
@@ -146,12 +154,14 @@ def _regla_nacimiento_pelo(style: HaircutStyle, profile: dict) -> VisagismoAdjus
             _BOOST_SUAVE,
             "Entradas en M: un corte texturizado o con raya lateral disimula "
             "mejor la línea de nacimiento que dejarla muy expuesta.",
+            label="Disimula las entradas",
         )
     if style.style_family == "tupe_pompadour_clasico" and style.length_top_mm >= 70:
         return VisagismoAdjustment(
             _AVISO_SUAVE,
             "Entradas en M: un tupé/pompadour peinado hacia atrás con mucho "
             "largo deja la línea de nacimiento muy a la vista.",
+            label="Deja las entradas a la vista",
         )
     return None
 
@@ -172,6 +182,7 @@ def _regla_mantenimiento_diario(style: HaircutStyle, profile: dict) -> Visagismo
             _BOOST_FUERTE,
             "Cliente sin tiempo para peinarse a diario: este corte queda bien "
             "sin producto ni secador.",
+            label="Sin peinarse cada día",
         )
     if style.style_family in _FAMILIAS_REQUIEREN_PEINADO or style.length_top_mm >= 60:
         return VisagismoAdjustment(
@@ -179,6 +190,7 @@ def _regla_mantenimiento_diario(style: HaircutStyle, profile: dict) -> Visagismo
             "Cliente sin tiempo para peinarse a diario: este corte necesita "
             "producto y/o secador para verse bien, puede no encajar con su "
             "rutina.",
+            label="Pide peinarse cada día",
         )
     return None
 
@@ -199,6 +211,7 @@ def _regla_frecuencia_visitas(style: HaircutStyle, profile: dict) -> VisagismoAd
             _AVISO_SUAVE,
             f"Este cliente pasa más de 20 días entre visitas ({dias}): un fade "
             "a piel se nota crecido mucho antes que uno progresivo.",
+            label="Se nota crecido pronto",
         )
     if style.fade_type in ("bajo", "medio") or style.style_family == "clasico_raya_lateral":
         return VisagismoAdjustment(
@@ -206,6 +219,7 @@ def _regla_frecuencia_visitas(style: HaircutStyle, profile: dict) -> VisagismoAd
             f"Este cliente pasa más de 20 días entre visitas ({dias}): un "
             "degradado progresivo o un corte clásico a tijera aguantan mejor "
             "sin retoque.",
+            label="Aguanta entre visitas",
         )
     return None
 
@@ -232,6 +246,7 @@ def evaluate_profile(style: HaircutStyle, profile: dict | None) -> VisagismoAdju
 
     total_score = 0
     notas: list[str] = []
+    effects: list[Effect] = []
     for regla in _REGLAS:
         resultado = regla(style, profile)
         if resultado is None:
@@ -239,5 +254,6 @@ def evaluate_profile(style: HaircutStyle, profile: dict | None) -> VisagismoAdju
         total_score += resultado.score
         if resultado.note:
             notas.append(resultado.note)
+            effects.append(Effect(resultado.score, resultado.label or resultado.note, resultado.note))
 
-    return VisagismoAdjustment(total_score, " ".join(notas) if notas else None)
+    return VisagismoAdjustment(total_score, " ".join(notas) if notas else None, effects=effects)

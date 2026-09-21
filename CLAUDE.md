@@ -506,6 +506,58 @@ consentimiento nuevo específico.
   primero con las claves: comparar los dos con fotos reales, revisar que
   no cambian la cara, y afinar la instrucción.
 
+## Recomendaciones explicadas: rasgos, cuestionario y "por qué" (sept 2026)
+
+Pedro pidió tres cosas a la vez: que los rasgos de la ficha cuenten en las
+recomendaciones, una pantalla para que el cliente rellene lo que falta, y
+que cada recomendación diga por qué encaja.
+
+- **Rasgos → reglas** (`app/pipeline/trait_rules.py`): orejas prominentes
+  (fade alto/a piel o laterales < 6 mm = aviso; laterales con largo o fade
+  bajo con volumen = a favor), mentón retraído (pelo hacia atrás o recogido
+  = aviso; algo de largo en la nuca = a favor), mentón prominente
+  (flequillo = a favor), mandíbula poco definida (laterales cortos con largo
+  arriba = a favor), perfil convexo/nariz prominente (hacia atrás = aviso;
+  volumen arriba = a favor), perfil cóncavo (flequillo a favor, hacia atrás
+  aviso), cuello corto (nuca larga = aviso; nuca despejada = a favor),
+  cuello largo (media melena en la nuca = a favor). Fuentes en el
+  docstring: Luc Vincent, Book of Barbering (orejas), Castlebeard y Beard
+  Resource (barba). "Hacia atrás", "flequillo" y "volumen" se leen del
+  nombre/descripción del corte (regex); "parte de atrás" no cuenta como
+  peinado hacia atrás (test).
+- **Consejo de barba** (`beard_advice`): mentón retraído y/o mandíbula poco
+  definida. Va aparte de los cortes (`beard_advice` en
+  `GET .../recommendations`); si el cliente dijo "afeitado", se da como
+  sugerencia.
+- **Campos nuevos** en `facial_features_profile`: `chin_projection`
+  (retruded/balanced/prominent) y `jawline_definition` (defined/soft), a
+  mano en `visagismo.html` (con ⓘ-enlace a la sección de la guía). El
+  campo "Perfil de nariz" pasa a llamarse "Perfil" (mismo `profile_type`).
+- **Por qué** (`app/pipeline/rule_effects.py`): cada regla devuelve
+  `Effect(score, label, detail)`; puntuación negativa = razón a favor,
+  positiva = aviso. `recommend_styles` devuelve `reasons` y `warnings` por
+  corte y ordena por la suma. Las 5 reglas de `visagismo_rules.py` llevan
+  ahora también `label`; sus razones a favor YA NO van en `note` (antes se
+  mezclaban con los avisos y la web las pintaba como aviso). Remolinos y
+  forma de cara ganan razones a favor ("Disimula los remolinos", "Alarga
+  la cara", "Acorta la cara").
+- **Web** (`recomendaciones.html`): máximo 3 etiquetas por tarjeta (avisos
+  primero, verde = a favor, ámbar = aviso, "+N" el resto); el ⓘ de cada
+  corte tiene la descripción y la explicación de cada etiqueta (en el
+  móvil se abre como hoja abajo, a todo lo ancho). Arriba, fila "Barba"
+  con su ⓘ, y chip "Mi perfil" que abre el cuestionario.
+- **Cuestionario** (`frontend/cuestionario.html`, "Mi perfil" en la
+  portada del cliente): 5 preguntas, una por pantalla, con dibujos SVG
+  propios en vez de texto: forma de cara, nacimiento del pelo (recto,
+  entradas, pico, frente alta), tiempo de peinado (reloj), cada cuántas
+  semanas viene (calendario) y barba. "No lo sé" salta la pregunta. Guarda
+  la forma de cara en `face_shape_override` (y `facial_geometry`) y el
+  resto en `visagismo_profile`, partiendo de lo ya guardado para no borrar
+  los rasgos. Se entra con `?client_id=` (desde Visajismo, Recomendaciones)
+  o buscando el nombre; si no hay ficha, pide darse de alta en el
+  mostrador (el consentimiento se recoge ahí).
+- Tests: `tests/test_trait_rules.py`.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

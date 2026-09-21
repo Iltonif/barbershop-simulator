@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Tu perfil</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  /* Cuestionario para que el propio cliente lo rellene en la tablet:
+     una pregunta por pantalla, respuestas con dibujo grande y sin texto
+     explicativo a la vista (criterio visual de la web, ver CLAUDE.md). */
+  .page-shell { max-width: 720px; }
+  .page-head { margin-bottom: 14px; }
+  .dots { display: flex; gap: 6px; margin: 0 0 18px; }
+  .dots span { flex: 1; height: 5px; border-radius: 999px; background: var(--glass-strong); transition: background 0.3s; }
+  .dots span.done { background: var(--accent-cyan); }
+  .dots span.now { background: linear-gradient(90deg, var(--accent-blue), var(--accent-pink)); }
+  .q-title { font-size: clamp(20px, 4.5vw, 26px); font-weight: 800; margin: 0 0 16px; }
+  .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 640px) { .options { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  button.opt { margin: 0; width: 100%; min-height: 0; padding: 14px 10px 12px; border-radius: 18px; background: var(--glass);
+               border: 1.5px solid var(--glass-border); color: var(--text-main); display: flex; flex-direction: column;
+               align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+  button.opt:hover { transform: translateY(-2px); box-shadow: none; border-color: rgba(255, 255, 255, 0.3); }
+  button.opt[aria-pressed="true"] { border-color: var(--accent-cyan); background: rgba(79, 227, 255, 0.1); }
+  button.opt svg.art { width: 100%; max-width: 120px; aspect-ratio: 1; color: var(--accent-cyan); }
+  button.opt .sub { font-size: 12px; font-weight: 500; color: var(--text-dim); margin-top: -6px; }
+  .nav-row { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; gap: 10px; }
+  .nav-row button { width: auto; margin: 0; }
+  .nav-row .icon-btn { width: 44px; }
+  .skip { background: none; border: none; color: var(--text-faint); font-weight: 600; font-size: 13px; padding: 10px; min-height: 0; }
+  .skip:hover { transform: none; box-shadow: none; color: var(--text-dim); }
+  .inline-form { display: flex; gap: 8px; }
+  .inline-form input { flex: 1; min-width: 0; }
+  .inline-form button { width: auto; margin: 0; white-space: nowrap; }
+  #status { font-size: 14px; margin: 12px 0; min-height: 1px; }
+  .summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 13px;
+          background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-main); text-decoration: none; }
+  .chip .ico { color: var(--accent-cyan); width: 15px; height: 15px; }
+  .hello { color: var(--text-dim); margin: -6px 0 14px; font-size: 14px; }
+  .fade-in { animation: q-in 0.25s ease-out; }
+  @keyframes q-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a id="rec-link" href="recomendaciones.html" title="Mis recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Recomendaciones</span></a>
+  </nav>
+  <div class="head-row page-head">
+    <h1 class="page-title">Tu perfil</h1>
+    <details class="info"><summary></summary><div class="info-body">
+      Cinco preguntas rápidas para que las recomendaciones de corte se ajusten a ti. Si no sabes una, sáltala. Se guarda en tu ficha de la barbería.
+    </div></details>
+  </div>
+  <p class="hello" id="hello" hidden></p>
+
+  <section id="find" class="glass-card form-card" style="padding: 18px 20px;" hidden>
+    <div class="inline-form">
+      <input type="text" id="find-name" placeholder="Tu nombre (como en la barbería)" aria-label="Tu nombre" />
+      <button id="find-btn" type="button"><span data-icon="search"></span>Empezar</button>
+    </div>
+  </section>
+
+  <section id="quiz" hidden>
+    <div class="dots" id="dots"></div>
+    <div id="question"></div>
+    <div class="nav-row">
+      <button type="button" class="secondary icon-btn" id="back-btn" aria-label="Pregunta anterior"><span data-icon="chevron-left"></span></button>
+      <button type="button" class="skip" id="skip-btn">No lo sé</button>
+    </div>
+  </section>
+
+  <section id="done" hidden>
+    <h2 class="q-title">¿Todo bien?</h2>
+    <div class="summary" id="summary"></div>
+    <button type="button" id="save-btn"><span data-icon="save"></span>Guardar</button>
+    <button type="button" class="secondary" id="edit-btn"><span data-icon="chevron-left"></span>Cambiar algo</button>
+  </section>
+
+  <div id="status" role="status"></div>
+</div>
+
+<script src="assets/ui.js"></script>
+<script>
+  const API_BASE = "/api";
+  const statusEl = document.getElementById("status");
+  function say(kind, text) {
+    const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
+    statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
+  }
+
+  // ---- Dibujos de las respuestas (SVG 100x100, línea del color de acento) ----
+  const face = (d) => `<svg class="art" viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">${d}
+    <path d="M40 46 h4 M56 46 h4" stroke-linecap="round"/><path d="M44 66 q6 4 12 0" stroke-linecap="round" stroke-width="2.5"/></svg>`;
+  const FACE_ART = {
+    ovalada: face('<ellipse cx="50" cy="52" rx="27" ry="38"/>'),
+    redonda: face('<circle cx="50" cy="52" r="35"/>'),
+    cuadrada: face('<rect x="19" y="16" width="62" height="72" rx="12"/>'),
+    alargada: face('<rect x="28" y="6" width="44" height="90" rx="21"/>'),
+  };
+
+  // Nacimiento del pelo: cabeza de frente con el pelo recortado por la
+  // línea de cada tipo (clipPath con id propio por dibujo).
+  let clipN = 0;
+  function hairline(path) {
+    const id = `hc${clipN++}`;
+    return `<svg class="art" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><clipPath id="${id}"><ellipse cx="50" cy="56" rx="30" ry="40"/></clipPath></defs>
+      <path d="${path}" clip-path="url(#${id})" fill="currentColor" opacity="0.85"/>
+      <ellipse cx="50" cy="56" rx="30" ry="40" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M38 58 h7 M55 58 h7" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </svg>`;
+  }
+  const HAIRLINE_ART = {
+    linear_straight: hairline("M0 0 H100 V36 H0 Z"),
+    m_shaped_receding: hairline("M0 0 H100 V44 L76 44 C72 30 66 25 61 28 L50 33 L39 28 C34 25 28 30 24 44 L0 44 Z"),
+    widows_peak: hairline("M0 0 H100 V33 L57 33 L50 44 L43 33 L0 33 Z"),
+    high_forehead: hairline("M0 0 H100 V25 H0 Z"),
+  };
+
+  // Tiempo peinándose: reloj con la porción de tiempo coloreada.
+  function clock(fraction, label) {
+    const a = fraction * 2 * Math.PI;
+    const x = 50 + 28 * Math.sin(a), y = 40 - 28 * Math.cos(a);
+    const slice = fraction <= 0 ? "" : fraction >= 1
+      ? '<circle cx="50" cy="40" r="28" fill="currentColor" opacity="0.35"/>'
+      : `<path d="M50 40 L50 12 A28 28 0 ${fraction > 0.5 ? 1 : 0} 1 ${x.toFixed(1)} ${y.toFixed(1)} Z" fill="currentColor" opacity="0.35"/>`;
+    return `<svg class="art" viewBox="0 0 100 100" aria-hidden="true">${slice}
+      <circle cx="50" cy="40" r="30" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M50 40 V22 M50 40 L62 46" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <text x="50" y="92" text-anchor="middle" fill="currentColor" font-size="15" font-weight="800">${label}</text></svg>`;
+  }
+  const MAINT_ART = {
+    zero_minutes: clock(0, "0 min"),
+    low_1_5_mins: clock(0.08, "1-5 min"),
+    medium_5_15_mins: clock(0.25, "5-15 min"),
+    high_requires_blowdryer: clock(0.5, "+15 min"),
+  };
+
+  // Cada cuánto viene: calendario con el número de semanas.
+  const cal = (n) => `<svg class="art" viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3">
+    <rect x="16" y="22" width="68" height="64" rx="10"/><path d="M16 40 H84 M34 14 V28 M66 14 V28" stroke-linecap="round"/>
+    <text x="50" y="76" text-anchor="middle" fill="currentColor" stroke="none" font-size="30" font-weight="800">${n}</text></svg>`;
+  const VISITS_ART = { 14: cal("2"), 21: cal("3"), 30: cal("4"), 45: cal("6+") };
+
+  // Barba: cara con la barba dibujada debajo.
+  function beard(extra) {
+    const id = `bc${clipN++}`;
+    return `<svg class="art" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><pattern id="${id}" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.1" fill="currentColor"/></pattern></defs>
+      ${extra.replace(/PATTERN/g, `url(#${id})`)}
+      <ellipse cx="50" cy="46" rx="26" ry="34" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M40 42 h4 M56 42 h4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M44 62 q6 3 12 0" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>`;
+  }
+  const BEARD_ART = {
+    clean_shaven: beard(""),
+    stubble_short: beard('<path d="M24 50 C26 72 38 80 50 80 C62 80 74 72 76 50 C70 58 64 56 60 56 C56 54 44 54 40 56 C36 56 30 58 24 50 Z" fill="PATTERN"/>'),
+    full_long_volume: beard('<path d="M24 46 C24 76 36 96 50 96 C64 96 76 76 76 46 C70 56 64 54 60 54 C56 52 44 52 40 54 C36 54 30 56 24 46 Z" fill="currentColor" opacity="0.8"/>'),
+    sharp_lined: beard('<path d="M25 48 L26 66 L40 80 L60 80 L74 66 L75 48 C68 56 64 55 60 55 C56 53 44 53 40 55 C36 55 32 56 25 48 Z" fill="currentColor" opacity="0.8"/>'),
+  };
+
+  // ---- Preguntas ----
+  const FACE_TO_GEOMETRY = { ovalada: "oval", redonda: "round", cuadrada: "square", alargada: "rectangular_elongated" };
+  const QUESTIONS = [
+    { key: "face_shape", title: "¿Qué forma tiene tu cara?", options: [
+      ["ovalada", "Ovalada", FACE_ART.ovalada], ["redonda", "Redonda", FACE_ART.redonda],
+      ["cuadrada", "Cuadrada", FACE_ART.cuadrada], ["alargada", "Alargada", FACE_ART.alargada]] },
+    { key: "hairline", title: "¿Cómo es el nacimiento de tu pelo?", options: [
+      ["linear_straight", "Recto", HAIRLINE_ART.linear_straight], ["m_shaped_receding", "Con entradas", HAIRLINE_ART.m_shaped_receding],
+      ["widows_peak", "En pico", HAIRLINE_ART.widows_peak], ["high_forehead", "Frente alta", HAIRLINE_ART.high_forehead]] },
+    { key: "maintenance", title: "¿Cuánto tiempo te peinas al día?", options: [
+      ["zero_minutes", "Nada", MAINT_ART.zero_minutes], ["low_1_5_mins", "Un poco", MAINT_ART.low_1_5_mins],
+      ["medium_5_15_mins", "Bastante", MAINT_ART.medium_5_15_mins], ["high_requires_blowdryer", "Con secador", MAINT_ART.high_requires_blowdryer]] },
+    { key: "visits", title: "¿Cada cuántas semanas vienes a cortarte?", options: [
+      [14, "2 semanas", VISITS_ART[14]], [21, "3 semanas", VISITS_ART[21]],
+      [30, "1 mes", VISITS_ART[30]], [45, "Más de 1 mes", VISITS_ART[45]]] },
+    { key: "beard", title: "¿Qué barba llevas o quieres?", options: [
+      ["clean_shaven", "Afeitado", BEARD_ART.clean_shaven], ["stubble_short", "De pocos días", BEARD_ART.stubble_short],
+      ["full_long_volume", "Larga", BEARD_ART.full_long_volume], ["sharp_lined", "Corta perfilada", BEARD_ART.sharp_lined]] },
+  ];
+
+  let client = null;
+  const answers = {};
+  let step = 0;
+
+  function renderDots() {
+    document.getElementById("dots").innerHTML = QUESTIONS.map((q, i) =>
+      `<span class="${i < step ? "done" : i === step ? "now" : ""}"></span>`).join("");
+  }
+
+  function renderQuestion() {
+    const q = QUESTIONS[step];
+    renderDots();
+    const box = document.getElementById("question");
+    box.className = "fade-in";
+    void box.offsetWidth;
+    box.innerHTML = `<h2 class="q-title">${q.title}</h2><div class="options">${q.options.map(([v, label, art]) =>
+      `<button type="button" class="opt" data-v="${v}" aria-pressed="${answers[q.key] === v}">${art}<span>${label}</span></button>`
+    ).join("")}</div>`;
+    box.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => {
+      const raw = b.dataset.v;
+      answers[q.key] = q.key === "visits" ? Number(raw) : raw;
+      box.querySelectorAll(".opt").forEach((o) => o.setAttribute("aria-pressed", o === b));
+      setTimeout(next, 220);   // se ve la selección y pasa sola a la siguiente
+    }));
+    document.getElementById("back-btn").style.visibility = step === 0 ? "hidden" : "visible";
+  }
+
+  function next() {
+    if (step < QUESTIONS.length - 1) { step++; renderQuestion(); } else showSummary();
+  }
+
+  function showSummary() {
+    document.getElementById("quiz").hidden = true;
+    document.getElementById("done").hidden = false;
+    const chips = QUESTIONS.map((q) => {
+      const opt = q.options.find(([v]) => v === answers[q.key]);
+      return opt ? `<span class="chip">${UI.icon("check")}${opt[1]}</span>` : "";
+    }).join("");
+    document.getElementById("summary").innerHTML = chips || '<span class="chip">Sin respuestas</span>';
+  }
+
+  document.getElementById("skip-btn").addEventListener("click", () => { delete answers[QUESTIONS[step].key]; next(); });
+  document.getElementById("back-btn").addEventListener("click", () => { if (step > 0) { step--; renderQuestion(); } });
+  document.getElementById("edit-btn").addEventListener("click", () => {
+    document.getElementById("done").hidden = true;
+    document.getElementById("quiz").hidden = false;
+    step = 0; renderQuestion();
+  });
+
+  // Rellena las respuestas con lo que ya hay en la ficha.
+  function prefill(c) {
+    const vp = c.visagismo_profile || {};
+    const hair = vp.hair_physical_metrics || {}, life = vp.lifestyle_and_preferences || {};
+    if (c.face_shape_override) answers.face_shape = c.face_shape_override;
+    if (hair.frontal_hairline_shape) answers.hairline = hair.frontal_hairline_shape;
+    if (life.daily_maintenance_commitment) answers.maintenance = life.daily_maintenance_commitment;
+    if (life.barbershop_visit_frequency_days) {
+      const d = life.barbershop_visit_frequency_days;
+      answers.visits = d <= 17 ? 14 : d <= 25 ? 21 : d <= 37 ? 30 : 45;
+    }
+    if (life.beard_preference) answers.beard = life.beard_preference;
+  }
+
+  function start(c) {
+    client = c;
+    prefill(c);
+    document.getElementById("find").hidden = true;
+    document.getElementById("quiz").hidden = false;
+    const hello = document.getElementById("hello");
+    hello.textContent = c.display_name ? `Hola, ${c.display_name.split(" ")[0]}` : "";
+    hello.hidden = !c.display_name;
+    document.getElementById("rec-link").href = `recomendaciones.html?client_id=${encodeURIComponent(c.id)}`;
+    statusEl.innerHTML = "";
+    step = 0; renderQuestion();
+  }
+
+  document.getElementById("save-btn").addEventListener("click", async () => {
+    say("busy", "Guardando…");
+    try {
+      // La ficha de visagismo se guarda entera (el PATCH la sustituye), así
+      // que se parte de lo que ya hay y se cambian solo estas respuestas.
+      const res0 = await fetch(`${API_BASE}/clients/${client.id}`);
+      const fresh = await res0.json();
+      const vp = JSON.parse(JSON.stringify(fresh.visagismo_profile || {}));
+      vp.anatomical_metrics = vp.anatomical_metrics || {};
+      vp.hair_physical_metrics = vp.hair_physical_metrics || {};
+      vp.lifestyle_and_preferences = vp.lifestyle_and_preferences || {};
+      if (answers.face_shape) vp.anatomical_metrics.facial_geometry = FACE_TO_GEOMETRY[answers.face_shape];
+      if (answers.hairline) vp.hair_physical_metrics.frontal_hairline_shape = answers.hairline;
+      if (answers.maintenance) vp.lifestyle_and_preferences.daily_maintenance_commitment = answers.maintenance;
+      if (answers.visits) vp.lifestyle_and_preferences.barbershop_visit_frequency_days = answers.visits;
+      if (answers.beard) vp.lifestyle_and_preferences.beard_preference = answers.beard;
+
+      const r1 = await fetch(`${API_BASE}/clients/${client.id}/visagismo-profile`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(vp),
+      });
+      if (!r1.ok) throw new Error((await r1.json().catch(() => ({}))).detail || r1.statusText);
+      if (answers.face_shape) {
+        const r2 = await fetch(`${API_BASE}/clients/${client.id}/face-shape`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ face_shape: answers.face_shape }),
+        });
+        if (!r2.ok) throw new Error((await r2.json().catch(() => ({}))).detail || r2.statusText);
+      }
+      statusEl.innerHTML = `<div class="status-line ok">${UI.icon("circle-check")}<span>Guardado</span></div>
+        <a class="chip" style="margin-top:12px" href="recomendaciones.html?client_id=${encodeURIComponent(client.id)}">${UI.icon("sparkles")}Ver mis recomendaciones ${UI.icon("arrow-right")}</a>`;
+    } catch (e) {
+      say("warn", `No se pudo guardar: ${e.message}`);
+    }
+  });
+
+  async function findByName() {
+    const name = document.getElementById("find-name").value.trim();
+    if (!name) { say("warn", "Escribe tu nombre"); return; }
+    say("busy", "Buscando…");
+    try {
+      const clients = await (await fetch(`${API_BASE}/clients`)).json();
+      const match = clients.find((c) => (c.display_name || "").trim().toLowerCase() === name.toLowerCase());
+      if (!match) { say("warn", "No hay ninguna ficha con ese nombre · pide en el mostrador que te den de alta"); return; }
+      history.replaceState({}, "", `${location.pathname}?client_id=${encodeURIComponent(match.id)}`);
+      start(await (await fetch(`${API_BASE}/clients/${match.id}`)).json());
+    } catch (e) {
+      say("warn", `Sin conexión: ${e.message}`);
+    }
+  }
+  document.getElementById("find-btn").addEventListener("click", findByName);
+  document.getElementById("find-name").addEventListener("keydown", (e) => { if (e.key === "Enter") findByName(); });
+
+  (async () => {
+    const id = new URLSearchParams(location.search).get("client_id");
+    if (!id) { document.getElementById("find").hidden = false; return; }
+    try {
+      const res = await fetch(`${API_BASE}/clients/${id}`);
+      if (!res.ok) throw new Error("Cliente no encontrado");
+      start(await res.json());
+    } catch (e) {
+      document.getElementById("find").hidden = false;
+      say("warn", e.message);
+    }
+  })();
+</script>
+</body>
+</html>

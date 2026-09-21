@@ -18,12 +18,23 @@ class StyleOut(BaseModel):
     style_family: str | None = None
 
 
+class ReasonOut(BaseModel):
+    """Por qué encaja o no un corte: etiqueta corta para la tarjeta y la
+    explicación completa (ver app/pipeline/rule_effects.py)."""
+
+    label: str
+    detail: str
+
+
 class StyleRecommendationOut(BaseModel):
-    """Un corte recomendado, con una nota opcional (p. ej. aviso de
-    remolinos) explicando por qué aparece más abajo en la lista."""
+    """Un corte recomendado. `reasons` = por qué encaja (sube en la lista);
+    `warnings` = qué no encaja (baja). `note` junta los avisos en un texto,
+    como antes."""
 
     style: StyleOut
     note: str | None = None
+    reasons: list[ReasonOut] = []
+    warnings: list[ReasonOut] = []
 
 
 class RecommendationsOut(BaseModel):
@@ -32,6 +43,8 @@ class RecommendationsOut(BaseModel):
     whorl_count: int
     face_shape: str | None = None
     recommendations: list[StyleRecommendationOut]
+    # Consejo de barba según mentón/mandíbula (no depende del corte).
+    beard_advice: list[ReasonOut] = []
 
 
 class SimulationResponse(BaseModel):
@@ -95,6 +108,9 @@ class FacialFeaturesProfileIn(BaseModel):
     eye_symmetry: str | None = None  # "symmetric" | "asymmetric"
     eye_symmetry_percent: float | None = None  # diferencia de apertura entre ojos, 0-100
     has_glasses: bool | None = None  # solo informativo (no afecta a las reglas de recomendación)
+    # Rasgos de perfil (a mano, con la guía de visagismo; ver trait_rules.py).
+    chin_projection: str | None = None  # "retruded" | "balanced" | "prominent"
+    jawline_definition: str | None = None  # "defined" | "soft"
     # Cualquier irregularidad que no encaje en un campo estructurado de
     # arriba (p.ej. una cicatriz, una asimetría de nariz/orejas puntual):
     # texto libre en vez de intentar catalogar cada caso posible.
