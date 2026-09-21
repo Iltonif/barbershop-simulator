@@ -251,50 +251,20 @@
   <h1>Simulador de Cortes<br/>de Pelo &amp; Barba</h1>
 
   <div id="step-role">
-    <button type="button" class="role-card" data-role="peluquero">
+    <button type="button" class="role-card" data-go="peluquero.html">
       <span class="icon" data-icon="scissors"></span>
       <h2>Peluquero</h2>
     </button>
-    <button type="button" class="role-card" data-role="cliente">
+    <button type="button" class="role-card" data-go="cliente.html">
       <span class="icon" data-icon="user-round"></span>
       <h2>Cliente</h2>
     </button>
   </div>
 
-  <div id="step-sub">
-    <a href="#" class="back-link" id="back-link" aria-label="Elegir otra opción"><span data-icon="arrow-left"></span></a>
-    <div class="sub-grid" id="sub-grid-peluquero" style="display:none;">
-      <a class="sub-card" href="growth-map.html">
-        <span class="sub-icon" data-icon="compass"></span>
-        <h3>Ficha y remolinos</h3>
-      </a>
-      <a class="sub-card" href="visagismo.html">
-        <span class="sub-icon" data-icon="scan-face"></span>
-        <h3>Visajismo</h3>
-      </a>
-      <a class="sub-card" href="index.html">
-        <span class="sub-icon" data-icon="wand-sparkles"></span>
-        <h3>Simular corte</h3>
-      </a>
-    </div>
-    <div class="sub-grid" id="sub-grid-cliente" style="display:none;">
-      <a class="sub-card" href="catalogo.html">
-        <span class="sub-icon" data-icon="layout-grid"></span>
-        <h3>Catálogo</h3>
-      </a>
-      <a class="sub-card" href="cuestionario.html">
-        <span class="sub-icon" data-icon="clipboard-list"></span>
-        <h3>Mi perfil</h3>
-      </a>
-      <a class="sub-card" href="recomendaciones.html">
-        <span class="sub-icon" data-icon="sparkles"></span>
-        <h3>Mis recomendaciones</h3>
-      </a>
-    </div>
-  </div>
 </main>
 
 <script src="assets/ui.js"></script>
+<script src="assets/session.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script>
   // ---------------------------------------------------------------
@@ -412,44 +382,13 @@
   });
 
   // ---------------------------------------------------------------
-  // Flujo de dos pasos: elegir rol -> ver subopciones de ese rol.
+  // Cliente -> su parte (alta o entrada con el teléfono). Peluquero -> PIN
+  // y sala de espera. En el móvil del cliente (entró por el QR) esta
+  // portada no se ve: va directo a su parte.
   // ---------------------------------------------------------------
-  const stepRole = document.getElementById("step-role");
-  const stepSub = document.getElementById("step-sub");
-  const subGrids = {
-    peluquero: document.getElementById("sub-grid-peluquero"),
-    cliente: document.getElementById("sub-grid-cliente"),
-  };
-
-  function showSub(role) {
-    stepRole.classList.add("fade-out");
-    setTimeout(() => {
-      stepRole.style.display = "none";
-      stepRole.classList.remove("fade-out");
-
-      Object.entries(subGrids).forEach(([key, grid]) => {
-        grid.style.display = key === role ? "flex" : "none";
-      });
-      stepSub.style.display = "flex";
-      stepSub.classList.add("fade-in");
-      setTimeout(() => stepSub.classList.remove("fade-in"), 400);
-    }, 260);
-  }
-
+  if (window.Session && Session.isQr()) location.replace("cliente.html");
   document.querySelectorAll(".role-card").forEach((card) => {
-    card.addEventListener("click", () => showSub(card.dataset.role));
-  });
-
-  document.getElementById("back-link").addEventListener("click", (e) => {
-    e.preventDefault();
-    stepSub.classList.add("fade-out");
-    setTimeout(() => {
-      stepSub.style.display = "none";
-      stepSub.classList.remove("fade-out");
-      stepRole.style.display = "flex";
-      stepRole.classList.add("fade-in");
-      setTimeout(() => stepRole.classList.remove("fade-in"), 400);
-    }, 260);
+    card.addEventListener("click", () => { location.href = card.dataset.go; });
   });
 </script>
 </body>

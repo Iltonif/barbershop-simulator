@@ -36,3 +36,7 @@ controlnet-aux>=0.0.9
 # simulación devuelve la foto sin cambios como antes.
 google-genai>=2.0
 fal-client>=1.0
+
+# QR de la sala de espera para que el cliente entre desde su móvil
+# (GET /api/qr.svg, app/api/session_routes.py). Python puro, sin dependencias.
+segno>=1.6

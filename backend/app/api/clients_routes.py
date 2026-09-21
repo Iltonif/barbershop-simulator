@@ -34,7 +34,8 @@ from app.api.schemas import (
 )
 from app.config import ANTHROPIC_MODEL
 from app.db import repository
-from app.pipeline import facial_traits_analysis, trait_rules, visagismo_ai_advisor
+from app.api import client_service
+from app.pipeline import facial_traits_analysis, visagismo_ai_advisor
 from app.pipeline.recommender import recommend_styles
 
 router = APIRouter()
@@ -238,48 +239,11 @@ def generate_visagismo_ai_report(client_id: str):
 
 @router.get("/clients/{client_id}/recommendations", response_model=RecommendationsOut)
 def get_recommendations(client_id: str):
-    """Cortes recomendados para este cliente según su tipo de cabello
-    (`hair_texture_override`) y su mapa de crecimiento/remolinos
-    (`custom_growth_map`). Requiere que el barbero ya haya rellenado el
-    tipo de cabello — si no, devuelve 422 en vez de adivinar."""
+    """Cortes recomendados para este cliente (ver `client_service`). Si nadie
+    ha dicho aún su tipo de pelo (ni el peluquero ni el cliente en su
+    cuestionario), se ordena el catálogo entero en vez de dar error: el
+    cliente nuevo que espera en el sillón ya puede ver algo útil."""
     client = repository.get_client(client_id)
     if client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    if not client.hair_texture_override:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "Este cliente todavía no tiene un tipo de cabello guardado. "
-                "Rellena la encuesta de tipo de cabello antes de ver recomendaciones."
-            ),
-        )
-    whorls = (client.custom_growth_map or {}).get("whorls", [])
-    # face_shape_override es una corrección a mano del barbero, igual que
-    # hair_texture_override — no se usa aquí la "forma de cara detectada"
-    # de una simulación individual (SimulationResponse.detected_face_shape)
-    # porque esa detección automática no se confirma ni se guarda en el
-    # perfil por defecto (ver la Etapa 9 de routes.simulate): sin que el
-    # barbero la confirme, no es lo bastante fiable como para condicionar
-    # recomendaciones.
-    recs = recommend_styles(
-        client.hair_texture_override,
-        whorls=whorls,
-        face_shape=client.face_shape_override,
-        visagismo_profile=client.visagismo_profile,
-    )
-    return RecommendationsOut(
-        client_id=client_id,
-        hair_texture=client.hair_texture_override,
-        whorl_count=len(whorls),
-        face_shape=client.face_shape_override,
-        recommendations=[
-            StyleRecommendationOut(
-                style=StyleOut(**r.style.__dict__),
-                note=r.note,
-                reasons=[ReasonOut(label=e.label, detail=e.detail) for e in r.reasons],
-                warnings=[ReasonOut(label=e.label, detail=e.detail) for e in r.warnings],
-            )
-            for r in recs
-        ],
-        beard_advice=[ReasonOut(**b) for b in trait_rules.beard_advice(client.visagismo_profile)],
-    )
+    return client_service.build_recommendations(client)

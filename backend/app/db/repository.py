@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime, timezone
 
 from app.db.database import get_connection
-from app.db.models import ClientProfile, Visit
+from app.db.models import ClientProfile, Visit, WaitingEntry
 
 
 def _now() -> str:
@@ -42,6 +42,10 @@ def _row_to_client(row) -> ClientProfile:
         custom_growth_map=json.loads(row["custom_growth_map"]) if row["custom_growth_map"] else None,
         visagismo_profile=json.loads(row["visagismo_profile"]) if row["visagismo_profile"] else None,
         notes=row["notes"],
+        phone=row["phone"],
+        consent_simulation=bool(row["consent_simulation"]),
+        simulation_photo_path=row["simulation_photo_path"],
+        liked_styles=json.loads(row["liked_styles"]) if row["liked_styles"] else [],
     )
 
 
@@ -220,3 +224,110 @@ def list_visits(client_id: str) -> list[Visit]:
             (client_id,),
         ).fetchall()
     return [_row_to_visit(row) for row in rows]
+
+
+# ---------------------------------------------------------------------------
+# Flujo "cliente esperando en el sillón" (ver app/api/session_routes.py)
+# ---------------------------------------------------------------------------
+
+def normalize_phone(phone: str) -> str:
+    """Solo dígitos, sin prefijo +34/0034 (para que "612 34 56 78" y
+    "+34612345678" sean la misma ficha)."""
+    digits = "".join(ch for ch in (phone or "") if ch.isdigit())
+    if digits.startswith("0034"):
+        digits = digits[4:]
+    elif digits.startswith("34") and len(digits) == 11:
+        digits = digits[2:]
+    return digits
+
+
+def get_client_by_phone(phone: str) -> ClientProfile | None:
+    normalized = normalize_phone(phone)
+    if not normalized:
+        return None
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM clients WHERE phone = ?", (normalized,)).fetchone()
+    return _row_to_client(row) if row else None
+
+
+def set_phone(client_id: str, phone: str | None) -> ClientProfile | None:
+    with get_connection() as conn:
+        conn.execute("UPDATE clients SET phone = ? WHERE id = ?",
+                     (normalize_phone(phone) if phone else None, client_id))
+    return get_client(client_id)
+
+
+def update_consents(client_id: str, consent_save_photo: bool | None = None,
+                    consent_simulation: bool | None = None) -> ClientProfile | None:
+    now = _now()
+    with get_connection() as conn:
+        if consent_save_photo is not None:
+            conn.execute("UPDATE clients SET consent_save_photo = ?, consent_save_photo_at = ? WHERE id = ?",
+                         (1 if consent_save_photo else 0, now if consent_save_photo else None, client_id))
+        if consent_simulation is not None:
+            conn.execute("UPDATE clients SET consent_simulation = ?, consent_simulation_at = ? WHERE id = ?",
+                         (1 if consent_simulation else 0, now if consent_simulation else None, client_id))
+    return get_client(client_id)
+
+
+def set_liked_styles(client_id: str, style_ids: list[str]) -> ClientProfile | None:
+    with get_connection() as conn:
+        conn.execute("UPDATE clients SET liked_styles = ? WHERE id = ?", (json.dumps(style_ids), client_id))
+    return get_client(client_id)
+
+
+def set_simulation_photo_path(client_id: str, path: str | None) -> ClientProfile | None:
+    with get_connection() as conn:
+        conn.execute("UPDATE clients SET simulation_photo_path = ? WHERE id = ?", (path, client_id))
+    return get_client(client_id)
+
+
+def _today_prefix() -> str:
+    return _now()[:10]
+
+
+def check_in(client_id: str) -> WaitingEntry:
+    """Apunta al cliente en la lista de espera de hoy (si ya está esperando
+    o siendo atendido hoy, devuelve esa misma entrada)."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM waiting WHERE client_id = ? AND created_at LIKE ? AND status != 'done' "
+            "ORDER BY created_at DESC LIMIT 1",
+            (client_id, _today_prefix() + "%"),
+        ).fetchone()
+        if row:
+            return WaitingEntry(**dict(row))
+        entry = WaitingEntry(str(uuid.uuid4()), client_id, _now(), _now(), "waiting")
+        conn.execute("INSERT INTO waiting (id, client_id, created_at, updated_at, status) VALUES (?, ?, ?, ?, ?)",
+                     (entry.id, entry.client_id, entry.created_at, entry.updated_at, entry.status))
+    return entry
+
+
+def list_waiting_today(include_done: bool = False) -> list[WaitingEntry]:
+    query = "SELECT * FROM waiting WHERE created_at LIKE ?" + ("" if include_done else " AND status != 'done'")
+    with get_connection() as conn:
+        rows = conn.execute(query + " ORDER BY created_at", (_today_prefix() + "%",)).fetchall()
+    return [WaitingEntry(**dict(r)) for r in rows]
+
+
+def update_waiting_status(entry_id: str, status: str) -> WaitingEntry | None:
+    with get_connection() as conn:
+        conn.execute("UPDATE waiting SET status = ?, updated_at = ? WHERE id = ?", (status, _now(), entry_id))
+        row = conn.execute("SELECT * FROM waiting WHERE id = ?", (entry_id,)).fetchone()
+    return WaitingEntry(**dict(row)) if row else None
+
+
+def log_simulation(client_id: str, requested_by: str) -> None:
+    with get_connection() as conn:
+        conn.execute("INSERT INTO simulation_log (id, client_id, created_at, requested_by) VALUES (?, ?, ?, ?)",
+                     (str(uuid.uuid4()), client_id, _now(), requested_by))
+
+
+def count_simulations_today(client_id: str, requested_by: str | None = None) -> int:
+    query = "SELECT COUNT(*) FROM simulation_log WHERE client_id = ? AND created_at LIKE ?"
+    params: list = [client_id, _today_prefix() + "%"]
+    if requested_by:
+        query += " AND requested_by = ?"
+        params.append(requested_by)
+    with get_connection() as conn:
+        return conn.execute(query, params).fetchone()[0]

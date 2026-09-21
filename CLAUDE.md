@@ -558,6 +558,66 @@ que cada recomendación diga por qué encaja.
   mostrador (el consentimiento se recoge ahí).
 - Tests: `tests/test_trait_rules.py`.
 
+## Flujo "cliente esperando en el sillón": alta propia, sala de espera y ficha (sept 2026)
+
+Idea de Pedro: el cliente normalmente espera mientras el peluquero termina
+con otro. La web se organiza alrededor de eso.
+
+- **Primera visita**: el cliente, en la tablet de la barbería o en su
+  móvil (QR), se da de alta él mismo (`cliente.html` → "Soy nuevo":
+  nombre, teléfono y consentimientos, que ahora da él), responde "Mi
+  perfil" (6 preguntas con dibujos, incluida "¿Cómo es tu pelo?") y ve
+  recomendaciones y catálogo, marcando favoritos con el corazón. Queda
+  apuntado solo en la lista de espera de hoy.
+- **Peluquero**: entra con PIN (`peluquero.html`) a la **sala de espera**
+  (`sala.html`, se refresca sola; quién espera, "Nuevo", qué ha rellenado,
+  favoritos; Atender/Terminado; buscador de todos los clientes; QR para
+  imprimir) y abre la **ficha** (`ficha.html?client_id=`): lo que ha
+  contado el cliente, lo que le gusta, tipo de pelo (manda sobre lo que
+  dijo el cliente), enlaces a Remolinos y Visajismo con vuelta a la ficha,
+  y la **foto para simular** (se guarda con permiso en
+  `CLIENT_PHOTOS_DIR/<id>/simulation.jpg`, dentro del Volume).
+- **Siguientes visitas**: entra con su teléfono y tiene recomendaciones
+  completas, favoritos y **Probar cortes** (`probar.html`) sobre su foto
+  guardada, con tope diario (`MAX_CLIENT_SIMULATIONS_PER_DAY`, 6). El
+  peluquero usa la misma página desde la ficha, sin tope.
+- **Dispositivos** (decisión de Pedro): con QR (`cliente.html?qr=1`, queda
+  recordado en ese navegador) solo la parte del cliente; en la tablet, las
+  dos (la del peluquero con PIN). En la tablet el cliente se sale solo a
+  los 3 min sin tocar (aviso de 20 s, `assets/session.js`).
+- **Acceso** (`app/api/auth.py`): cookies firmadas (HMAC, sin
+  dependencias nuevas). Peluquero: `BARBER_PIN`, caduca a los
+  `BARBER_IDLE_MINUTES` (15) sin uso; las recargas automáticas de la sala
+  (`X-Background: 1`) no cuentan como uso. Todo `/api/clients/*`,
+  `/api/simulate` y `/api/waiting*` lo exigen. Cliente: solo teléfono
+  (decisión de Pedro; quien sepa el teléfono de otro puede entrar en su
+  ficha), cookie de `CLIENT_SESSION_DAYS` (30), y solo ve lo suyo por
+  `/api/me/*`. Entrar como uno cierra la sesión del otro en ese navegador.
+  Se quitó la búsqueda por nombre de Recomendaciones y del cuestionario:
+  dejaba ver cualquier ficha sabiendo el nombre.
+- **Tipo de pelo**: el que marca el peluquero (`hair_texture_override`)
+  manda; si no, el que dijo el cliente (`hair_pattern_shape`); si ninguno,
+  se ordena todo el catálogo en vez de dar error (`client_service.py`).
+  A la simulación solo se le pasa el del peluquero.
+- **Datos nuevos**: `clients.phone` (único, normalizado sin +34),
+  `consent_simulation`, `simulation_photo_path`, `liked_styles`; tablas
+  `waiting` y `simulation_log`. Retirar el permiso de guardar la foto la
+  borra.
+- **Configurar en Railway**: `BARBER_PIN` (obligatorio: sin él nadie entra
+  en la parte del peluquero) y `APP_SECRET` (recomendado; si no, se crea
+  uno en `data/.app_secret`, dentro del Volume). `segno` nuevo en
+  requirements (QR).
+- Pendiente / límites: la "lista de hoy" usa la fecha UTC; quien entra por
+  QR desde casa también se apunta en la lista (el peluquero lo marca
+  Terminado); no hay borrado de ficha desde la web (se pide en el
+  mostrador); el texto de los consentimientos debe revisarlo alguien con
+  conocimiento de RGPD.
+- Tests: `tests/test_sessions.py` (recorrido completo con la app real y
+  base de datos temporal). Probado además con Playwright: alta en tablet,
+  cuestionario, favoritos, PIN, sala, ficha con foto, simulación (con
+  proveedor simulado), segunda visita por teléfono, modo QR y salida
+  automática.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

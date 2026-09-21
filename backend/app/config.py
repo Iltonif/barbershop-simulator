@@ -81,3 +81,24 @@ FAL_USE_REFERENCE = os.environ.get("FAL_USE_REFERENCE", "0") == "1"
 
 # Carpeta del frontend (de aquí salen las fotos de referencia del catálogo).
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
+
+
+# Flujo "cliente esperando en el sillón" (app/api/session_routes.py).
+# BARBER_PIN: PIN numérico para entrar en la parte del peluquero (sala de
+#   espera, fichas, simulación). OBLIGATORIO en Railway: sin él, la parte
+#   del peluquero no deja entrar a nadie (así no quedan las fichas abiertas
+#   por olvido). La parte del cliente funciona igual.
+BARBER_PIN = os.environ.get("BARBER_PIN")
+# Secreto para firmar las cookies de sesión. Si no se configura, se genera
+# uno y se guarda en data/ (que en Railway es el Volume), para que las
+# sesiones sobrevivan a los reinicios.
+APP_SECRET = os.environ.get("APP_SECRET")
+# El peluquero se desconecta solo tras este tiempo sin usar la web, porque
+# en la tablet compartida el siguiente cliente podría entrar en su parte.
+BARBER_IDLE_MINUTES = int(os.environ.get("BARBER_IDLE_MINUTES", "15"))
+# Sesión del cliente en su propio móvil (QR). En la tablet la web le saca
+# sola a los pocos minutos sin tocarla (ver frontend/assets/session.js).
+CLIENT_SESSION_DAYS = int(os.environ.get("CLIENT_SESSION_DAYS", "30"))
+# Tope de simulaciones con modelo externo que puede lanzar un cliente él
+# solo al día (cada una cuesta ~0,04-0,05 $). El peluquero no tiene tope.
+MAX_CLIENT_SIMULATIONS_PER_DAY = int(os.environ.get("MAX_CLIENT_SIMULATIONS_PER_DAY", "6"))

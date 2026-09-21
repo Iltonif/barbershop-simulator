@@ -1,6 +1,6 @@
 """Modelos Pydantic de request/response de la API."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, computed_field
 
 
 class StyleOut(BaseModel):
@@ -39,12 +39,15 @@ class StyleRecommendationOut(BaseModel):
 
 class RecommendationsOut(BaseModel):
     client_id: str
-    hair_texture: str
+    # None = nadie lo ha dicho todavía (no se filtra por tipo de pelo).
+    hair_texture: str | None = None
+    hair_texture_source: str | None = None  # "peluquero" | "cliente"
     whorl_count: int
     face_shape: str | None = None
     recommendations: list[StyleRecommendationOut]
     # Consejo de barba según mentón/mandíbula (no depende del corte).
     beard_advice: list[ReasonOut] = []
+    liked_styles: list[str] = []
 
 
 class SimulationResponse(BaseModel):
@@ -191,6 +194,16 @@ class ClientOut(BaseModel):
     custom_growth_map: dict | None = None
     visagismo_profile: dict | None = None
     notes: str | None = None
+    phone: str | None = None
+    consent_simulation: bool = False
+    liked_styles: list[str] = []
+    # La ruta en disco no sale nunca en la API, solo si hay foto.
+    simulation_photo_path: str | None = Field(default=None, exclude=True)
+
+    @computed_field
+    @property
+    def has_simulation_photo(self) -> bool:
+        return bool(self.simulation_photo_path)
 
 
 class VisitOut(BaseModel):
@@ -295,3 +308,64 @@ class VisagismoAutoAnalysisOut(BaseModel):
     client: ClientOut
     warnings: list[str] = []
     detected_anomalies_notes: str | None = None
+
+
+# --- Flujo "cliente esperando en el sillón" (session_routes.py) -----------
+
+class BarberLoginIn(BaseModel):
+    pin: str
+
+
+class ClientRegisterIn(BaseModel):
+    """Alta hecha por el propio cliente en la tablet o en su móvil. Da él
+    mismo los consentimientos (antes los marcaba el peluquero)."""
+
+    display_name: str
+    phone: str
+    consent_history: bool
+    consent_save_photo: bool = False
+    consent_simulation: bool = False
+
+
+class ClientLoginIn(BaseModel):
+    phone: str
+
+
+class ConsentsIn(BaseModel):
+    consent_save_photo: bool | None = None
+    consent_simulation: bool | None = None
+
+
+class LikesIn(BaseModel):
+    style_ids: list[str]
+
+
+class StoredPhotoSimulationIn(BaseModel):
+    style_id: str
+    provider: str | None = None
+
+
+class QuestionnaireIn(BaseModel):
+    """Respuestas de "Mi perfil" (frontend/cuestionario.html). Todas
+    opcionales: "No lo sé" no manda nada y no borra lo que hubiera."""
+
+    hair_pattern_shape: str | None = None  # straight | wavy | curly | coily
+    face_shape: str | None = None  # ovalada | redonda | cuadrada | alargada
+    frontal_hairline_shape: str | None = None
+    daily_maintenance_commitment: str | None = None
+    barbershop_visit_frequency_days: int | None = None
+    beard_preference: str | None = None
+
+
+class WaitingOut(BaseModel):
+    id: str
+    status: str
+    created_at: str
+    client: ClientOut
+    is_new: bool  # primera visita (sin datos del peluquero todavía)
+    questionnaire_done: bool
+    has_hair_texture: bool
+
+
+class WaitingStatusIn(BaseModel):
+    status: str  # waiting | in_service | done

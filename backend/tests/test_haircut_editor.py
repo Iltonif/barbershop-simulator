@@ -116,6 +116,9 @@ class TestSimulateGuards(unittest.TestCase):
     def setUp(self):
         app = FastAPI()
         app.include_router(routes.router, prefix="/api")
+        # Estas pruebas son de la simulación, no del acceso (ver test_sessions.py).
+        from app.api.auth import require_barber
+        app.dependency_overrides[require_barber] = lambda: None
         self.client = TestClient(app)
         self.files = {"photo": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
         style_id = routes.load_catalog()[0].id

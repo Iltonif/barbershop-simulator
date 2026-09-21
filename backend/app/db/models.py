@@ -37,6 +37,19 @@ class ClientProfile:
     # rellenado todavía (ninguna regla de visagismo se activa en ese caso).
     visagismo_profile: dict | None = None
     notes: str | None = None
+    phone: str | None = None
+    consent_simulation: bool = False
+    simulation_photo_path: str | None = None
+    liked_styles: list[str] = field(default_factory=list)
+
+
+@dataclass
+class WaitingEntry:
+    id: str
+    client_id: str
+    created_at: str
+    updated_at: str
+    status: str
 
 
 @dataclass

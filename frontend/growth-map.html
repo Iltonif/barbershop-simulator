@@ -84,7 +84,7 @@
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="sala.html" title="Sala de espera"><span data-icon="users"></span><span class="lbl">Sala</span></a>
     <a href="index.html" title="Simular corte"><span data-icon="wand-sparkles"></span><span class="lbl">Simular</span></a>
     <a id="visagismo-link" href="visagismo.html" title="Visajismo"><span data-icon="scan-face"></span><span class="lbl">Visajismo</span></a>
   </nav>
@@ -192,6 +192,8 @@
 </div>
 
   <script src="assets/ui.js"></script>
+  <script src="assets/session.js"></script>
+  <script>Session.requireBarber(); document.addEventListener("DOMContentLoaded", Session.fichaLink);</script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>

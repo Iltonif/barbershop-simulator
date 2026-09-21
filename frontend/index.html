@@ -75,7 +75,7 @@
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="sala.html" title="Sala de espera"><span data-icon="users"></span><span class="lbl">Sala</span></a>
     <a href="growth-map.html" title="Remolinos"><span data-icon="compass"></span><span class="lbl">Remolinos</span></a>
     <a href="catalogo.html" title="Catálogo"><span data-icon="layout-grid"></span><span class="lbl">Catálogo</span></a>
   </nav>
@@ -160,6 +160,8 @@
 </div>
 
   <script src="assets/ui.js"></script>
+  <script src="assets/session.js"></script>
+  <script>Session.requireBarber();</script>
   <script>
     // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
     // estaba antes): el backend sirve este mismo HTML como estático (ver

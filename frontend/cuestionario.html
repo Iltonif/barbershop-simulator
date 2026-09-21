@@ -59,23 +59,16 @@
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="cliente.html" aria-label="Inicio"><span data-icon="house"></span></a>
     <a id="rec-link" href="recomendaciones.html" title="Mis recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Recomendaciones</span></a>
   </nav>
   <div class="head-row page-head">
     <h1 class="page-title">Tu perfil</h1>
     <details class="info"><summary></summary><div class="info-body">
-      Cinco preguntas rápidas para que las recomendaciones de corte se ajusten a ti. Si no sabes una, sáltala. Se guarda en tu ficha de la barbería.
+      Seis preguntas rápidas para que las recomendaciones de corte se ajusten a ti. Si no sabes una, sáltala. Se guarda en tu ficha de la barbería.
     </div></details>
   </div>
   <p class="hello" id="hello" hidden></p>
-
-  <section id="find" class="glass-card form-card" style="padding: 18px 20px;" hidden>
-    <div class="inline-form">
-      <input type="text" id="find-name" placeholder="Tu nombre (como en la barbería)" aria-label="Tu nombre" />
-      <button id="find-btn" type="button"><span data-icon="search"></span>Empezar</button>
-    </div>
-  </section>
 
   <section id="quiz" hidden>
     <div class="dots" id="dots"></div>
@@ -97,6 +90,7 @@
 </div>
 
 <script src="assets/ui.js"></script>
+<script src="assets/session.js"></script>
 <script>
   const API_BASE = "/api";
   const statusEl = document.getElementById("status");
@@ -176,9 +170,21 @@
     sharp_lined: beard('<path d="M25 48 L26 66 L40 80 L60 80 L74 66 L75 48 C68 56 64 55 60 55 C56 53 44 53 40 55 C36 55 32 56 25 48 Z" fill="currentColor" opacity="0.8"/>'),
   };
 
+  // Tipo de pelo: mechón con la forma de la onda.
+  const strand = (d, w = 3) => `<svg class="art" viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round">${d}</svg>`;
+  const HAIR_ART = {
+    straight: strand('<path d="M30 12 V88 M42 12 V88 M54 12 V88 M66 12 V88"/>'),
+    wavy: strand('<path d="M30 12 C22 30 38 42 30 60 C22 78 34 86 30 90 M46 12 C38 30 54 42 46 60 C38 78 50 86 46 90 M62 12 C54 30 70 42 62 60 C54 78 66 86 62 90"/>'),
+    curly: strand('<path d="M28 14 c10 0 10 10 0 10 c-10 0 -10 10 0 10 c10 0 10 10 0 10 c-10 0 -10 10 0 10 c10 0 10 10 0 10 c-10 0 -10 10 0 10 M58 14 c10 0 10 10 0 10 c-10 0 -10 10 0 10 c10 0 10 10 0 10 c-10 0 -10 10 0 10 c10 0 10 10 0 10 c-10 0 -10 10 0 10"/>'),
+    coily: strand('<path d="M30 16 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 M52 16 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 M74 16 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5"/>', 2.5),
+  };
+
   // ---- Preguntas ----
   const FACE_TO_GEOMETRY = { ovalada: "oval", redonda: "round", cuadrada: "square", alargada: "rectangular_elongated" };
   const QUESTIONS = [
+    { key: "hair", title: "¿Cómo es tu pelo?", options: [
+      ["straight", "Liso", HAIR_ART.straight], ["wavy", "Ondulado", HAIR_ART.wavy],
+      ["curly", "Rizado", HAIR_ART.curly], ["coily", "Afro", HAIR_ART.coily]] },
     { key: "face_shape", title: "¿Qué forma tiene tu cara?", options: [
       ["ovalada", "Ovalada", FACE_ART.ovalada], ["redonda", "Redonda", FACE_ART.redonda],
       ["cuadrada", "Cuadrada", FACE_ART.cuadrada], ["alargada", "Alargada", FACE_ART.alargada]] },
@@ -251,6 +257,7 @@
     const hair = vp.hair_physical_metrics || {}, life = vp.lifestyle_and_preferences || {};
     if (c.face_shape_override) answers.face_shape = c.face_shape_override;
     if (hair.frontal_hairline_shape) answers.hairline = hair.frontal_hairline_shape;
+    if (hair.hair_pattern_shape) answers.hair = hair.hair_pattern_shape;
     if (life.daily_maintenance_commitment) answers.maintenance = life.daily_maintenance_commitment;
     if (life.barbershop_visit_frequency_days) {
       const d = life.barbershop_visit_frequency_days;
@@ -262,12 +269,11 @@
   function start(c) {
     client = c;
     prefill(c);
-    document.getElementById("find").hidden = true;
     document.getElementById("quiz").hidden = false;
     const hello = document.getElementById("hello");
     hello.textContent = c.display_name ? `Hola, ${c.display_name.split(" ")[0]}` : "";
     hello.hidden = !c.display_name;
-    document.getElementById("rec-link").href = `recomendaciones.html?client_id=${encodeURIComponent(c.id)}`;
+    if (barberMode) document.getElementById("rec-link").href = `recomendaciones.html?client_id=${encodeURIComponent(c.id)}`;
     statusEl.innerHTML = "";
     step = 0; renderQuestion();
   }
@@ -275,65 +281,73 @@
   document.getElementById("save-btn").addEventListener("click", async () => {
     say("busy", "Guardando…");
     try {
-      // La ficha de visagismo se guarda entera (el PATCH la sustituye), así
-      // que se parte de lo que ya hay y se cambian solo estas respuestas.
-      const res0 = await fetch(`${API_BASE}/clients/${client.id}`);
-      const fresh = await res0.json();
-      const vp = JSON.parse(JSON.stringify(fresh.visagismo_profile || {}));
-      vp.anatomical_metrics = vp.anatomical_metrics || {};
-      vp.hair_physical_metrics = vp.hair_physical_metrics || {};
-      vp.lifestyle_and_preferences = vp.lifestyle_and_preferences || {};
-      if (answers.face_shape) vp.anatomical_metrics.facial_geometry = FACE_TO_GEOMETRY[answers.face_shape];
-      if (answers.hairline) vp.hair_physical_metrics.frontal_hairline_shape = answers.hairline;
-      if (answers.maintenance) vp.lifestyle_and_preferences.daily_maintenance_commitment = answers.maintenance;
-      if (answers.visits) vp.lifestyle_and_preferences.barbershop_visit_frequency_days = answers.visits;
-      if (answers.beard) vp.lifestyle_and_preferences.beard_preference = answers.beard;
-
-      const r1 = await fetch(`${API_BASE}/clients/${client.id}/visagismo-profile`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(vp),
-      });
-      if (!r1.ok) throw new Error((await r1.json().catch(() => ({}))).detail || r1.statusText);
-      if (answers.face_shape) {
-        const r2 = await fetch(`${API_BASE}/clients/${client.id}/face-shape`, {
-          method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ face_shape: answers.face_shape }),
-        });
-        if (!r2.ok) throw new Error((await r2.json().catch(() => ({}))).detail || r2.statusText);
-      }
+      if (barberMode) await saveAsBarber(); else await saveAsClient();
+      if (firstTime) { location.href = "cliente.html"; return; }
+      const recHref = barberMode ? `recomendaciones.html?client_id=${encodeURIComponent(client.id)}` : "recomendaciones.html";
       statusEl.innerHTML = `<div class="status-line ok">${UI.icon("circle-check")}<span>Guardado</span></div>
-        <a class="chip" style="margin-top:12px" href="recomendaciones.html?client_id=${encodeURIComponent(client.id)}">${UI.icon("sparkles")}Ver mis recomendaciones ${UI.icon("arrow-right")}</a>`;
+        <a class="chip" style="margin-top:12px" href="${recHref}">${UI.icon("sparkles")}Ver recomendaciones ${UI.icon("arrow-right")}</a>`;
     } catch (e) {
       say("warn", `No se pudo guardar: ${e.message}`);
     }
   });
 
-  async function findByName() {
-    const name = document.getElementById("find-name").value.trim();
-    if (!name) { say("warn", "Escribe tu nombre"); return; }
-    say("busy", "Buscando…");
-    try {
-      const clients = await (await fetch(`${API_BASE}/clients`)).json();
-      const match = clients.find((c) => (c.display_name || "").trim().toLowerCase() === name.toLowerCase());
-      if (!match) { say("warn", "No hay ninguna ficha con ese nombre · pide en el mostrador que te den de alta"); return; }
-      history.replaceState({}, "", `${location.pathname}?client_id=${encodeURIComponent(match.id)}`);
-      start(await (await fetch(`${API_BASE}/clients/${match.id}`)).json());
-    } catch (e) {
-      say("warn", `Sin conexión: ${e.message}`);
+  // Cliente: guarda sus respuestas sobre su propia ficha (/api/me).
+  async function saveAsClient() {
+    const res = await fetch("/api/me/questionnaire", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        hair_pattern_shape: answers.hair || null, face_shape: answers.face_shape || null,
+        frontal_hairline_shape: answers.hairline || null, daily_maintenance_commitment: answers.maintenance || null,
+        barbershop_visit_frequency_days: answers.visits || null, beard_preference: answers.beard || null,
+      }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
+  }
+
+  // Peluquero con la ficha abierta (?client_id=): la ficha de visagismo se
+  // guarda entera (el PATCH la sustituye), así que se parte de lo que ya hay.
+  async function saveAsBarber() {
+    const fresh = await (await fetch(`${API_BASE}/clients/${client.id}`)).json();
+    const vp = JSON.parse(JSON.stringify(fresh.visagismo_profile || {}));
+    vp.anatomical_metrics = vp.anatomical_metrics || {};
+    vp.hair_physical_metrics = vp.hair_physical_metrics || {};
+    vp.lifestyle_and_preferences = vp.lifestyle_and_preferences || {};
+    if (answers.face_shape) vp.anatomical_metrics.facial_geometry = FACE_TO_GEOMETRY[answers.face_shape];
+    if (answers.hair) vp.hair_physical_metrics.hair_pattern_shape = answers.hair;
+    if (answers.hairline) vp.hair_physical_metrics.frontal_hairline_shape = answers.hairline;
+    if (answers.maintenance) vp.lifestyle_and_preferences.daily_maintenance_commitment = answers.maintenance;
+    if (answers.visits) vp.lifestyle_and_preferences.barbershop_visit_frequency_days = answers.visits;
+    if (answers.beard) vp.lifestyle_and_preferences.beard_preference = answers.beard;
+    const r1 = await fetch(`${API_BASE}/clients/${client.id}/visagismo-profile`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(vp),
+    });
+    if (!r1.ok) throw new Error((await r1.json().catch(() => ({}))).detail || r1.statusText);
+    if (answers.face_shape) {
+      const r2 = await fetch(`${API_BASE}/clients/${client.id}/face-shape`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ face_shape: answers.face_shape }),
+      });
+      if (!r2.ok) throw new Error((await r2.json().catch(() => ({}))).detail || r2.statusText);
     }
   }
-  document.getElementById("find-btn").addEventListener("click", findByName);
-  document.getElementById("find-name").addEventListener("keydown", (e) => { if (e.key === "Enter") findByName(); });
 
+  // Dos modos: el propio cliente (su sesión) o el peluquero con una ficha
+  // abierta (?client_id=, necesita su PIN).
+  const params = new URLSearchParams(location.search);
+  const barberMode = !!params.get("client_id");
+  const firstTime = params.get("first") === "1";
   (async () => {
-    const id = new URLSearchParams(location.search).get("client_id");
-    if (!id) { document.getElementById("find").hidden = false; return; }
-    try {
-      const res = await fetch(`${API_BASE}/clients/${id}`);
-      if (!res.ok) throw new Error("Cliente no encontrado");
+    if (barberMode) {
+      await Session.requireBarber();
+      const res = await fetch(`${API_BASE}/clients/${params.get("client_id")}`);
+      if (!res.ok) { say("warn", "Cliente no encontrado"); return; }
+      document.querySelector(".page-title").textContent = "Perfil";
+      document.querySelector('nav a[aria-label="Inicio"]').href = `ficha.html?client_id=${encodeURIComponent(params.get("client_id"))}`;
       start(await res.json());
-    } catch (e) {
-      document.getElementById("find").hidden = false;
-      say("warn", e.message);
+    } else {
+      start(await Session.requireClient());
+      if (Session.isQr()) document.querySelector('nav a[aria-label="Inicio"]').href = "cliente.html";
+      if (firstTime) document.getElementById("edit-btn").hidden = false;
     }
   })();
 </script>

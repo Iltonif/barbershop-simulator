@@ -126,19 +126,13 @@
   </div>
   <div id="subtitle" class="chips"></div>
 
-  <div id="search-section">
-    <div class="inline-form">
-      <input type="text" id="search-name" placeholder="Tu nombre (como en la barbería)" aria-label="Escribe tu nombre tal como lo diste en la barbería" />
-      <button id="search-btn" type="button" aria-label="Buscar mi perfil"><span data-icon="search"></span>Buscar</button>
-    </div>
-  </div>
-
   <div id="beard"></div>
   <div id="status"></div>
   <div id="grid" class="grid"></div>
 </div>
 
   <script src="assets/ui.js"></script>
+  <script src="assets/session.js"></script>
   <script>
     // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
     // estaba antes): el backend sirve este mismo HTML como estático (ver
@@ -304,108 +298,86 @@
       return Array.from(families.values());
     }
 
-    async function loadForClientId(id) {
-      growthMapLink.href = `growth-map.html?client_id=${encodeURIComponent(id)}`;
+    // Dos modos: el propio cliente (su sesión, /api/me) o el peluquero con
+    // la ficha de un cliente abierta (?client_id=, necesita su PIN).
+    const barberMode = !!clientId;
+    const ficha = (path) => barberMode ? `${path}?client_id=${encodeURIComponent(clientId)}` : path;
 
+    async function load() {
+      let client, data;
       try {
-        const clientRes = await fetch(`${API_BASE}/clients/${id}`);
-        if (!clientRes.ok) {
-          subtitleEl.textContent = "";
-          statusEl.innerHTML = `<span class="warning">${UI.icon("triangle-alert")}Cliente no encontrado</span>`;
-          return;
-        }
-        const client = await clientRes.json();
-        const name = client.display_name || "este cliente";
-
-        const recRes = await fetch(`${API_BASE}/clients/${id}/recommendations`);
-        if (recRes.status === 422) {
-          const err = await recRes.json();
-          subtitleEl.innerHTML = `<span class="chip">${UI.icon("user-round")}${name}</span>`;
-          statusEl.innerHTML = `<span class="warning">${UI.icon("triangle-alert")}${err.detail}</span>`;
-          return;
-        }
-        if (!recRes.ok) {
-          const err = await recRes.json().catch(() => ({}));
-          statusEl.innerHTML = `<span class="warning">${UI.icon("triangle-alert")}Error: ${err.detail || recRes.statusText}</span>`;
-          return;
-        }
-        const data = await recRes.json();
-
-        const chip = (icon, text, extra = "") => `<span class="chip${extra}">${UI.icon(icon)}${text}</span>`;
-        subtitleEl.innerHTML = [
-          chip("user-round", name),
-          chip("scissors", HAIR_TEXTURE_LABELS[data.hair_texture] || data.hair_texture),
-          data.face_shape
-            ? chip("scan-face", FACE_SHAPE_LABELS[data.face_shape] || data.face_shape)
-            // Sin forma de cara: las recomendaciones solo usan el tipo de pelo.
-            : `<a class="chip missing" href="cuestionario.html?client_id=${encodeURIComponent(id)}" title="Añadir la forma de cara">${UI.icon("scan-face")}+ forma de cara</a>`,
-          data.whorl_count > 0 ? chip("rotate-cw", `${data.whorl_count} remolino${data.whorl_count === 1 ? "" : "s"}`) : "",
-          `<a class="chip" href="cuestionario.html?client_id=${encodeURIComponent(id)}" title="Responder o cambiar el cuestionario">${UI.icon("clipboard-list")}Mi perfil</a>`,
-        ].join("");
-
-        if (data.recommendations.length === 0) {
-          statusEl.textContent = "Sin cortes compatibles todavía";
-          return;
-        }
-
-        const beard = data.beard_advice || [];
-        document.getElementById("beard").innerHTML = beard.length
-          ? `<div class="head-row beard-row"><span class="beard-title">${UI.icon("scissors")}Barba</span>${beard.map((b) =>
-              `<span class="why plus">${UI.icon("check")}${b.label}</span>`).join("")}
-              <details class="info"><summary aria-label="Consejo de barba">${UI.icon("info")}</summary><div class="info-body">${beard.map((b) =>
-              `<p><b>${b.label}.</b> ${b.detail}</p>`).join("")}</div></details></div>`
-          : "";
-        const families = groupByFamily(data.recommendations);
-        statusEl.textContent = `${data.recommendations.length} cortes`;
-        gridEl.innerHTML = "";
-        for (const family of families) {
-          gridEl.appendChild(renderFamilyCard(family));
+        if (barberMode) {
+          await Session.requireBarber();
+          growthMapLink.href = ficha("growth-map.html");
+          document.querySelector('nav a[aria-label="Inicio"]').href = ficha("ficha.html");
+          const clientRes = await fetch(`${API_BASE}/clients/${clientId}`);
+          if (!clientRes.ok) {
+            statusEl.innerHTML = `<span class="warning">${UI.icon("triangle-alert")}Cliente no encontrado</span>`;
+            return;
+          }
+          client = await clientRes.json();
+          data = await (await fetch(`${API_BASE}/clients/${clientId}/recommendations`)).json();
+        } else {
+          client = await Session.requireClient();
+          document.querySelector('nav a[aria-label="Inicio"]').href = "cliente.html";
+          growthMapLink.hidden = true;  // herramienta del peluquero
+          data = await (await fetch(`${API_BASE}/me/recommendations`)).json();
+          Session.setLikes(data.liked_styles);
         }
       } catch (e) {
         statusEl.innerHTML = `<span class="warning">${UI.icon("triangle-alert")}Sin conexión: ${e.message}</span>`;
-      }
-    }
-
-    async function searchByName() {
-      const name = document.getElementById("search-name").value.trim();
-      if (!name) {
-        statusEl.innerHTML = `<span class="warning">${UI.icon("triangle-alert")}Escribe tu nombre</span>`;
         return;
       }
-      statusEl.textContent = "Buscando…";
-      try {
-        const res = await fetch(`${API_BASE}/clients`);
-        const clients = await res.json();
-        const match = clients.find(
-          (c) => (c.display_name || "").trim().toLowerCase() === name.toLowerCase()
-        );
-        if (!match) {
-          statusEl.innerHTML = `<span class="warning">${UI.icon("user-search")}No hay ninguna ficha con ese nombre exacto · pregunta en el mostrador</span>`;
-          return;
+      render(client, data);
+    }
+
+    function render(client, data) {
+      const name = client.display_name || "Cliente";
+      const chip = (icon, text, extra = "") => `<span class="chip${extra}">${UI.icon(icon)}${text}</span>`;
+      const quiz = ficha("cuestionario.html");
+      subtitleEl.innerHTML = [
+        chip("user-round", name),
+        data.hair_texture
+          ? chip("scissors", (HAIR_TEXTURE_LABELS[data.hair_texture] || data.hair_texture) +
+              (data.hair_texture_source === "cliente" ? " (según tú)" : ""))
+          // Sin tipo de pelo no se filtra: se ordena todo el catálogo.
+          : `<a class="chip missing" href="${quiz}">${UI.icon("scissors")}+ tipo de pelo</a>`,
+        data.face_shape
+          ? chip("scan-face", FACE_SHAPE_LABELS[data.face_shape] || data.face_shape)
+          : `<a class="chip missing" href="${quiz}">${UI.icon("scan-face")}+ forma de cara</a>`,
+        data.whorl_count > 0 ? chip("rotate-cw", `${data.whorl_count} remolino${data.whorl_count === 1 ? "" : "s"}`) : "",
+        `<a class="chip" href="${quiz}" title="Responder o cambiar el cuestionario">${UI.icon("clipboard-list")}${barberMode ? "Cuestionario" : "Mi perfil"}</a>`,
+      ].join("");
+
+      if (data.recommendations.length === 0) {
+        statusEl.textContent = "Sin cortes compatibles todavía";
+        return;
+      }
+      const beard = data.beard_advice || [];
+      document.getElementById("beard").innerHTML = beard.length
+        ? `<div class="head-row beard-row"><span class="beard-title">${UI.icon("scissors")}Barba</span>${beard.map((b) =>
+            `<span class="why plus">${UI.icon("check")}${b.label}</span>`).join("")}
+            <details class="info"><summary aria-label="Consejo de barba">${UI.icon("info")}</summary><div class="info-body">${beard.map((b) =>
+            `<p><b>${b.label}.</b> ${b.detail}</p>`).join("")}</div></details></div>`
+        : "";
+      const families = groupByFamily(data.recommendations);
+      statusEl.textContent = `${data.recommendations.length} cortes`;
+      gridEl.innerHTML = "";
+      for (const family of families) {
+        const card = renderFamilyCard(family);
+        // Corazón para guardar el corte (cliente) o ver que le gusta (peluquero).
+        if (family.items.length === 1) {
+          const id = family.items[0].style.id;
+          if (!barberMode) card.insertAdjacentHTML("afterbegin", Session.heartHtml(id));
+          else if ((client.liked_styles || []).includes(id)) {
+            card.insertAdjacentHTML("afterbegin", `<span class="heart-btn" aria-pressed="true" title="Le gusta">${UI.icon("heart")}</span>`);
+          }
         }
-        // Deja la URL apuntando a este cliente, para poder recargar o
-        // compartir el enlace directamente la próxima vez.
-        const newUrl = `${window.location.pathname}?client_id=${encodeURIComponent(match.id)}`;
-        window.history.replaceState({}, "", newUrl);
-        document.getElementById("search-section").style.display = "none";
-        await loadForClientId(match.id);
-      } catch (e) {
-        statusEl.innerHTML = `<span class="warning">${UI.icon("triangle-alert")}Sin conexión: ${e.message}</span>`;
+        gridEl.appendChild(card);
       }
     }
 
-    document.getElementById("search-btn").addEventListener("click", searchByName);
-    document.getElementById("search-name").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") searchByName();
-    });
-
-    if (clientId) {
-      loadForClientId(clientId);
-    } else {
-      subtitleEl.textContent = "";
-      statusEl.textContent = "";
-      document.getElementById("search-section").style.display = "block";
-    }
+    load();
   </script>
 </body>
 </html>

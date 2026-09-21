@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<title>Sala de espera</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  /* Pantalla principal del peluquero: quién espera hoy (se apuntan solos al
+     entrar en la tablet o con el QR), qué han rellenado y acceso a su
+     ficha. Se refresca sola. */
+  .page-shell { max-width: 900px; }
+  .top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .top-row .head-row { margin: 0; }
+  .top-actions { display: flex; gap: 8px; }
+  .top-actions button { width: auto; margin: 0; }
+  .list { display: grid; gap: 12px; margin-bottom: 24px; }
+  .w-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; text-decoration: none; color: inherit; }
+  .w-card.in_service { border-color: rgba(79, 227, 255, 0.5); }
+  .avatar { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--glass-strong); display: flex;
+            align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
+  .w-main { flex: 1; min-width: 0; }
+  .w-name { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .w-meta { color: var(--text-dim); font-size: 12.5px; margin: 2px 0 6px; }
+  .w-card .chips { gap: 6px; }
+  .w-card .chip { font-size: 12px; padding: 4px 9px; }
+  .w-actions { display: flex; flex-direction: column; gap: 6px; }
+  .w-actions button { width: auto; margin: 0; min-height: 38px; padding: 7px 12px; font-size: 13px; }
+  .new-badge { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--accent-pink); color: #05060f; }
+  .empty { color: var(--text-dim); padding: 22px; text-align: center; }
+  .empty .ico { width: 30px; height: 30px; color: var(--accent-cyan); display: block; margin: 0 auto 8px; }
+  h2.sec { font-size: 15px; margin: 8px 0 10px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+  .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .search-row input { flex: 1; min-width: 0; }
+  .results { display: grid; gap: 8px; margin-bottom: 26px; }
+  .r-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; }
+  .r-row .w-main { font-size: 14px; }
+  .r-row button, .r-row a.chip { width: auto; margin: 0; min-height: 36px; }
+  .qr-box { display: flex; gap: 18px; align-items: center; padding: 16px; flex-wrap: wrap; }
+  .qr-box img { width: 150px; height: 150px; border-radius: 10px; background: #fff; }
+  .qr-box p { margin: 0 0 10px; color: var(--text-dim); font-size: 13.5px; max-width: 360px; }
+  @media print { body * { visibility: hidden; } .qr-box, .qr-box * { visibility: visible; } .qr-box { position: absolute; top: 0; left: 0; } }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="catalogo.html" title="Catálogo"><span data-icon="layout-grid"></span><span class="lbl">Catálogo</span></a>
+    <a href="index.html" title="Simular con una foto"><span data-icon="wand-sparkles"></span><span class="lbl">Simular</span></a>
+  </nav>
+  <div class="top-row">
+    <div class="head-row">
+      <h1 class="page-title">Sala de espera</h1>
+      <details class="info"><summary></summary><div class="info-body">
+        Los clientes se apuntan solos al entrar en la tablet o con el QR desde su móvil. Toca uno para abrir su ficha y completar lo técnico. "Nuevo" = aún no tiene tipo de pelo ni foto tuyos.
+      </div></details>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="secondary btn-ico" id="lock-btn"><span data-icon="lock"></span>Bloquear</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <h2 class="sec"><span data-icon="users"></span>Todos los clientes</h2>
+  <div class="search-row">
+    <input type="text" id="q" placeholder="Nombre o teléfono" aria-label="Buscar cliente" />
+  </div>
+  <div class="results" id="results"></div>
+
+  <h2 class="sec"><span data-icon="qr-code"></span>QR para el móvil del cliente</h2>
+  <div class="glass-card qr-box">
+    <img src="/api/qr.svg" alt="Código QR de la parte del cliente" />
+    <div>
+      <p>El cliente lo escanea con su móvil y entra solo en su parte (catálogo, recomendaciones, su perfil). Imprímelo y déjalo en el espejo o en la sala.</p>
+      <button type="button" class="secondary btn-ico" style="width:auto" onclick="window.print()"><span data-icon="printer"></span>Imprimir</button>
+    </div>
+  </div>
+  <div id="status" role="status"></div>
+</div>
+<script src="assets/ui.js"></script>
+<script src="assets/session.js"></script>
+<script>
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const initial = (n) => esc((n || "?").trim().charAt(0).toUpperCase());
+  function ago(iso) {
+    const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    return min < 1 ? "ahora" : min < 60 ? `hace ${min} min` : `hace ${Math.floor(min / 60)} h ${min % 60} min`;
+  }
+  const chip = (icon, text, cls = "") => `<span class="chip ${cls}">${UI.icon(icon)}${text}</span>`;
+
+  async function setStatus(id, status) {
+    await fetch(`/api/waiting/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    loadWaiting();
+  }
+
+  async function loadWaiting(background = false) {
+    const res = await fetch("/api/waiting", background ? { headers: { "X-Background": "1" } } : undefined);
+    if (!res.ok) return;
+    const items = await res.json();
+    const list = document.getElementById("list");
+    if (!items.length) {
+      list.innerHTML = `<div class="glass-card empty">${UI.icon("clock")}No hay nadie esperando</div>`;
+      return;
+    }
+    list.innerHTML = items.map((w) => {
+      const c = w.client;
+      const chips = [
+        w.questionnaire_done ? chip("clipboard-list", "Perfil", "ok") : chip("clipboard-list", "Sin perfil", "warn"),
+        w.has_hair_texture ? chip("scissors", "Pelo", "ok") : chip("scissors", "Falta pelo", "warn"),
+        c.has_simulation_photo ? chip("camera", "Foto", "ok") : chip("camera", c.consent_save_photo ? "Falta foto" : "Sin permiso foto", "warn"),
+        c.liked_styles.length ? chip("heart", String(c.liked_styles.length)) : "",
+      ].join("");
+      const action = w.status === "waiting"
+        ? `<button type="button" data-st="in_service" data-id="${w.id}">Atender</button>`
+        : `<button type="button" class="secondary" data-st="done" data-id="${w.id}">Terminado</button>`;
+      return `<div class="glass-card w-card ${w.status}">
+        <a class="avatar" href="ficha.html?client_id=${encodeURIComponent(c.id)}&w=${w.id}">${initial(c.display_name)}</a>
+        <a class="w-main" href="ficha.html?client_id=${encodeURIComponent(c.id)}&w=${w.id}" style="text-decoration:none;color:inherit">
+          <div class="w-name">${esc(c.display_name)}${w.is_new ? '<span class="new-badge">Nuevo</span>' : ""}</div>
+          <div class="w-meta">${w.status === "in_service" ? "Atendiendo · " : ""}${ago(w.created_at)}</div>
+          <div class="chips">${chips}</div>
+        </a>
+        <div class="w-actions">${action}</div>
+      </div>`;
+    }).join("");
+    list.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => setStatus(b.dataset.id, b.dataset.st)));
+  }
+
+  let allClients = [];
+  async function loadClients() {
+    const res = await fetch("/api/clients");
+    if (res.ok) allClients = await res.json();
+    renderResults();
+  }
+  function renderResults() {
+    const q = document.getElementById("q").value.trim().toLowerCase();
+    const digits = q.replace(/\D/g, "");
+    const found = allClients.filter((c) => !q || (c.display_name || "").toLowerCase().includes(q) || (digits && (c.phone || "").includes(digits)));
+    document.getElementById("results").innerHTML = found.slice(0, q ? 20 : 5).map((c) => `
+      <div class="glass-card r-row">
+        <span class="avatar" style="width:36px;height:36px;font-size:15px">${initial(c.display_name)}</span>
+        <div class="w-main">${esc(c.display_name)}<div class="w-meta" style="margin:0">${esc(c.phone || "sin teléfono")}</div></div>
+        <button type="button" class="secondary" data-checkin="${c.id}" title="Apuntar en la lista de espera">${UI.icon("clock")}</button>
+        <a class="chip" href="ficha.html?client_id=${encodeURIComponent(c.id)}">${UI.icon("user-round")}Ficha</a>
+      </div>`).join("") || `<div class="empty">Sin resultados</div>`;
+    document.querySelectorAll("[data-checkin]").forEach((b) => b.addEventListener("click", async () => {
+      await fetch(`/api/clients/${b.dataset.checkin}/check-in`, { method: "POST" });
+      loadWaiting();
+    }));
+  }
+  document.getElementById("q").addEventListener("input", renderResults);
+  document.getElementById("lock-btn").addEventListener("click", () => Session.logoutBarber());
+
+  (async () => {
+    await Session.requireBarber();
+    loadWaiting();
+    loadClients();
+    setInterval(() => loadWaiting(true), 15000);
+  })();
+</script>
+</body>
+</html>

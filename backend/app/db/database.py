@@ -50,6 +50,26 @@ CREATE TABLE IF NOT EXISTS visits (
     warnings TEXT,
     photo_path TEXT
 );
+
+-- Lista de espera del día (ver app/api/session_routes.py): el cliente se
+-- apunta al entrar en la tablet o con el QR, y el peluquero la ve en
+-- frontend/sala.html. status: "waiting" | "in_service" | "done".
+CREATE TABLE IF NOT EXISTS waiting (
+    id TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL REFERENCES clients(id),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'waiting'
+);
+
+-- Una fila por simulación con modelo externo, para el tope diario por
+-- cliente (cada una cuesta dinero, ver haircut_editor.py).
+CREATE TABLE IF NOT EXISTS simulation_log (
+    id TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    requested_by TEXT NOT NULL
+);
 """
 
 # Columnas añadidas después de la primera versión del esquema. `CREATE
@@ -65,6 +85,14 @@ _MIGRATIONS = [
     # datos ya creada con un esquema anterior no tiene estas columnas.
     ("clients", "consent_ai_analysis", "INTEGER NOT NULL DEFAULT 0"),
     ("clients", "consent_ai_analysis_at", "TEXT"),
+    # Flujo "cliente esperando en el sillón" (sept 2026): el cliente se da
+    # de alta solo con su teléfono, guarda favoritos, y el peluquero le hace
+    # una foto que se guarda (con su consentimiento) para simular cortes.
+    ("clients", "phone", "TEXT"),
+    ("clients", "consent_simulation", "INTEGER NOT NULL DEFAULT 0"),
+    ("clients", "consent_simulation_at", "TEXT"),
+    ("clients", "simulation_photo_path", "TEXT"),
+    ("clients", "liked_styles", "TEXT"),
 ]
 
 
@@ -95,3 +123,6 @@ def init_db() -> None:
         conn.executescript(_SCHEMA)
         for table, column, coltype in _MIGRATIONS:
             _ensure_column(conn, table, column, coltype)
+        # Un teléfono = una ficha (NULL permitido para fichas creadas por el
+        # peluquero sin teléfono).
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_phone ON clients(phone)")

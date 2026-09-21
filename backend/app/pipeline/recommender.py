@@ -155,7 +155,7 @@ def _nota_forma_cara(style: HaircutStyle, face_shape: str | None) -> str | None:
 
 
 def recommend_styles(
-    hair_texture: str,
+    hair_texture: str | None,
     whorls: list[dict] | None = None,
     face_shape: str | None = None,
     visagismo_profile: dict | None = None,
@@ -170,8 +170,12 @@ def recommend_styles(
 
     whorls = whorls or []
 
+    # Sin tipo de pelo (cliente nuevo que aún no lo ha dicho ni se lo ha
+    # marcado el peluquero) no se filtra: se ordena todo el catálogo con el
+    # resto de señales.
     compatibles = [
-        style for style in load_catalog() if hair_texture in style.suitable_hair_types
+        style for style in load_catalog()
+        if hair_texture is None or hair_texture in style.suitable_hair_types
     ]
 
     recomendaciones = []

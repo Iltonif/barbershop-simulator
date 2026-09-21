@@ -6,7 +6,9 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+
+from app.api.auth import require_barber
 
 from app.api.schemas import HeadShapeOut, SimulationProviderOut, SimulationResponse, StyleOut
 from app.config import CLIENT_PHOTOS_DIR
@@ -38,7 +40,7 @@ def list_styles():
     return [StyleOut(**style.__dict__) for style in load_catalog()]
 
 
-@router.post("/growth-map/head-shape", response_model=HeadShapeOut)
+@router.post("/growth-map/head-shape", response_model=HeadShapeOut, dependencies=[Depends(require_barber)])
 async def growth_map_head_shape(photo: UploadFile = File(...)):
     """Mide el ancho/alto de cara en la foto para que
     `frontend/growth-map.html` pueda ajustar la silueta del maniquí 3D a
@@ -79,7 +81,7 @@ def simulation_providers():
             for p in haircut_editor.available_providers()]
 
 
-@router.post("/simulate", response_model=SimulationResponse)
+@router.post("/simulate", response_model=SimulationResponse, dependencies=[Depends(require_barber)])
 async def simulate(
     photo: UploadFile = File(...),
     style_id: str = Form(...),

@@ -266,6 +266,7 @@
 </div>
 
   <script src="assets/ui.js"></script>
+  <script src="assets/session.js"></script>
   <script>
     // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
     // estaba antes): el backend sirve este mismo HTML como estático (ver
@@ -432,7 +433,12 @@
       statusEl.textContent = `${filtered.length} cortes`;
       gridEl.innerHTML = "";
       for (const family of families) {
-        gridEl.appendChild(renderFamilyCard(family));
+        const card = renderFamilyCard(family);
+        // Cliente con sesión: corazón para guardar el corte en favoritos.
+        if (viewer === "cliente" && family.items.length === 1) {
+          card.querySelector(".card-photo").insertAdjacentHTML("beforeend", Session.heartHtml(family.items[0].id));
+        }
+        gridEl.appendChild(card);
       }
     }
 
@@ -494,7 +500,13 @@
     gridEl.addEventListener("click", (ev) => {
       const photo = ev.target.closest(".card-photo[data-img]");
       if (!photo) return;
-      document.getElementById("lightbox-try").href = `index.html?style=${encodeURIComponent(photo.dataset.id || "")}`;
+      // "Probar": el cliente lo prueba sobre su foto; el peluquero, en el
+      // simulador; quien no ha entrado no ve el botón.
+      const tryBtn = document.getElementById("lightbox-try");
+      const sid = encodeURIComponent(photo.dataset.id || "");
+      tryBtn.hidden = !viewer;
+      tryBtn.href = viewer === "cliente" ? `probar.html?style=${sid}` : `index.html?style=${sid}`;
+      tryBtn.lastChild.textContent = viewer === "cliente" ? "Probar en mí" : "Probar en un cliente";
       openLightbox(photo.dataset.img, photo.dataset.title, photo.dataset.desc, (photo.dataset.hair || "").split(",").filter(Boolean));
     });
 
@@ -506,7 +518,21 @@
       if (ev.key === "Escape" && lightboxEl.classList.contains("open")) closeLightbox();
     });
 
-    load();
+    // Quién mira el catálogo: cliente con sesión, peluquero o nadie.
+    let viewer = null;
+    (async () => {
+      const me = await Session.optionalClient();
+      if (me) {
+        viewer = "cliente";
+        Session.setLikes(me.liked_styles);
+        document.querySelector('nav a[aria-label="Inicio"]').href = "cliente.html";
+      } else if (Session.isQr()) {
+        document.querySelector('nav a[aria-label="Inicio"]').href = "cliente.html";
+      } else {
+        try { if ((await (await fetch("/api/barber/session")).json()).logged_in) viewer = "peluquero"; } catch (e) { /* anónimo */ }
+      }
+      load();
+    })();
   </script>
 </body>
 </html>

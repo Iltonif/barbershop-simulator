@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Probar cortes</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  /* Probar cortes sobre la foto guardada del cliente (la hace el peluquero
+     en la primera visita). La usa el propio cliente mientras espera, y el
+     peluquero desde la ficha (?client_id=). */
+  .page-shell { max-width: 900px; }
+  .page-head { margin-bottom: 14px; }
+  .stage { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 640px; margin-bottom: 14px; }
+  .tile { margin: 0; position: relative; aspect-ratio: 3 / 4; border-radius: 16px; overflow: hidden; border: 1px solid var(--glass-border);
+          background: rgba(255, 255, 255, 0.03); display: flex; align-items: center; justify-content: center; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+  .tile figcaption { position: absolute; left: 8px; top: 8px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+                     background: rgba(5, 6, 15, 0.7); border: 1px solid var(--glass-border); max-width: calc(100% - 16px);
+                     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; text-align: center;
+                 color: var(--text-dim); font-size: 13px; }
+  .tile .state .ico { width: 28px; height: 28px; }
+  .tile.error .state { color: var(--warning); }
+  .picker-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 10px; }
+  .picker-head h2 { margin: 0; font-size: 16px; }
+  .picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  button.pick { margin: 0; padding: 0; min-height: 0; border-radius: 14px; overflow: hidden; background: var(--glass);
+                border: 2px solid transparent; display: flex; flex-direction: column; text-align: left; position: relative; }
+  button.pick:hover { transform: none; box-shadow: none; border-color: rgba(255, 255, 255, 0.3); }
+  button.pick[aria-pressed="true"] { border-color: var(--accent-cyan); }
+  button.pick img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 0; }
+  button.pick span.name { padding: 6px 8px 8px; font-size: 11.5px; font-weight: 600; line-height: 1.25; }
+  button.pick .fav { position: absolute; top: 6px; right: 6px; color: #ff4f8b; }
+  button.pick .fav .ico { width: 16px; height: 16px; fill: currentColor; }
+  .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 4px 0 18px; }
+  .actions button { width: auto; margin: 0; }
+  .blocker { padding: 20px; max-width: 560px; display: grid; gap: 12px; }
+  .blocker .ico { width: 30px; height: 30px; color: var(--accent-cyan); }
+  #status { margin: 0 0 12px; min-height: 1px; }
+  .zoom { position: fixed; inset: 0; z-index: 60; background: rgba(3, 4, 10, 0.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .zoom img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="cliente.html" id="home-link" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="catalogo.html" title="Catálogo"><span data-icon="layout-grid"></span><span class="lbl">Catálogo</span></a>
+  </nav>
+  <div class="head-row page-head">
+    <h1 class="page-title">Probar cortes</h1>
+    <details class="info"><summary></summary><div class="info-body" id="page-info">
+      Elige un corte y mira cómo te quedaría sobre tu foto. Arriba salen primero los que marcaste con el corazón y los recomendados para ti. Es una simulación: el peluquero te dirá si es realista para tu pelo.
+    </div></details>
+  </div>
+
+  <div id="blocker" class="glass-card blocker" hidden></div>
+
+  <div id="main" hidden>
+    <div class="stage">
+      <figure class="tile" id="before"><figcaption>Tu foto</figcaption></figure>
+      <figure class="tile" id="after"><figcaption id="after-cap">Elige un corte</figcaption>
+        <div class="state"></div></figure>
+    </div>
+    <div class="actions">
+      <button type="button" id="go-btn" disabled><span data-icon="wand-sparkles"></span>Probar</button>
+      <span class="chip" id="left-chip" hidden></span>
+      <button type="button" class="secondary btn-ico" id="del-photo" hidden style="margin-left:auto"><span data-icon="trash-2"></span>Borrar mi foto</button>
+    </div>
+    <div id="status" role="status"></div>
+    <div class="picker-head"><h2>Cortes</h2></div>
+    <div class="picker" id="picker"></div>
+  </div>
+</div>
+
+<script src="assets/ui.js"></script>
+<script src="assets/session.js"></script>
+<script>
+  const API = "/api";
+  const params = new URLSearchParams(location.search);
+  const clientId = params.get("client_id");
+  const barberMode = !!clientId;
+  const statusEl = document.getElementById("status");
+  function say(kind, text) {
+    const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
+    statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
+  }
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  let selected = null;
+  let styles = [];
+
+  function blocker(icon, html) {
+    const b = document.getElementById("blocker");
+    b.innerHTML = `${UI.icon(icon)}${html}`;
+    b.hidden = false;
+  }
+
+  async function acceptSimulationConsent(companies) {
+    blocker("shield-check", `<div>Para simular, tu foto se envía a ${esc(companies)}, que devuelve la imagen. No se guarda allí.</div>
+      <button type="button" id="accept-sim"><span data-icon="check"></span>Acepto</button>`);
+    UI.hydrate(document.getElementById("blocker"));
+    await new Promise((resolve) => document.getElementById("accept-sim").addEventListener("click", resolve));
+    const res = await fetch(`${API}/me/consents`, { method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ consent_simulation: true }) });
+    if (!res.ok) throw new Error("No se pudo guardar");
+    document.getElementById("blocker").hidden = true;
+  }
+
+  function renderPicker(order, liked) {
+    const byId = Object.fromEntries(styles.map((s) => [s.id, s]));
+    const pre = params.get("style");
+    const ids = [...new Set([pre, ...liked, ...order].filter((id) => id && byId[id]))];
+    document.getElementById("picker").innerHTML = ids.slice(0, 40).map((id) => {
+      const s = byId[id];
+      return `<button type="button" class="pick" data-id="${id}" aria-pressed="false">
+        ${liked.includes(id) ? `<span class="fav">${UI.icon("heart")}</span>` : ""}
+        <img src="${s.reference_image || ""}" alt="" loading="lazy" /><span class="name">${esc(s.name)}</span></button>`;
+    }).join("");
+    document.querySelectorAll(".pick").forEach((b) => b.addEventListener("click", () => choose(b.dataset.id)));
+    if (pre && byId[pre]) choose(pre);
+  }
+
+  function choose(id) {
+    selected = id;
+    document.querySelectorAll(".pick").forEach((b) => b.setAttribute("aria-pressed", b.dataset.id === id));
+    const s = styles.find((x) => x.id === id);
+    document.getElementById("after-cap").textContent = s ? s.name : "";
+    document.getElementById("go-btn").disabled = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function refreshLeft() {
+    if (barberMode) return;
+    try {
+      const r = await (await fetch(`${API}/me/simulations-left`)).json();
+      const chip = document.getElementById("left-chip");
+      chip.hidden = false;
+      chip.innerHTML = `${UI.icon("wand-sparkles")}Te quedan ${r.left} hoy`;
+      document.getElementById("go-btn").disabled = r.left === 0 || !selected;
+    } catch (e) { /* no crítico */ }
+  }
+
+  document.getElementById("go-btn").addEventListener("click", async () => {
+    if (!selected) return;
+    const after = document.getElementById("after");
+    const cap = after.querySelector("figcaption").outerHTML;
+    after.className = "tile";
+    after.innerHTML = cap + `<div class="state">${UI.icon("loader-circle", "spin")}Generando…</div>`;
+    statusEl.innerHTML = "";
+    document.getElementById("go-btn").disabled = true;
+    try {
+      const url = barberMode ? `${API}/clients/${clientId}/simulate` : `${API}/me/simulate`;
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ style_id: selected }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      after.innerHTML = cap + `<img src="data:image/jpeg;base64,${data.image_base64}" alt="Simulación" />`;
+    } catch (e) {
+      after.className = "tile error";
+      after.innerHTML = cap + `<div class="state">${UI.icon("triangle-alert")}${esc(e.message)}</div>`;
+    }
+    document.getElementById("go-btn").disabled = false;
+    refreshLeft();
+  });
+
+  // Tocar una foto la amplía.
+  document.querySelector(".stage").addEventListener("click", (e) => {
+    const img = e.target.closest(".tile img");
+    if (!img) return;
+    const zoom = document.createElement("div");
+    zoom.className = "zoom";
+    zoom.innerHTML = `<img src="${img.src}" alt="" />`;
+    zoom.addEventListener("click", () => zoom.remove());
+    document.body.appendChild(zoom);
+  });
+
+  (async () => {
+    let client, recs;
+    if (barberMode) {
+      await Session.requireBarber();
+      document.getElementById("home-link").href = `ficha.html?client_id=${encodeURIComponent(clientId)}`;
+      document.querySelector("#before figcaption").textContent = "Foto";
+      document.getElementById("page-info").textContent = "Cortes sobre la foto guardada del cliente. Arriba, los que ha marcado con el corazón y sus recomendados.";
+      client = await (await fetch(`${API}/clients/${clientId}`)).json();
+      recs = await (await fetch(`${API}/clients/${clientId}/recommendations`)).json();
+    } else {
+      client = await Session.requireClient();
+      recs = await (await fetch(`${API}/me/recommendations`)).json();
+    }
+    const providers = await (await fetch(`${API}/simulate/providers`)).json().catch(() => []);
+
+    if (!client.has_simulation_photo) {
+      blocker("camera", barberMode
+        ? `<div>Este cliente todavía no tiene foto guardada. Házsela desde su ficha.</div><a class="chip" href="ficha.html?client_id=${encodeURIComponent(clientId)}">${UI.icon("user-round")}Ficha</a>`
+        : `<div>En tu primera visita el peluquero te hará una foto. A partir de ahí podrás probar cortes aquí.</div><a class="chip" href="catalogo.html">${UI.icon("layout-grid")}Mientras, mira el catálogo</a>`);
+      return;
+    }
+    if (!providers.length) {
+      blocker("wand-sparkles", "<div>La simulación todavía no está activada en la barbería.</div>");
+      return;
+    }
+    if (!client.consent_simulation) {
+      if (barberMode) {
+        blocker("shield-check", "<div>El cliente no ha aceptado enviar su foto para simular. Puede aceptarlo él desde su perfil, o marcarlo tú en su ficha si te lo dice ahora.</div>");
+        return;
+      }
+      try { await acceptSimulationConsent(providers.map((p) => p.company).join(" y ")); } catch (e) { say("warn", e.message); return; }
+    }
+
+    styles = (await (await fetch(`${API}/styles`)).json());
+    document.getElementById("before").insertAdjacentHTML("beforeend",
+      `<img src="${barberMode ? `${API}/clients/${clientId}/simulation-photo` : `${API}/me/simulation-photo`}?t=${Date.now()}" alt="Foto" />`);
+    document.getElementById("after").querySelector(".state").innerHTML = `${UI.icon("scissors")}Elige un corte abajo`;
+    document.getElementById("main").hidden = false;
+    renderPicker(recs.recommendations.map((r) => r.style.id), client.liked_styles || []);
+    if (!barberMode) {
+      const del = document.getElementById("del-photo");
+      del.hidden = false;
+      del.addEventListener("click", async () => {
+        if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.lastChild.textContent = "Toca otra vez para borrar"; return; }
+        await fetch(`${API}/me/simulation-photo`, { method: "DELETE" });
+        location.reload();
+      });
+    }
+    refreshLeft();
+  })();
+</script>
+</body>
+</html>

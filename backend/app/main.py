@@ -5,12 +5,14 @@ Arrancar con: uvicorn backend.app.main:app --reload
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.auth import require_barber
 from app.api.clients_routes import router as clients_router
+from app.api.session_routes import router as session_router
 from app.api.routes import router as api_router
 from app.db.database import init_db
 
@@ -29,7 +31,10 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api")
-app.include_router(clients_router, prefix="/api")
+# Las fichas (/api/clients/*) solo para el peluquero (ver app/api/auth.py);
+# el cliente accede a la suya por /api/me/* (session_routes.py).
+app.include_router(clients_router, prefix="/api", dependencies=[Depends(require_barber)])
+app.include_router(session_router, prefix="/api")
 
 
 @app.middleware("http")

@@ -268,3 +268,38 @@ details.info > .info-body p:last-child { margin-bottom: 0; }
 }
 /* `hidden` gana siempre, aunque la clase ponga display:flex (.head-row…). */
 [hidden] { display: none !important; }
+
+/* Salida automática del cliente en la tablet (assets/session.js). */
+.idle-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(3, 4, 10, 0.8); display: flex;
+                align-items: center; justify-content: center; padding: 20px; }
+.idle-box { max-width: 340px; padding: 22px; display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.idle-box strong { font-size: 18px; }
+.idle-box span { color: var(--text-dim); font-size: 14px; }
+
+/* Piezas comunes del flujo cliente/peluquero */
+.big-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (min-width: 720px) { .big-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.big-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+            aspect-ratio: 1; padding: 14px; border-radius: 20px; background: var(--glass); border: 1px solid var(--glass-border);
+            color: var(--text-main); text-decoration: none; font-weight: 700; font-size: 15px; text-align: center;
+            transition: transform 0.25s, border-color 0.25s; }
+.big-tile:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.3); }
+.big-tile .ico { width: 38px; height: 38px; stroke-width: 1.6; color: var(--accent-cyan); }
+.big-tile.locked { opacity: 0.55; }
+.big-tile .tile-note { font-size: 11.5px; font-weight: 500; color: var(--text-dim); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 13px;
+        background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-main); text-decoration: none; }
+.chip .ico { color: var(--accent-cyan); width: 15px; height: 15px; }
+.chip.ok { border-color: rgba(52, 211, 153, 0.45); color: #86e6c4; }
+.chip.ok .ico { color: var(--ok); }
+.chip.warn { border-color: var(--warning-border); color: var(--warning); }
+.chip.warn .ico { color: var(--warning); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.heart-btn { position: absolute; top: 8px; right: 8px; z-index: 3; width: 38px; height: 38px; min-height: 0; margin: 0; padding: 0;
+             border-radius: 50%; background: rgba(5, 6, 15, 0.6); border: 1px solid rgba(255, 255, 255, 0.25);
+             display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+.heart-btn:hover { transform: scale(1.06); box-shadow: none; }
+.heart-btn .ico { width: 19px; height: 19px; }
+.heart-btn[aria-pressed="true"] { color: #ff4f8b; }
+.heart-btn[aria-pressed="true"] .ico { fill: currentColor; }
+.logout-btn { width: auto; margin: 0; }

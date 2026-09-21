@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Tu espacio</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  /* Parte del cliente mientras espera en el sillón (ver CLAUDE.md, "Flujo
+     cliente esperando"). Sin sesión: alta o entrada con el teléfono. Con
+     sesión: accesos a Para ti, Catálogo, Probar cortes y Mi perfil. */
+  .page-shell { max-width: 760px; }
+  .page-head { margin-bottom: 16px; }
+  .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .choice button { margin: 0; min-height: 0; aspect-ratio: 1.2; border-radius: 20px; background: var(--glass);
+                   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: 16px; }
+  .choice button:hover { box-shadow: none; }
+  .choice .ico { width: 40px; height: 40px; stroke-width: 1.6; color: var(--accent-cyan); }
+  .form-card { padding: 20px 22px 22px; }
+  .form-card label.field { margin-top: 12px; }
+  .consents { margin: 14px 0 6px; display: grid; gap: 8px; }
+  .consents .head-row { gap: 8px; flex-wrap: nowrap; }
+  .consents .checkbox-row { margin: 0; flex: 1; }
+  .consents .req { color: var(--accent-cyan); font-weight: 700; }
+  .back-row { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .back-row button { width: auto; margin: 0; }
+  #status { margin: 12px 0; min-height: 1px; }
+  .hello-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .hello-row h2 { margin: 0; font-size: 22px; }
+  .hello-row .chips { margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav" id="nav">
+    <a href="inicio.html" id="home-link" aria-label="Inicio"><span data-icon="house"></span></a>
+  </nav>
+
+  <!-- Sin sesión -->
+  <section id="welcome" hidden>
+    <div class="head-row page-head">
+      <h1 class="page-title">Bienvenido</h1>
+      <details class="info"><summary></summary><div class="info-body">
+        Mientras esperas, crea tu perfil: mira el catálogo, guarda los cortes que te gusten y recibe recomendaciones para ti. La próxima vez entras solo con tu teléfono.
+      </div></details>
+    </div>
+    <div class="choice">
+      <button type="button" id="new-btn"><span data-icon="user-plus"></span>Soy nuevo</button>
+      <button type="button" id="back-btn" class="secondary"><span data-icon="phone"></span>Ya he venido</button>
+    </div>
+    <a class="chip" href="catalogo.html" style="margin-top:16px"><span data-icon="layout-grid"></span>Solo quiero mirar el catálogo</a>
+  </section>
+
+  <section id="register" class="glass-card form-card" hidden>
+    <h2 class="step-title" style="margin:0 0 4px;">Crea tu perfil</h2>
+    <label class="field" for="reg-name">Nombre</label>
+    <input type="text" id="reg-name" autocomplete="given-name" />
+    <label class="field" for="reg-phone">Teléfono</label>
+    <input type="text" id="reg-phone" inputmode="tel" autocomplete="tel" placeholder="612 345 678" />
+    <div class="consents">
+      <div class="head-row">
+        <label class="checkbox-row"><input type="checkbox" id="c-history" /><span>Guardar mis datos para recomendarme cortes <span class="req">*</span></span></label>
+        <details class="info"><summary></summary><div class="info-body">
+          Tu nombre, tu teléfono y lo que respondas (y lo que anote tu peluquero: tipo de pelo, rasgos de la cara) se guardan en tu ficha de esta barbería solo para recomendarte cortes. Algunos rasgos de la cara son datos biométricos. Puedes pedir que se borren cuando quieras.
+        </div></details>
+      </div>
+      <div class="head-row">
+        <label class="checkbox-row"><input type="checkbox" id="c-photo" /><span>Guardar una foto mía para probar cortes</span></label>
+        <details class="info"><summary></summary><div class="info-body">
+          En tu primera visita el peluquero te hará una foto de frente. Se guarda en tu ficha para que puedas probar cortes las siguientes veces. Puedes borrarla desde "Probar cortes".
+        </div></details>
+      </div>
+      <div class="head-row">
+        <label class="checkbox-row"><input type="checkbox" id="c-sim" /><span>Enviar esa foto para generar las simulaciones</span></label>
+        <details class="info"><summary></summary><div class="info-body" id="sim-info">
+          Para ver un corte sobre tu foto, se envía a un servicio externo de edición de imagen, que devuelve la simulación. No se guarda allí.
+        </div></details>
+      </div>
+    </div>
+    <button type="button" id="reg-btn"><span data-icon="check"></span>Crear mi perfil</button>
+    <div class="back-row"><button type="button" class="skip-link secondary icon-btn" data-back aria-label="Volver"><span data-icon="chevron-left"></span></button></div>
+  </section>
+
+  <section id="login" class="glass-card form-card" hidden>
+    <h2 class="step-title" style="margin:0 0 4px;">Entra con tu teléfono</h2>
+    <label class="field" for="login-phone">Teléfono</label>
+    <input type="text" id="login-phone" inputmode="tel" autocomplete="tel" placeholder="612 345 678" />
+    <button type="button" id="login-btn"><span data-icon="chevron-right"></span>Entrar</button>
+    <div class="back-row"><button type="button" class="secondary icon-btn" data-back aria-label="Volver"><span data-icon="chevron-left"></span></button></div>
+  </section>
+
+  <!-- Con sesión -->
+  <section id="home" hidden>
+    <div class="hello-row">
+      <div>
+        <h2 id="hello"></h2>
+        <div class="chips" id="state-chips"></div>
+      </div>
+      <button type="button" class="secondary logout-btn btn-ico" id="logout-btn"><span data-icon="log-out"></span>Salir</button>
+    </div>
+    <div class="big-tiles">
+      <a class="big-tile" href="recomendaciones.html"><span data-icon="sparkles"></span>Para ti</a>
+      <a class="big-tile" href="catalogo.html"><span data-icon="layout-grid"></span>Catálogo</a>
+      <a class="big-tile" id="try-tile" href="probar.html"><span data-icon="wand-sparkles"></span>Probar cortes<span class="tile-note" id="try-note"></span></a>
+      <a class="big-tile" href="cuestionario.html"><span data-icon="clipboard-list"></span>Mi perfil</a>
+    </div>
+  </section>
+
+  <div id="status" role="status"></div>
+</div>
+
+<script src="assets/ui.js"></script>
+<script src="assets/session.js"></script>
+<script>
+  const statusEl = document.getElementById("status");
+  function say(kind, text) {
+    const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
+    statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
+  }
+  const show = (id) => ["welcome", "register", "login", "home"].forEach((s) => { document.getElementById(s).hidden = s !== id; });
+
+  // En el móvil del cliente (QR) no hay portada con la parte del peluquero.
+  if (Session.isQr()) document.getElementById("home-link").href = "cliente.html";
+
+  document.getElementById("new-btn").addEventListener("click", () => { statusEl.innerHTML = ""; show("register"); });
+  document.getElementById("back-btn").addEventListener("click", () => { statusEl.innerHTML = ""; show("login"); });
+  document.querySelectorAll("[data-back]").forEach((b) => b.addEventListener("click", () => { statusEl.innerHTML = ""; show("welcome"); }));
+
+  // A quién se envía la foto, según lo que tenga configurado la barbería.
+  fetch("/api/simulate/providers").then((r) => r.json()).then((providers) => {
+    if (providers.length) {
+      document.getElementById("sim-info").textContent =
+        `Para ver un corte sobre tu foto, se envía a ${providers.map((p) => p.company).join(" y ")}, que devuelve la simulación. No se guarda allí.`;
+    }
+  }).catch(() => {});
+
+  async function post(url, body) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    return data;
+  }
+
+  document.getElementById("reg-btn").addEventListener("click", async () => {
+    const name = document.getElementById("reg-name").value.trim();
+    const phone = document.getElementById("reg-phone").value.trim();
+    if (!name) return say("warn", "Escribe tu nombre");
+    if (!phone) return say("warn", "Escribe tu teléfono");
+    if (!document.getElementById("c-history").checked) return say("warn", "Para crear tu perfil hay que aceptar la primera casilla");
+    say("busy", "Creando…");
+    try {
+      await post("/api/me/register", {
+        display_name: name, phone, consent_history: true,
+        consent_save_photo: document.getElementById("c-photo").checked,
+        consent_simulation: document.getElementById("c-sim").checked,
+      });
+      // Primera vez: directo a las preguntas; al acabar vuelve aquí.
+      location.href = "cuestionario.html?first=1";
+    } catch (e) {
+      say("warn", e.message);
+    }
+  });
+
+  async function doLogin() {
+    const phone = document.getElementById("login-phone").value.trim();
+    if (!phone) return say("warn", "Escribe tu teléfono");
+    say("busy", "Entrando…");
+    try {
+      await post("/api/me/login", { phone });
+      location.reload();
+    } catch (e) {
+      say("warn", e.message);
+    }
+  }
+  document.getElementById("login-btn").addEventListener("click", doLogin);
+  document.getElementById("login-phone").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+  document.getElementById("logout-btn").addEventListener("click", () => Session.logoutClient());
+
+  (async () => {
+    const me = await Session.optionalClient();
+    if (!me) { show("welcome"); return; }
+    await Session.requireClient();  // arranca la salida automática en la tablet
+    document.getElementById("hello").textContent = `Hola, ${(me.display_name || "").split(" ")[0]}`;
+    const chips = [`<span class="chip ok">${UI.icon("clock")}En lista de espera</span>`];
+    if (me.liked_styles.length) chips.push(`<span class="chip">${UI.icon("heart")}${me.liked_styles.length}</span>`);
+    document.getElementById("state-chips").innerHTML = chips.join("");
+    if (!me.has_simulation_photo) {
+      document.getElementById("try-tile").classList.add("locked");
+      document.getElementById("try-note").textContent = "Tras tu primera visita";
+    }
+    show("home");
+  })();
+</script>
+</body>
+</html>

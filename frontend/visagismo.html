@@ -129,7 +129,7 @@
 <body>
 <div class="page-shell">
   <nav class="top-nav">
-    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="sala.html" title="Sala de espera"><span data-icon="users"></span><span class="lbl">Sala</span></a>
     <a id="growth-map-link" href="growth-map.html" title="Remolinos"><span data-icon="compass"></span><span class="lbl">Remolinos</span></a>
     <a id="recomendaciones-link" href="recomendaciones.html" title="Recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Recomendaciones</span></a>
     <a id="quiz-link" href="cuestionario.html" title="Cuestionario del cliente"><span data-icon="clipboard-list"></span><span class="lbl">Cuestionario</span></a>
@@ -331,6 +331,8 @@
 </div>
 
   <script src="assets/ui.js"></script>
+  <script src="assets/session.js"></script>
+  <script>Session.requireBarber(); document.addEventListener("DOMContentLoaded", Session.fichaLink);</script>
   <script>
     // Ruta relativa: ver nota igual en index.html/growth-map.html — el
     // backend sirve este HTML como estático, así que /api siempre resuelve
