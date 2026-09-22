@@ -675,6 +675,22 @@ cliente.
   tabla ángulo→altura ajustada a ojo (`HAIRLINE` en el script).
   Intentos descartados: interpolar el desplazamiento por vecinos (IDW)
   dejaba la cabeza con bultos; suavizar 40 pasadas borraba lo masculino.
+- **v4.1: ojos mejorados y sin pestañas** (`tools/mejorar_ojos_cabeza.py`,
+  se ejecuta después del script anterior). Pedro pidió un maniquí como el
+  "AlexV2 Male Head" de TurboSquid o, si no se podía, mejorar los ojos y
+  quitar las pestañas. El de TurboSquid no se usó: es de pago (31 $) y la
+  licencia estándar de TurboSquid no permite servir el modelo en una web de
+  la que cualquiera puede descargar el .glb. Se probó también el escaneado
+  gratuito de Lee Perry-Smith (Infinite-Realities, CC BY 3.0, el de los
+  ejemplos de Three.js): textura de piel muy realista, pero tiene los ojos
+  CERRADOS y le faltan datos de textura en la coronilla (justo donde se
+  marcan los remolinos), así que se descartó. Cambios del v4.1: sin malla de
+  pestañas (se veían como una banda negra arriba y gris abajo), iris marrón
+  natural en vez de rojizo y esclerótica más limpia (más claros de lo que
+  parecería necesario porque la escena no corrige gamma), una línea suave
+  más oscura en el borde de los párpados en lugar de pestañas (color de
+  vértice, contorno de la abertura buscado con rayos de frente), y el ojo
+  subdividido y llevado a su esfera para que no se vean facetas.
 - **`frontend/growth-map.html`** (reescrita): modos Girar / Flecha /
   Horario / Antihorario / Borrar; deshacer y borrar todo (dos toques)
   sobre el lienzo; vistas Frente/Izq./Dcha./Atrás/Arriba ("Izq." = lado
