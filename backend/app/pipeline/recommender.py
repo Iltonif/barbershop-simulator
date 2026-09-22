@@ -9,9 +9,9 @@ adicionales del perfil, todas opcionales:
 - El mapa de crecimiento dibujado en `frontend/growth-map.html` (flechas
   de dirección y remolinos): ver `growth_rules.py` (remolino de coronilla,
   frente y nuca, peinar a favor del crecimiento, raya natural).
-- Cada cuánto hay que retocar el corte frente a cada cuánto viene el
-  cliente (`maintenance.py`), y como desempate, primero los de retoque más
-  frecuente.
+- Cada cuánto hay que retocar el corte (`maintenance.py`): solo como
+  desempate, primero los de retoque más frecuente. La frecuencia de visitas
+  del cliente no se usa para recomendar.
 - La forma de cara (`ClientProfile.face_shape_override`, fijada a mano por
   el barbero — ver la nota en `clients_routes.get_recommendations` sobre
   por qué no se usa la detección automática sin confirmar): avisa cuando un
@@ -19,8 +19,7 @@ adicionales del perfil, todas opcionales:
   esa forma de cara.
 - El perfil de visagismo (`ClientProfile.visagismo_profile`, ver
   `app/pipeline/visagismo_rules.py`): morfología craneal/facial, forma de
-  nacimiento del pelo y estilo de vida (mantenimiento diario, frecuencia
-  de visitas). Igual que las dos señales anteriores, es un matiz sobre el
+  nacimiento del pelo y estilo de vida (mantenimiento diario). Igual que las dos señales anteriores, es un matiz sobre el
   orden, no un filtro — ver el docstring de `visagismo_rules.py` para el
   porqué y para el mapeo concreto de cada regla sobre este catálogo.
 
@@ -118,31 +117,11 @@ def _nota_forma_cara(style: HaircutStyle, face_shape: str | None) -> str | None:
     return None
 
 
-def _efectos_mantenimiento(style: HaircutStyle, weeks: tuple[int, int], dias: int | None) -> list[Effect]:
-    """Cruza cada cuánto hay que retocar el corte con cada cuánto dice el
-    cliente que viene (ver maintenance.py). Si no lo ha dicho, no hay
-    efecto: solo cuenta el desempate de `recommend_styles`."""
-    if not dias:
-        return []
-    semanas = dias / 7
-    if weeks[1] < semanas - 1 and not (style.fade_type == "skin" and dias > 20):
-        # (el caso del fade a piel ya lo avisa visagismo_rules)
-        return [Effect(AVISO_SUAVE, "Se verá crecido antes",
-                       f"Pide retoque cada {weeks[0]}-{weeks[1]} semanas y viene cada {round(semanas)}: "
-                       "se verá crecido antes de su próxima visita.")]
-    if semanas <= 3.5 and weeks[1] <= 4:
-        return [Effect(BOOST_SUAVE, "Encaja con sus visitas",
-                       f"Viene cada {round(semanas)} semanas: puede llevar un corte que pide retoque "
-                       "frecuente y verse siempre recién cortado.")]
-    return []
-
-
-def _desempate(weeks: tuple[int, int], dias: int | None) -> float:
+def _desempate(weeks: tuple[int, int]) -> int:
     """Entre cortes con la misma puntuación, primero los de retoque más
-    frecuente (evita que el cliente alargue demasiado las visitas), pero
-    los que no aguantan hasta su próxima visita van detrás."""
-    if dias and weeks[1] < dias / 7 - 1:
-        return 100 + weeks[0]
+    frecuente (evita que el cliente alargue demasiado las visitas). Cada
+    cuánto dice el cliente que viene NO cuenta para recomendar (Pedro lo
+    quitó); solo se usa para calcular su próximo corte (maintenance.py)."""
     return weeks[0]
 
 
@@ -167,7 +146,6 @@ def recommend_styles(
     if growth_map is None and whorls:
         growth_map = {"whorls": whorls}
     growth = growth_analysis.summarize(growth_map) if growth_map else None
-    dias = ((visagismo_profile or {}).get("lifestyle_and_preferences") or {}).get("barbershop_visit_frequency_days")
 
     # Sin tipo de pelo (cliente nuevo que aún no lo ha dicho ni se lo ha
     # marcado el peluquero) no se filtra: se ordena todo el catálogo con el
@@ -184,13 +162,12 @@ def recommend_styles(
         effects += growth_rules.evaluate_growth(style, growth)
         effects += trait_rules.evaluate_traits(style, visagismo_profile)
         effects += visagismo_rules.evaluate_profile(style, visagismo_profile).effects
-        effects += _efectos_mantenimiento(style, weeks, dias)
 
         reasons = [e for e in effects if e.is_reason]
         warnings = [e for e in effects if not e.is_reason]
         note = " ".join(e.detail for e in warnings) or None
         score = sum(e.score for e in effects)
-        recomendaciones.append(((score, _desempate(weeks, dias)), StyleRecommendation(
+        recomendaciones.append(((score, _desempate(weeks)), StyleRecommendation(
             style=style, note=note, reasons=reasons, warnings=warnings, maintenance_weeks=weeks)))
 
     recomendaciones.sort(key=lambda par: par[0])

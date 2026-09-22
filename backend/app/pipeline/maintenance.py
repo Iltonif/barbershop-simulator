@@ -8,9 +8,9 @@ cliente:
 
 - cada corte muestra "retoque cada X-Y semanas" (catálogo, recomendaciones);
 - el recomendador, entre cortes que encajan igual de bien, pone antes los
-  que piden retoque más frecuente, pero nunca por encima de lo que el
-  cliente ha dicho: si viene cada 6 semanas, un corte que se ve crecido a
-  las 3 lleva un aviso y va detrás (ver `recommender.py`);
+  que piden retoque más frecuente (ver `recommender.py`). Cada cuánto dice
+  el cliente que viene ya no influye en las recomendaciones (Pedro lo
+  quitó); solo sirve para calcular su próximo corte;
 - el cliente ve en su espacio cuándo le toca, y el peluquero tiene en la
   sala la lista de quién se ha pasado de fecha (para avisarle).
 
@@ -18,8 +18,7 @@ Intervalos de guías de barbería (Barber's Take, Salt Grooming, Rusty Blade,
 consultadas en sept 2026): degradados cada 2-3 semanas; cortes cortos cada
 2-4; media melena cada 3-6; pelo largo cada 6-8. Aquí se afina un poco:
 un degradado bajo/medio (progresivo) aguanta algo más que uno alto o a
-piel, que es lo mismo que ya dice la regla de frecuencia de visitas de
-`visagismo_rules.py`.
+piel.
 """
 
 from __future__ import annotations

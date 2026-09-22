@@ -195,33 +195,10 @@ def _regla_mantenimiento_diario(style: HaircutStyle, profile: dict) -> Visagismo
     return None
 
 
-def _regla_frecuencia_visitas(style: HaircutStyle, profile: dict) -> VisagismoAdjustment | None:
-    """>20 días entre visitas -> el schema pide desaconsejar el fade
-    "0" (piel) y recomendar taper fade (fade progresivo, sin línea neta)
-    o corte clásico a tijera. Mapeo: `fade_type == "skin"` es justo el
-    "0_skin_fade" del schema; `fade_type` bajo/medio es el equivalente de
-    "taper_fade" en este catálogo (degradado progresivo, no a piel); y
-    `clasico_raya_lateral` (sin fade marcado, corte de tijera tradicional)
-    cubre el "classic_scissor_cut"."""
-    dias = _get(profile, "lifestyle_and_preferences", "barbershop_visit_frequency_days")
-    if dias is None or dias <= 20:
-        return None
-    if style.fade_type == "skin":
-        return VisagismoAdjustment(
-            _AVISO_SUAVE,
-            f"Este cliente pasa más de 20 días entre visitas ({dias}): un fade "
-            "a piel se nota crecido mucho antes que uno progresivo.",
-            label="Se nota crecido pronto",
-        )
-    if style.fade_type in ("bajo", "medio") or style.style_family == "clasico_raya_lateral":
-        return VisagismoAdjustment(
-            _BOOST_SUAVE,
-            f"Este cliente pasa más de 20 días entre visitas ({dias}): un "
-            "degradado progresivo o un corte clásico a tijera aguantan mejor "
-            "sin retoque.",
-            label="Aguanta entre visitas",
-        )
-    return None
+# (Antes había aquí una regla de frecuencia de visitas: >20 días entre
+# visitas desaconsejaba el fade a piel y favorecía degradados progresivos.
+# Pedro pidió quitar la frecuencia de visitas de las recomendaciones, sept
+# 2026.)
 
 
 # Todas las reglas de arriba, en el orden en que se documentaron. Añadir
@@ -231,7 +208,6 @@ _REGLAS = [
     _regla_geometria_facial,
     _regla_nacimiento_pelo,
     _regla_mantenimiento_diario,
-    _regla_frecuencia_visitas,
 ]
 
 

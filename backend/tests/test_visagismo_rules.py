@@ -60,21 +60,12 @@ class TestVisagismoRules(unittest.TestCase):
         self.assertEqual(evaluate_profile(needs_styling, profile).score, 2)
         self.assertEqual(evaluate_profile(neutral, profile).score, 0)
 
-    def test_infrequent_visits_penalizes_skin_fade_boosts_taper_and_classic(self):
-        profile = {"lifestyle_and_preferences": {"barbershop_visit_frequency_days": 30}}
-        skin = style(fade_type="skin")
-        taper = style(fade_type="bajo")
-        classic = style(style_family="clasico_raya_lateral", fade_type="ninguno")
-        neutral = style(fade_type="alto", style_family="fade_undercut_textura")
-        self.assertGreater(evaluate_profile(skin, profile).score, 0)
-        self.assertLess(evaluate_profile(taper, profile).score, 0)
-        self.assertLess(evaluate_profile(classic, profile).score, 0)
-        self.assertEqual(evaluate_profile(neutral, profile).score, 0)
-
-    def test_frequent_visits_does_not_trigger_rule(self):
-        profile = {"lifestyle_and_preferences": {"barbershop_visit_frequency_days": 10}}
-        skin = style(fade_type="skin")
-        self.assertEqual(evaluate_profile(skin, profile).score, 0)
+    def test_visit_frequency_no_longer_affects_recommendations(self):
+        for dias in (10, 30):
+            profile = {"lifestyle_and_preferences": {"barbershop_visit_frequency_days": dias}}
+            for s in (style(fade_type="skin"), style(fade_type="bajo"),
+                      style(style_family="clasico_raya_lateral", fade_type="ninguno")):
+                self.assertEqual(evaluate_profile(s, profile).score, 0)
 
     def test_combined_rules_accumulate_and_notes_concatenate(self):
         profile = {

@@ -131,21 +131,18 @@ class MaintenanceTest(unittest.TestCase):
         self.assertEqual(nv["days_left"], -7)
         self.assertIsNone(maintenance.next_visit(None, (2, 3)))
 
-    def test_ties_go_to_frequent_retouch_but_respect_the_client(self):
+    def test_ties_go_to_frequent_retouch_and_visit_frequency_is_ignored(self):
         recs = recommend_styles("liso")
         firsts = [r.maintenance_weeks[0] for r in recs[:5]]
         self.assertTrue(all(w == 2 for w in firsts), firsts)
-        # Viene cada 8 semanas: lo que se ve crecido a las 3 lleva aviso y va detrás.
-        profile = {"lifestyle_and_preferences": {"barbershop_visit_frequency_days": 56}}
-        recs = recommend_styles("liso", visagismo_profile=profile)
-        top = recs[0]
-        self.assertGreaterEqual(top.maintenance_weeks[1], 7)
-        skinny = [r for r in recs if r.maintenance_weeks == (2, 3)]
-        self.assertTrue(all(r.warnings for r in skinny))
-        # Viene cada 2 semanas: los de retoque frecuente llevan razón a favor.
-        profile = {"lifestyle_and_preferences": {"barbershop_visit_frequency_days": 14}}
-        recs = recommend_styles("liso", visagismo_profile=profile)
-        self.assertIn("Encaja con sus visitas", [e.label for e in recs[0].reasons])
+        # Cada cuánto viene no cambia nada: ni orden ni etiquetas.
+        for dias in (14, 56):
+            profile = {"lifestyle_and_preferences": {"barbershop_visit_frequency_days": dias}}
+            other = recommend_styles("liso", visagismo_profile=profile)
+            self.assertEqual([r.style.id for r in other], [r.style.id for r in recs])
+            self.assertFalse(any(e.label in ("Aguanta entre visitas", "Se nota crecido pronto",
+                                             "Se verá crecido antes", "Encaja con sus visitas")
+                                 for r in other for e in r.reasons + r.warnings))
 
 
 if __name__ == "__main__":

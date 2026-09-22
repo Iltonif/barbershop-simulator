@@ -103,7 +103,8 @@ morfología craneal, geometría/proporción facial, forma de nacimiento del
 pelo, remolinos (descripción rápida, sin coordenadas -- no confundir con
 el mapa de crecimiento 3D de `growth-map.html`) y estilo de vida
 (mantenimiento diario, frecuencia de visitas, entorno profesional,
-preferencia de barba). Esquema completo en `VisagismoProfileIn`
+preferencia de barba). La regla de frecuencia de visitas se quitó en sept
+2026 a petición de Pedro: ese dato ya no cambia las recomendaciones. Esquema completo en `VisagismoProfileIn`
 (`app/api/schemas.py`) y persistencia en `ClientProfile.visagismo_profile`
 (columna `visagismo_profile` de `clients`, JSON, migrada igual que
 `custom_growth_map` -- ver `database.py`). Se guarda/lee con
@@ -737,11 +738,14 @@ cliente.
   corte (degradado alto/a piel 2-3, bajo/medio 3-4, corto 3-4, medio 4-6,
   largo 6-8; guías de barbería citadas en el docstring), en
   `StyleOut.maintenance_weeks` y como etiqueta "2-3 sem." en catálogo y
-  recomendaciones. En `recommend_styles`: si el cliente dijo cada cuánto
-  viene, aviso "Se verá crecido antes" cuando el corte no aguanta hasta su
-  próxima visita y "Encaja con sus visitas" si viene cada ≤ 3,5 semanas y
-  el corte pide retoque frecuente; y en empate de puntuación, primero los
-  de retoque más frecuente (los que no aguantan hasta su visita, al final).
+  recomendaciones. En `recommend_styles` solo cuenta como desempate:
+  entre cortes con la misma puntuación, primero los de retoque más
+  frecuente. **La frecuencia de visitas del cliente ya no influye en las
+  recomendaciones** (Pedro lo pidió, sept 2026): se quitaron los efectos
+  "Se verá crecido antes" / "Encaja con sus visitas" de `recommender.py` y
+  la regla de frecuencia de visitas de `visagismo_rules.py` ("Aguanta entre
+  visitas" / "Se nota crecido pronto"). La pregunta del cuestionario se
+  mantiene porque sirve para calcular el próximo corte (abajo).
   El cliente ve "Próximo corte en N días" / "Te toca corte" en su espacio
   (`GET /api/me/next-visit`), y la sala tiene "Les toca volver"
   (`GET /api/return-due`, solo peluquero): quién se ha pasado de fecha (o
