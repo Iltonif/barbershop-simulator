@@ -41,6 +41,14 @@
   .hello-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
   .hello-row h2 { margin: 0; font-size: 22px; }
   .hello-row .chips { margin-top: 6px; }
+  .qr-card { display: flex; align-items: center; gap: 14px; width: 100%; margin: 18px 0 0; padding: 12px; min-height: 0;
+             background: var(--glass); border: 1px solid var(--glass-border); border-radius: 18px; color: var(--text-main);
+             text-align: left; cursor: zoom-in; }
+  .qr-card:hover { transform: none; box-shadow: none; }
+  .qr-card img { width: 92px; height: 92px; border-radius: 10px; background: #fff; padding: 5px; flex: none; }
+  .qr-card b { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .qr-card b .ico { width: 18px; height: 18px; color: var(--accent-cyan); }
+  .qr-card .sub { display: block; margin-top: 4px; font-size: 13px; color: var(--text-dim); font-weight: 400; }
 </style>
 </head>
 <body>
@@ -62,6 +70,10 @@
       <button type="button" id="back-btn" class="secondary"><span data-icon="phone"></span>Ya he venido</button>
     </div>
     <a class="chip" href="catalogo.html" style="margin-top:16px"><span data-icon="layout-grid"></span>Solo quiero mirar el catálogo</a>
+    <button type="button" class="qr-card" id="qr-card" aria-label="Ampliar el código QR">
+      <img src="/api/qr.svg" alt="Código QR de la parte del cliente" />
+      <span><b><span data-icon="smartphone"></span>Mejor en tu móvil</b><span class="sub">Escanéalo y sigue desde tu sitio</span></span>
+    </button>
   </section>
 
   <section id="register" class="glass-card form-card" hidden>
@@ -125,6 +137,7 @@
 
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
+<script src="assets/qr.js"></script>
 <script>
   const statusEl = document.getElementById("status");
   function say(kind, text) {
@@ -135,6 +148,9 @@
 
   // En el móvil del cliente (QR) no hay portada con la parte del peluquero.
   if (Session.isQr()) document.getElementById("home-link").href = "cliente.html";
+  // Ya está en su móvil: el QR no pinta nada.
+  if (Session.isQr()) document.getElementById("qr-card").hidden = true;
+  document.getElementById("qr-card").addEventListener("click", () => QR.zoom());
 
   document.getElementById("new-btn").addEventListener("click", () => { statusEl.innerHTML = ""; show("register"); });
   document.getElementById("back-btn").addEventListener("click", () => { statusEl.innerHTML = ""; show("login"); });

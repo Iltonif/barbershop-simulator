@@ -585,6 +585,13 @@ con otro. La web se organiza alrededor de eso.
   recordado en ese navegador) solo la parte del cliente; en la tablet, las
   dos (la del peluquero con PIN). En la tablet el cliente se sale solo a
   los 3 min sin tocar (aviso de 20 s, `assets/session.js`).
+- **QR a la vista** (sept 2026, petición de Pedro: que el peluquero no
+  tenga que dejar de cortar para enseñarlo): además de en la sala (para
+  imprimir), el QR sale en la portada (`inicio.html`, debajo de
+  Peluquero/Cliente) y en la bienvenida del cliente (`cliente.html`, sin
+  sesión). Tocarlo lo amplía a pantalla completa (`assets/qr.js`, que trae
+  sus propios estilos porque la portada no carga `theme.css`). En el móvil
+  que ya entró por QR no se muestra.
 - **Acceso** (`app/api/auth.py`): cookies firmadas (HMAC, sin
   dependencias nuevas). Peluquero: `BARBER_PIN`, caduca a los
   `BARBER_IDLE_MINUTES` (15) sin uso; las recargas automáticas de la sala

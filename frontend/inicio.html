@@ -239,6 +239,18 @@
   @media (max-width: 480px) {
     .role-card { padding: 30px 22px; }
   }
+
+  /* QR para que el cliente siga en su móvil sin que el peluquero deje de cortar */
+  .qr-card { display: flex; align-items: center; gap: 16px; margin-top: 26px; padding: 12px 18px 12px 12px;
+             background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px;
+             backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); cursor: zoom-in;
+             color: #fff; text-align: left; width: auto; min-height: 0; margin-left: 0; margin-right: 0; }
+  .qr-card:hover { transform: none; box-shadow: none; }
+  .qr-card img { width: 96px; height: 96px; border-radius: 10px; background: #fff; padding: 5px; display: block; }
+  .qr-card b { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+  .qr-card b .ico { width: 18px; height: 18px; color: var(--accent-cyan); }
+  .qr-card span.sub { display: block; margin-top: 4px; font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 400; }
+
 </style>
 </head>
 <body>
@@ -261,10 +273,16 @@
     </button>
   </div>
 
+  <button type="button" class="qr-card" id="qr-card" aria-label="Ampliar el código QR">
+    <img src="/api/qr.svg" alt="Código QR de la parte del cliente" />
+    <span><b><span data-icon="smartphone"></span>Desde tu móvil</b><span class="sub">Escanéalo y entra en tu parte</span></span>
+  </button>
+
 </main>
 
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
+<script src="assets/qr.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script>
   // ---------------------------------------------------------------
@@ -390,6 +408,7 @@
   document.querySelectorAll(".role-card").forEach((card) => {
     card.addEventListener("click", () => { location.href = card.dataset.go; });
   });
+  document.getElementById("qr-card").addEventListener("click", () => QR.zoom());
 </script>
 </body>
 </html>
