@@ -22,6 +22,7 @@ from app.api.schemas import (
     ClientWithHistoryOut,
     CustomGrowthMapIn,
     FaceShapeOverrideIn,
+    GrowthSummaryOut,
     HairTypeOverrideIn,
     ReasonOut,
     RecommendationsOut,
@@ -35,7 +36,7 @@ from app.api.schemas import (
 from app.config import ANTHROPIC_MODEL
 from app.db import repository
 from app.api import client_service
-from app.pipeline import facial_traits_analysis, visagismo_ai_advisor
+from app.pipeline import facial_traits_analysis, growth_analysis, visagismo_ai_advisor
 from app.pipeline.recommender import recommend_styles
 
 router = APIRouter()
@@ -93,6 +94,16 @@ def override_face_shape(client_id: str, payload: FaceShapeOverrideIn):
     if client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return ClientOut(**client.__dict__)
+
+
+@router.post("/growth-map/summary", response_model=GrowthSummaryOut)
+def growth_map_summary(payload: CustomGrowthMapIn):
+    """Interpretación del mapa que se está dibujando (zonas, direcciones,
+    raya natural), para enseñarla en growth-map.html mientras se dibuja.
+    No guarda nada."""
+    s = growth_analysis.summarize(payload.model_dump())
+    return GrowthSummaryOut(lines=s.lines(), zone_direction=s.zone_direction,
+                            whorl_zones=s.whorl_zones, natural_part=s.natural_part)
 
 
 @router.patch("/clients/{client_id}/growth-map", response_model=ClientOut)

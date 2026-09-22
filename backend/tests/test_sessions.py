@@ -183,6 +183,40 @@ class SessionFlowTest(unittest.TestCase):
                              files={"photo": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg")})
         self.assertEqual(r.status_code, 422)
 
+    def test_return_due_and_next_visit(self):
+        cid = self._register().json()["id"]
+        self._barber_login()
+        self.assertIsNone(self.client_tab.get("/api/me/next-visit").json())
+        # Corte con degradado alto (retoque cada 2-3 semanas) registrado hace 30 días.
+        from app.pipeline.style_catalog import load_catalog
+        fade = next(s for s in load_catalog() if s.fade_type == "alto")
+        self.barber.post(f"/api/clients/{cid}/history", data={"style_id": fade.id})
+        with database.get_connection() as conn:
+            conn.execute("UPDATE haircut_history SET created_at = datetime('now', '-30 days')")
+            conn.execute("UPDATE waiting SET created_at = datetime('now', '-30 days'), updated_at = datetime('now', '-30 days')")
+        nv = self.client_tab.get("/api/me/next-visit").json()
+        self.assertEqual(nv["weeks"], [2, 3])
+        self.assertEqual(nv["days_left"], 21 - 30)
+        self.assertEqual(nv["style_name"], fade.name)
+        due = self.barber.get("/api/return-due").json()
+        self.assertEqual([d["client"]["id"] for d in due], [cid])
+        # El cliente no puede ver la lista; y si hoy está en la sala, no sale.
+        self.assertEqual(self.client_tab.get("/api/return-due").status_code, 401)
+        self.barber.post(f"/api/clients/{cid}/check-in")
+        self.assertEqual(self.barber.get("/api/return-due").json(), [])
+
+    def test_growth_summary_endpoint(self):
+        self._barber_login()
+        body = {"strokes": [{"x1": 0, "y1": 0.9, "z1": 0.4, "x2": 0, "y2": 0.7, "z2": 0.6,
+                             "points": [[0, 0.9, 0.4], [0, 0.8, 0.52], [0, 0.7, 0.6]]}],
+                "whorls": [{"x": 0.02, "y": 0.72, "z": -0.46, "rotation": "horario"}]}
+        r = self.barber.post("/api/growth-map/summary", json=body)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["natural_part"], "izquierda")
+        body["strokes"][0]["points"] = [[0, 1]]
+        self.assertEqual(self.barber.post("/api/growth-map/summary", json=body).status_code, 422)
+        self.assertEqual(self.client_tab.post("/api/growth-map/summary", json={}).status_code, 401)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -38,46 +38,55 @@
   .pill-btn { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 10px 14px; border-radius: 999px;
               background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-main); font-size: 13px; font-weight: 600; }
   .pill-btn .ico { color: var(--accent-cyan); }
-  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; align-items: center; }
+  .photo-shape-row { margin-top: 14px; }
+
+  /* Herramientas: modo (girar / flecha / remolinos / borrar) + deshacer y borrar todo */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; align-items: center; }
   .toolbar button { margin: 0; display: inline-flex; align-items: center; gap: 6px; }
   .toolbar-spacer { flex: 1; }
   button.icon-only { width: 44px; padding: 0; justify-content: center; }
-  .zone-row .zone-reset { margin-left: auto; display: inline-flex; opacity: 0.7; }
-  .zone-row .zone-reset .ico { width: 16px; height: 16px; pointer-events: none; }
-  #three-canvas {
-    border: 1px solid var(--glass-border); border-radius: 12px; display: block; margin-top: 8px;
-    touch-action: none; cursor: grab; width: 100%; height: 560px;
-  }
-  #status { font-size: 14px; color: var(--text-dim); margin-top: 12px; min-height: 20px; }
-  .zone-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-  button.zone-row {
-    display: inline-flex; align-items: center; gap: 8px; width: auto; min-height: 38px; margin: 0; padding: 6px 12px;
-    border: 1px solid var(--glass-border); border-radius: 999px; cursor: pointer; background: var(--glass);
-    color: var(--text-main); font-size: 13px; font-weight: 600; text-align: left;
-  }
-  button.zone-row:hover { transform: none; box-shadow: none; }
-  .zone-row.armed { border-color: #4fe3ff; box-shadow: 0 0 0 1px #4fe3ff inset; }
-  .zone-dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; background: #55607a; }
-  .zone-dot.set { background: #4fe3ff; }
-  .photo-shape-row { margin-top: 14px; }
+  .canvas-actions { position: absolute; right: 10px; top: 10px; display: flex; gap: 6px; }
+  .canvas-actions button { width: 40px; min-height: 36px; height: 36px; margin: 0; padding: 0; display: inline-flex;
+                           align-items: center; justify-content: center; border-radius: 999px;
+                           background: rgba(8, 10, 18, 0.82); border: 1px solid var(--glass-border); color: var(--text-main); }
+  .canvas-actions button:hover { transform: none; box-shadow: none; }
+  .canvas-actions button .ico { width: 17px; height: 17px; }
+  .canvas-actions button.danger-armed { border-color: var(--warning-border); color: var(--warning); }
+
   #canvas-wrap { position: relative; }
-  .compass-panel {
-    position: absolute; top: 12px; right: 12px; width: 152px; z-index: 5;
-    background: rgba(8, 10, 18, 0.88); border: 1px solid var(--glass-border);
-    border-radius: 14px; padding: 10px; text-align: center;
+  #three-canvas {
+    border: 1px solid var(--glass-border); border-radius: 12px; display: block;
+    touch-action: none; width: 100%; height: 560px; cursor: grab;
   }
-  .compass-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-  #compass-svg { touch-action: none; cursor: grab; }
-  #compass-svg:active { cursor: grabbing; }
-  .compass-readout { font-size: 12px; color: var(--text-dim); margin: 4px 0 8px; }
-  .compass-actions { display: flex; gap: 6px; justify-content: center; }
-  .compass-actions button { margin: 0; width: 44px; min-height: 40px; height: 40px; padding: 0; justify-content: center; }
+  #canvas-wrap.drawing #three-canvas { cursor: crosshair; }
+  /* Vistas rápidas, abajo; pelo sí/no arriba a la izquierda */
+  .views { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 4px;
+           background: rgba(8, 10, 18, 0.82); border: 1px solid var(--glass-border); border-radius: 999px; padding: 4px; }
+  .views button { width: auto; min-height: 36px; margin: 0; padding: 6px 12px; border-radius: 999px; font-size: 12.5px;
+                  background: transparent; border: 0; color: var(--text-dim); box-shadow: none; }
+  .views button:hover { transform: none; box-shadow: none; color: var(--text-main); }
+  .views button.on { background: var(--glass-strong); color: var(--text-main); }
+  .hair-toggle { position: absolute; left: 10px; top: 10px; width: auto; min-height: 36px; margin: 0; padding: 6px 12px;
+                 display: inline-flex; gap: 6px; align-items: center; border-radius: 999px; font-size: 12.5px;
+                 background: rgba(8, 10, 18, 0.82); border: 1px solid var(--glass-border); color: var(--text-main); }
+  .hair-toggle:hover { transform: none; box-shadow: none; }
+  .hair-toggle.off { color: var(--text-faint); }
+  .hair-toggle .ico { width: 16px; height: 16px; color: var(--accent-cyan); }
+  .hair-toggle.off .ico { color: var(--text-faint); }
+
+  #aim-hint { min-height: 22px; margin: 8px 0 0; display: flex; align-items: center; gap: 6px; }
+  #aim-hint .ico { width: 16px; height: 16px; color: var(--accent-cyan); }
+  .summary { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; min-height: 1px; }
+  .summary .chip { font-size: 12.5px; padding: 5px 10px; }
+  #status { font-size: 14px; color: var(--text-dim); margin-top: 12px; min-height: 20px; }
+
   @media (max-width: 600px) {
-    #three-canvas { height: 62vh; min-height: 320px; }
-    .toolbar button[data-mode="none"] { flex: 1 1 auto; justify-content: center; }
+    #three-canvas { height: 62vh; min-height: 340px; }
     .toolbar .lbl { display: none; }
-    .toolbar button[data-mode="whorl-cw"], .toolbar button[data-mode="whorl-ccw"] { width: 44px; padding: 0; flex: none; }
-    .compass-panel { top: 8px; right: 8px; width: 128px; padding: 8px; }
+    .toolbar button[data-mode] { width: 44px; padding: 0; justify-content: center; flex: none; }
+    .toolbar button[data-mode].active { width: auto; padding: 0 12px; }
+    .toolbar button[data-mode].active .lbl { display: inline; }
+    .views button { padding: 6px 9px; font-size: 12px; }
   }
 </style>
 </head>
@@ -93,7 +102,7 @@
     <h1 class="page-title">Remolinos</h1>
     <details class="info"><summary></summary><div class="info-body">
       <p>Ficha del cliente: tipo de pelo, forma de cara y hacia dónde crece el pelo.</p>
-      <p>Toca una zona (en la cabeza o en la lista) y gira el disco que aparece para marcar la dirección. Arrastra para girar la cabeza; pellizca o usa la rueda para acercar.</p>
+      <p>Con <b>Flecha</b>, desliza el dedo sobre el pelo en el sentido en que crece: queda una flecha y el pelo del maniquí se peina solo. Con <b>Horario</b>/<b>Antihorario</b>, toca donde está el remolino. <b>Borrar</b> quita la flecha o el remolino que toques.</p><p>Con <b>Girar</b>, arrastra para girar la cabeza o usa las vistas de abajo; pellizca para acercar.</p>
     </div></details>
   </div>
 
@@ -155,35 +164,30 @@
   </div>
 
   <div class="toolbar">
-    <button type="button" class="toolbar-btn active" data-mode="none" title="Solo girar la cabeza"><span data-icon="rotate-3d"></span>Girar</button>
-    <button type="button" class="toolbar-btn" data-mode="whorl-cw" title="Marcar remolino horario"><span data-icon="rotate-cw"></span><span class="lbl">Horario</span></button>
-    <button type="button" class="toolbar-btn" data-mode="whorl-ccw" title="Marcar remolino antihorario"><span data-icon="rotate-ccw"></span><span class="lbl">Antihorario</span></button>
-    <span class="toolbar-spacer"></span>
-    <button id="undo-whorl-btn" type="button" class="toolbar-btn secondary icon-only" aria-label="Deshacer último remolino" title="Deshacer último remolino"><span data-icon="undo-2"></span></button>
-    <button id="clear-btn" type="button" class="toolbar-btn secondary icon-only" aria-label="Borrar todo" title="Borrar todo"><span data-icon="trash-2"></span></button>
+    <button type="button" class="toolbar-btn active" data-mode="none" title="Girar la cabeza"><span data-icon="rotate-3d"></span><span class="lbl">Girar</span></button>
+    <button type="button" class="toolbar-btn" data-mode="arrow" title="Dibujar la dirección del pelo"><span data-icon="pen-line"></span><span class="lbl">Flecha</span></button>
+    <button type="button" class="toolbar-btn" data-mode="whorl-cw" title="Remolino horario"><span data-icon="rotate-cw"></span><span class="lbl">Horario</span></button>
+    <button type="button" class="toolbar-btn" data-mode="whorl-ccw" title="Remolino antihorario"><span data-icon="rotate-ccw"></span><span class="lbl">Antihorario</span></button>
+    <button type="button" class="toolbar-btn" data-mode="erase" title="Borrar una flecha o un remolino"><span data-icon="eraser"></span><span class="lbl">Borrar</span></button>
   </div>
-
-  <div class="zone-legend" id="zone-legend"></div>
 
   <div id="canvas-wrap">
     <canvas id="three-canvas"></canvas>
-    <div class="compass-panel" id="compass-panel" style="display: none;">
-      <div class="compass-title" id="compass-title">Zona</div>
-      <svg id="compass-svg" width="120" height="120" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="52" fill="rgba(255,255,255,0.05)" stroke="var(--glass-border)" stroke-width="1"></circle>
-        <g id="compass-ticks" stroke="#55607a" stroke-width="2"></g>
-        <line id="compass-default" x1="60" y1="60" x2="60" y2="14" stroke="#55607a" stroke-width="2" stroke-dasharray="3,3"></line>
-        <line id="compass-needle" x1="60" y1="60" x2="60" y2="14" stroke="#4fe3ff" stroke-width="4" stroke-linecap="round"></line>
-        <circle cx="60" cy="60" r="5" fill="#4fe3ff"></circle>
-      </svg>
-      <div class="compass-readout" id="compass-readout">0° (hacia la cara)</div>
-      <div class="compass-actions">
-        <button type="button" id="compass-clear-btn" class="toolbar-btn secondary icon-only" aria-label="Quitar dirección" title="Quitar"><span data-icon="trash-2"></span></button>
-        <button type="button" id="compass-done-btn" class="toolbar-btn icon-only" aria-label="Listo" title="Listo"><span data-icon="check"></span></button>
-      </div>
+    <div class="canvas-actions">
+      <button id="undo-btn" type="button" aria-label="Deshacer" title="Deshacer"><span data-icon="undo-2"></span></button>
+      <button id="clear-btn" type="button" aria-label="Borrar todo" title="Borrar todo"><span data-icon="trash-2"></span></button>
+    </div>
+    <button type="button" class="hair-toggle" id="hair-toggle" aria-pressed="true" title="Ver el pelo peinado según las flechas"><span data-icon="waves"></span>Pelo</button>
+    <div class="views" id="views">
+      <button type="button" data-view="front" class="on">Frente</button>
+      <button type="button" data-view="left">Izq.</button>
+      <button type="button" data-view="right">Dcha.</button>
+      <button type="button" data-view="back">Atrás</button>
+      <button type="button" data-view="top">Arriba</button>
     </div>
   </div>
-  <p class="hint" id="aim-hint" style="min-height: 20px;"></p>
+  <p class="hint" id="aim-hint"></p>
+  <div class="summary" id="summary"></div>
 
   <button id="save-btn" type="button" style="margin-top: 16px;"><span data-icon="save"></span>Guardar</button>
   <button id="recommendations-btn" type="button" class="secondary" style="display: none;"><span data-icon="sparkles"></span>Recomendaciones</button>
@@ -198,599 +202,523 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script>
-    // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
-    // estaba antes): el backend sirve este mismo HTML como estático (ver
-    // el mount de StaticFiles en app/main.py), así que la API siempre está
-    // en el mismo origen que la página, sea localhost, la IP local en la
-    // WiFi de la barbería, o el dominio real de Railway en producción. La
-    // URL fija rompía los tres casos salvo el primero -- detectado al
-    // probar la web ya desplegada de verdad (catálogo/simulador daban
-    // "Failed to fetch" porque intentaban llamar al localhost del propio
-    // dispositivo del cliente, no al servidor real).
+    // Mapa de crecimiento del pelo sobre el maniquí 3D (maniquí v4, ver
+    // CLAUDE.md). Tres piezas:
+    //  1. Flechas trazadas con el dedo sobre el cuero cabelludo (modo
+    //     "Flecha"): cada una es una lista de puntos sobre la superficie.
+    //  2. Remolinos (horario/antihorario) con un toque.
+    //  3. "Pelo": unos miles de mechones cortos que nacen en el cuero
+    //     cabelludo y se peinan solos siguiendo las flechas y los
+    //     remolinos (campo de direcciones interpolado), para ver de un
+    //     vistazo si lo marcado tiene sentido.
+    // Las coordenadas que se guardan son de MUNDO (maniquí escalado x2 y
+    // bajado 0,3), igual que antes: backend/app/pipeline/growth_analysis.py
+    // las interpreta (zona y dirección) para las recomendaciones.
     const API_BASE = "/api";
     const canvas = document.getElementById("three-canvas");
+    const wrap = document.getElementById("canvas-wrap");
     const statusEl = document.getElementById("status");
+    const hintEl = document.getElementById("aim-hint");
     function say(kind, text) {
       const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
       statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
     }
-    const aimHintEl = document.getElementById("aim-hint");
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
     let currentClient = null;
+    let mode = "none";
 
-    // Zonas fijas para el sistema de "una dirección dominante por zona".
-    // IMPORTANTE: debe coincidir con HEAD_ZONES de
-    // backend/app/pipeline/head_mesh.py (nombre + vector de dirección) --
-    // no hay ningún mecanismo para compartir esta constante entre Python y
-    // JS puro sin build step, así que si se cambia una hay que cambiar la
-    // otra a mano.
-    const HEAD_ZONES = [
-      { name: "corona", label: "Coronilla", direction: [0.0, 1.0, -0.1] },
-      { name: "flequillo", label: "Flequillo", direction: [0.0, 0.9, 0.75] },
-      { name: "laterales_izq", label: "Lateral izq.", direction: [-0.9, 0.4, 0.15] },
-      { name: "laterales_der", label: "Lateral dcho.", direction: [0.9, 0.4, 0.15] },
-      { name: "nuca", label: "Nuca", direction: [0.0, -0.05, -1.0] },
-    ];
+    // Elementos dibujados, en el orden en que se añadieron (para Deshacer).
+    // arrow: { kind:"arrow", points:[Vector3], object }
+    // whorl: { kind:"whorl", point:Vector3, rotation, object }
+    let items = [];
 
-    // Referencia GLOBAL y fija para el 0° de la brújula de dirección: "hacia
-    // la cara" (mismo eje +Z que usa la cámara en la vista "front" del
-    // resto del archivo). Ver el porqué junto a donde se usa, en
-    // `placeZoneMarkers()`.
-    const WORLD_FRONT = new THREE.Vector3(0, 0, 1);
+    const HEAD_SCALE = 2.0;
+    const HEAD_Y = -0.3;
+    const ARROW_LIFT = 0.035;   // la flecha flota sobre los mechones
+    const MIN_ARROW_LEN = 0.12;
 
-    // Estado de dibujo: como mucho UNA flecha por zona (se sustituye si se
-    // vuelve a fijar la misma zona con la brújula), en vez de la lista
-    // libre de trazos de antes.
-    const zoneStrokes = {}; // name -> { start:[x,y,z], end:[x,y,z], arrow: THREE.Object3D }
-    const zoneMarkers = {}; // name -> THREE.Sprite (objetivo grande para tocar en tablet)
-    // Marco tangente de cada zona (origen sobre la piel + normal + dos ejes
-    // tangentes dir0/dir90), calculado en placeZoneMarkers(): es lo que
-    // traduce el ángulo de la brújula en un vector 3D real sobre la
-    // superficie de la cabeza. Ver applyZoneAngle()/angleFromDirection().
-    const zoneFrames = {};
-    const zoneAngles = {}; // name -> radianes (0 = hacia la cara, ver WORLD_FRONT)
-    let armedZone = null; // zona con la brújula abierta esperando un ángulo
-
-    // Trazos "libres" de perfiles guardados con la versión anterior de esta
-    // herramienta (antes del sistema de zonas): no son editables aquí, pero
-    // se mantienen tal cual y se vuelven a guardar igual, para no perder el
-    // trabajo ya hecho de ningún cliente.
-    let legacyStrokes = []; // { start:[x,y,z], end:[x,y,z], object }
-
-    let whorls = []; // { point:[x,y,z], rotation, object }, con "Deshacer" / "Borrar todo"
-
-    let mode = "none"; // "none" (solo rotar) | "whorl-cw" | "whorl-ccw"
-
-    // --- Escena Three.js ---
+    // --- Escena ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b0d18);
-
     function currentSize() {
-      const rect = canvas.getBoundingClientRect();
-      return { w: rect.width || 640, h: rect.height || 560 };
+      const r = canvas.getBoundingClientRect();
+      return { w: r.width || 640, h: r.height || 560 };
     }
-
     const { w: initW, h: initH } = currentSize();
     const camera = new THREE.PerspectiveCamera(45, initW / initH, 0.1, 100);
-    camera.position.set(0, 0.2, 4.2);
-
+    camera.position.set(0, 0.15, 3.4);
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(initW, initH, false);
-
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 0, 0);
     controls.enablePan = false;
-    controls.minDistance = 2.2;
-    controls.maxDistance = 8;
-    // A diferencia de la versión anterior, rotar ya NO depende del modo: un
-    // dedo / botón izquierdo del ratón rota SIEMPRE. Tocar una zona o el
-    // modo de remolino se gestionan aparte, sin interceptar el gesto de
-    // arrastre de OrbitControls salvo cuando de verdad se ha empezado a
-    // arrastrar sobre una zona armada (ver onPointerDown/Move/Up).
+    controls.minDistance = 1.7;
+    controls.maxDistance = 7;
     controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
     controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
-    // Iluminación de 3 puntos suave en vez de una sola luz plana: luz de
-    // cielo/suelo (hemisferio) como base + una luz principal + una de
-    // relleno más tenue desde el otro lado, para que la cara no se vea
-    // aplastada/uniforme y se noten mejor el volumen y los rasgos.
     scene.add(new THREE.HemisphereLight(0xfff3e6, 0x3a2f2a, 0.55));
-    const keyLight = new THREE.DirectionalLight(0xfff1e0, 0.9);
-    keyLight.position.set(2, 3, 4);
-    scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0xdce8ff, 0.35);
-    fillLight.position.set(-3, 1, 2);
-    scene.add(fillLight);
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.25);
-    rimLight.position.set(0, 2, -4);
-    scene.add(rimLight);
+    const keyLight = new THREE.DirectionalLight(0xfff1e0, 0.9); keyLight.position.set(2, 3, 4); scene.add(keyLight);
+    const fillLight = new THREE.DirectionalLight(0xdce8ff, 0.35); fillLight.position.set(-3, 1, 2); scene.add(fillLight);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.25); rimLight.position.set(0, 2, -4); scene.add(rimLight);
 
-    // --- Cabeza 3D realista (licencia CC0 verificada) ---
-    // Recortada (cabeza + cuello) del "base mesh" oficial de MakeHuman
-    // (makehuman/data/3dobjs/base.obj), con pestañas reales e iris de color
-    // real añadidas del mismo base mesh CC0 (ver CLAUDE.md, sección
-    // "Iteración de realismo v3", para la procedencia completa y el proceso
-    // de construcción de frontend/assets/head.glb).
-    //
-    // A partir de esta versión el modelo se carga como archivo estático
-    // normal (fetch), NO como data URI embebida en este HTML: la razón de
-    // usar un data URI antes (evitar que el navegador bloquee fetch/XHR a
-    // archivos locales cuando este HTML se abre a doble clic con file://)
-    // ya no aplica, porque la app se sirve siempre por HTTP/HTTPS de verdad
-    // (ver el despliegue en la nube documentado en README.md/CLAUDE.md). Si
-    // alguna vez hace falta volver a probar abriendo este archivo suelto
-    // con doble clic, hay que levantar un servidor local (p.ej.
-    // `python3 -m http.server` en `frontend/`) en vez de abrirlo con
-    // file://.
-    // El material de piel/ojos/pestañas viene ya definido dentro del propio
-    // .glb (vertex colors + PBR para la piel, texturas reales para los
-    // ojos) -- a diferencia de la v1/v2, aquí no hace falta reasignar
-    // ningún material por nombre de malla tras cargarlo.
-    const raycastTargets = [];
+    // --- Maniquí ---
     let headGroup = null;
-    let headBaseScale = 2.0;
-    // Bounding sphere de la piel en espacio LOCAL del headGroup, para poder
-    // recolocar los marcadores de zona cada vez que cambie la escala (ajuste
-    // por foto del cliente) sin tener que rehacer el raycast contra la malla
-    // entera.
-    let skinLocalSphere = null;
+    let skinMesh = null;
+    let scalpAttr = null;         // atributo _scalp (0-1) del .glb
+    let crownDefault = null;      // coronilla por defecto (mundo)
+    let headCenter = new THREE.Vector3(0, HEAD_Y + 0.14 * HEAD_SCALE, -0.04);
 
-    function placeZoneMarkers() {
-      if (!headGroup || !skinLocalSphere) return;
-      // `skinLocalSphere` está en el espacio LOCAL de la malla de piel
-      // (antes de aplicar escala/posición de `headGroup`, que cambia con el
-      // ajuste por foto del cliente -- ver el listener de "shape-photo").
-      // El raycaster necesita el rayo en espacio MUNDO, así que el centro y
-      // el radio se convierten primero; `intersectObjects` ya devuelve los
-      // puntos de impacto en espacio mundo directamente, sin que haga falta
-      // (ni sea correcto) volver a pasarlos por `localToWorld`.
+    // Rejilla espacial de vértices (mundo) para pegar puntos a la superficie
+    // sin raycasts: la usan los mechones (miles de pasos) y la carga de
+    // mapas antiguos.
+    const grid = { cell: 0.06, map: new Map(), pos: null, nrm: null, scalp: null };
+    function buildGrid() {
       headGroup.updateMatrixWorld(true);
-      const worldCenter = headGroup.localToWorld(skinLocalSphere.center.clone());
-      const worldRadius = skinLocalSphere.radius * headGroup.getWorldScale(new THREE.Vector3()).x;
-      const raycaster = new THREE.Raycaster();
-      for (const zone of HEAD_ZONES) {
-        const dir = new THREE.Vector3(...zone.direction).normalize();
-        const from = worldCenter.clone().add(dir.clone().multiplyScalar(worldRadius * 3));
-        raycaster.set(from, dir.clone().multiplyScalar(-1));
-        const hits = raycaster.intersectObjects(raycastTargets, false);
-        const worldPoint = hits.length ? hits[0].point.clone() : worldCenter.clone().add(dir.clone().multiplyScalar(worldRadius));
-        // Un poco hacia fuera a lo largo de la normal del impacto (o de la
-        // propia dirección si no hay normal) para que el marcador flote
-        // ligeramente sobre la piel, no se confunda con ella ni haga z-fighting.
-        const outward = (hits.length && hits[0].face ? hits[0].face.normal.clone().transformDirection(hits[0].object.matrixWorld) : dir).normalize();
-        worldPoint.add(outward.clone().multiplyScalar(0.06));
-
-        // Marco tangente para la brújula de dirección (ver openCompassFor /
-        // applyZoneAngle más abajo). dir0 es la referencia de "0°": ANTES
-        // se usaba la propia dirección "natural" de la zona (el
-        // `zone.direction` de HEAD_ZONES) proyectada sobre el plano
-        // tangente, pero ese vector es (por construcción) casi paralelo a
-        // la normal real de la superficie en el punto exacto donde golpea
-        // el rayo -- es el mismo vector usado para lanzar el rayo, así que
-        // solo le queda un residuo tangencial minúsculo, casi ruido
-        // numérico, una vez restada la componente normal. El ángulo
-        // resultante no correspondía a ninguna dirección reconocible (p.ej.
-        // una flecha señalando claramente hacia la nuca podía leerse como
-        // "346°" en vez de un valor con sentido -- ver feedback de uso
-        // real). Ahora se usa `WORLD_FRONT` (siempre "hacia la cara", igual
-        // para las 5 zonas) como referencia: al ser un eje FIJO y
-        // compartido, 0°/90°/180°/270° significan siempre lo mismo (cara/
-        // derecha/nuca/izquierda) sin importar qué zona esté armada, y de
-        // paso deja de depender de lo bien o mal alineado que esté el
-        // `zone.direction` de cada zona con la normal real de la malla.
-        let dir0 = WORLD_FRONT.clone().sub(outward.clone().multiplyScalar(WORLD_FRONT.dot(outward)));
-        if (dir0.lengthSq() < 1e-6) {
-          // Caso degenerado (normal casi paralela a "hacia la cara", p.ej.
-          // un punto mirando justo hacia +Z/-Z): cae a "hacia arriba" como
-          // referencia de repuesto, y si esa también degenera, a un eje
-          // lateral. No ocurre con las 5 zonas actuales (todas conservan
-          // suficiente componente tangencial de WORLD_FRONT), pero deja el
-          // cálculo a salvo si se añaden zonas nuevas más adelante.
-          dir0 = new THREE.Vector3(0, 1, 0).sub(outward.clone().multiplyScalar(outward.y));
-          if (dir0.lengthSq() < 1e-6) dir0 = new THREE.Vector3(1, 0, 0).sub(outward.clone().multiplyScalar(outward.x));
-        }
-        dir0.normalize();
-        const dir90 = new THREE.Vector3().crossVectors(outward, dir0).normalize();
-        zoneFrames[zone.name] = { origin: worldPoint.clone(), normal: outward, dir0, dir90 };
-
-        let marker = zoneMarkers[zone.name];
-        if (!marker) {
-          marker = makeZoneMarkerSprite(zone.name);
-          scene.add(marker);
-          zoneMarkers[zone.name] = marker;
-        }
-        marker.position.copy(worldPoint);
+      const g = skinMesh.geometry;
+      const P = g.attributes.position, N = g.attributes.normal;
+      const n = P.count;
+      grid.pos = new Float32Array(n * 3); grid.nrm = new Float32Array(n * 3); grid.scalp = scalpAttr ? scalpAttr.array : new Float32Array(n);
+      grid.map.clear();
+      const v = new THREE.Vector3(), nm = new THREE.Vector3();
+      const normalMatrix = new THREE.Matrix3().getNormalMatrix(skinMesh.matrixWorld);
+      for (let i = 0; i < n; i++) {
+        v.fromBufferAttribute(P, i).applyMatrix4(skinMesh.matrixWorld);
+        nm.fromBufferAttribute(N, i).applyMatrix3(normalMatrix).normalize();
+        grid.pos.set([v.x, v.y, v.z], i * 3); grid.nrm.set([nm.x, nm.y, nm.z], i * 3);
+        const key = cellKey(v.x, v.y, v.z);
+        let arr = grid.map.get(key);
+        if (!arr) grid.map.set(key, (arr = []));
+        arr.push(i);
       }
     }
-
-    // Convierte un ángulo de brújula (radianes, 0 = hacia la cara, sentido
-    // horario visto desde fuera de la cabeza, ver WORLD_FRONT más arriba)
-    // en un vector 3D unitario tangente a la piel en esa zona.
-    function directionForAngle(zoneName, angleRad) {
-      const frame = zoneFrames[zoneName];
-      if (!frame) return new THREE.Vector3(0, 0, 1);
-      return frame.dir0
-        .clone()
-        .multiplyScalar(Math.cos(angleRad))
-        .add(frame.dir90.clone().multiplyScalar(Math.sin(angleRad)))
-        .normalize();
+    function cellKey(x, y, z) {
+      return `${Math.floor(x / grid.cell)},${Math.floor(y / grid.cell)},${Math.floor(z / grid.cell)}`;
     }
-
-    // Inversa de directionForAngle(): a partir de un vector 3D (p.ej. el de
-    // un trazo ya guardado) recupera el ángulo de brújula correspondiente,
-    // para que al reabrir una zona ya fijada la aguja aparezca donde
-    // corresponde en vez de siempre en 0°.
-    function angleFromDirection(zoneName, dirVec) {
-      const frame = zoneFrames[zoneName];
-      if (!frame) return 0;
-      const projected = dirVec.clone().sub(frame.normal.clone().multiplyScalar(dirVec.dot(frame.normal)));
-      if (projected.lengthSq() < 1e-8) return 0;
-      projected.normalize();
-      let angle = Math.atan2(projected.dot(frame.dir90), projected.dot(frame.dir0));
-      if (angle < 0) angle += Math.PI * 2;
-      return angle;
+    function nearestVertex(p, scalpOnly) {
+      const cx = Math.floor(p.x / grid.cell), cy = Math.floor(p.y / grid.cell), cz = Math.floor(p.z / grid.cell);
+      let best = -1, bestD = Infinity;
+      for (let r = 1; r <= 3 && best < 0; r++) {
+        for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
+          const arr = grid.map.get(`${cx + dx},${cy + dy},${cz + dz}`);
+          if (!arr) continue;
+          for (const i of arr) {
+            if (scalpOnly && grid.scalp[i] < 0.3) continue;
+            const ex = grid.pos[i * 3] - p.x, ey = grid.pos[i * 3 + 1] - p.y, ez = grid.pos[i * 3 + 2] - p.z;
+            const d = ex * ex + ey * ey + ez * ez;
+            if (d < bestD) { bestD = d; best = i; }
+          }
+        }
+      }
+      return best;
     }
-
-    const ZONE_ARROW_LENGTH = 0.32;
-
-    // Aplica un ángulo de brújula a una zona: lo guarda, calcula el
-    // vector 3D correspondiente y (re)dibuja la flecha de esa zona sobre
-    // la cabeza a partir de su marcador. Se llama tanto mientras se
-    // arrastra el disco (vista previa en vivo) como al soltarlo.
-    function applyZoneAngle(zoneName, angleRad) {
-      const frame = zoneFrames[zoneName];
-      if (!frame) return;
-      zoneAngles[zoneName] = angleRad;
-      const dirVec = directionForAngle(zoneName, angleRad);
-      const start = frame.origin.clone();
-      const end = start.clone().add(dirVec.multiplyScalar(ZONE_ARROW_LENGTH));
-      setZoneStroke(zoneName, start, end);
-    }
-
-    function makeZoneMarkerSprite(zoneName) {
-      const c = document.createElement("canvas");
-      c.width = 96; c.height = 96;
-      const ctx = c.getContext("2d");
-      ctx.beginPath();
-      ctx.arc(48, 48, 40, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(79, 227, 255, 0.35)";
-      ctx.fill();
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = "#4fe3ff";
-      ctx.stroke();
-      const texture = new THREE.CanvasTexture(c);
-      // depthTest en true: así el punto se oculta detrás de la cabeza cuando
-      // esa zona no mira hacia la cámara, en vez de "flotar" siempre encima
-      // de todo (antes esto hacía que, p.ej., el punto de la nuca pareciera
-      // estar sobre la cara al ver la cabeza de frente).
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: true, transparent: true }));
-      sprite.scale.set(0.34, 0.34, 1);
-      sprite.renderOrder = 10;
-      sprite.userData.zoneName = zoneName;
-      return sprite;
-    }
-
-    function updateZoneMarkerLook(zoneName) {
-      const marker = zoneMarkers[zoneName];
-      if (!marker) return;
-      const isArmed = armedZone === zoneName;
-      const isSet = !!zoneStrokes[zoneName];
-      const c = marker.material.map.image;
-      const ctx = c.getContext("2d");
-      ctx.clearRect(0, 0, c.width, c.height);
-      ctx.beginPath();
-      ctx.arc(48, 48, 40, 0, Math.PI * 2);
-      ctx.fillStyle = isArmed ? "rgba(255, 210, 80, 0.45)" : isSet ? "rgba(79, 227, 255, 0.45)" : "rgba(180, 190, 210, 0.25)";
-      ctx.fill();
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = isArmed ? "#ffd250" : isSet ? "#4fe3ff" : "#aab2c8";
-      ctx.stroke();
-      marker.material.map.needsUpdate = true;
+    // Pega un punto a la superficie (plano tangente del vértice más cercano)
+    // y lo separa `lift`. Devuelve también la normal.
+    function snap(p, lift, scalpOnly) {
+      const i = nearestVertex(p, scalpOnly);
+      if (i < 0) return { p: p.clone(), n: p.clone().sub(headCenter).normalize() };
+      const v = new THREE.Vector3(grid.pos[i * 3], grid.pos[i * 3 + 1], grid.pos[i * 3 + 2]);
+      const n = new THREE.Vector3(grid.nrm[i * 3], grid.nrm[i * 3 + 1], grid.nrm[i * 3 + 2]);
+      const out = p.clone().sub(n.clone().multiplyScalar(p.clone().sub(v).dot(n))).add(n.clone().multiplyScalar(lift));
+      return { p: out, n };
     }
 
     function loadHeadModel() {
       return new Promise((resolve, reject) => {
-        new THREE.GLTFLoader().load(
-          "assets/head.glb",
-          (gltf) => {
-            headGroup = gltf.scene;
-            headGroup.scale.setScalar(headBaseScale);
-            headGroup.position.set(0, -0.3, 0);
-            headGroup.traverse((child) => {
-              if (child.isMesh) {
-                // El .glb no lleva normales (solo POSITION, para ahorrar
-                // peso) -- sin esto, la malla se ve totalmente negra: el
-                // shader de MeshStandardMaterial necesita normales para
-                // calcular la luz y, sin ellas, el resultado es NaN/negro.
-                child.geometry.computeVertexNormals();
-                child.castShadow = false;
-                if (child.name === "skin") {
-                  raycastTargets.push(child);
-                  child.geometry.computeBoundingSphere();
-                  skinLocalSphere = child.geometry.boundingSphere.clone();
-                }
-              }
-            });
-            scene.add(headGroup);
-            placeZoneMarkers();
-            resolve();
-          },
-          undefined,
-          (err) => reject(err)
-        );
+        new THREE.GLTFLoader().load("assets/head.glb", (gltf) => {
+          headGroup = gltf.scene;
+          headGroup.scale.setScalar(HEAD_SCALE);
+          headGroup.position.set(0, HEAD_Y, 0);
+          headGroup.traverse((child) => {
+            if (!child.isMesh) return;
+            child.geometry.computeVertexNormals();
+            if (child.name === "skin") {
+              skinMesh = child;
+              scalpAttr = child.geometry.attributes._scalp || null;
+            }
+          });
+          scene.add(headGroup);
+          buildGrid();
+          // Coronilla por defecto: punto del cuero cabelludo arriba y algo atrás.
+          crownDefault = snap(headCenter.clone().add(new THREE.Vector3(0, 0.86, -0.5).normalize().multiplyScalar(0.7)), 0, true).p;
+          resolve();
+        }, undefined, reject);
       });
     }
 
+    // --- Raycast ---
     const raycaster = new THREE.Raycaster();
-    const mouseNdc = new THREE.Vector2();
-
-    function updateMouseNdc(event) {
-      const rect = canvas.getBoundingClientRect();
-      mouseNdc.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouseNdc.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    const ndc = new THREE.Vector2();
+    const _tri = new THREE.Triangle(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _bary = new THREE.Vector3();
+    function hitHead(event) {
+      const r = canvas.getBoundingClientRect();
+      ndc.x = ((event.clientX - r.left) / r.width) * 2 - 1;
+      ndc.y = -((event.clientY - r.top) / r.height) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObject(skinMesh, false);
+      if (!hits.length) return null;
+      const h = hits[0];
+      let scalp = 1;
+      if (scalpAttr && h.face) {
+        const P = skinMesh.geometry.attributes.position;
+        _a.fromBufferAttribute(P, h.face.a); _b.fromBufferAttribute(P, h.face.b); _c.fromBufferAttribute(P, h.face.c);
+        _tri.set(_a, _b, _c).getBarycoord(skinMesh.worldToLocal(h.point.clone()), _bary);
+        scalp = scalpAttr.getX(h.face.a) * _bary.x + scalpAttr.getX(h.face.b) * _bary.y + scalpAttr.getX(h.face.c) * _bary.z;
+      }
+      const n = h.face ? h.face.normal.clone().transformDirection(skinMesh.matrixWorld).normalize() : h.point.clone().sub(headCenter).normalize();
+      return { point: h.point.clone(), normal: n, scalp };
     }
 
-    function raycastHead() {
-      raycaster.setFromCamera(mouseNdc, camera);
-      const hits = raycaster.intersectObjects(raycastTargets, false);
-      return hits.length ? hits[0].point.clone() : null;
+    // --- Flechas ---
+    const ARROW_COLOR = 0x4fe3ff;
+    const arrowMat = new THREE.MeshStandardMaterial({ color: ARROW_COLOR, emissive: 0x0b4a5a, roughness: 0.4 });
+    function makeArrowObject(points) {
+      const group = new THREE.Group();
+      const curve = new THREE.CatmullRomCurve3(points, false, "centripetal");
+      const segs = Math.max(8, points.length * 4);
+      group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, segs, 0.012, 6, false), arrowMat));
+      const end = points[points.length - 1];
+      const tangent = curve.getTangentAt(1).normalize();
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.08, 12), arrowMat);
+      cone.position.copy(end).add(tangent.clone().multiplyScalar(0.03));
+      cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+      group.add(cone);
+      return group;
+    }
+    function resample(points, maxPts) {
+      let total = 0;
+      for (let i = 1; i < points.length; i++) total += points[i].distanceTo(points[i - 1]);
+      const n = Math.max(2, Math.min(maxPts, Math.round(total / 0.035) + 1));
+      const out = [points[0].clone()];
+      const step = total / (n - 1);
+      let acc = 0, i = 1, prev = points[0].clone();
+      for (let k = 1; k < n - 1; k++) {
+        let target = step * k;
+        while (i < points.length && acc + prev.distanceTo(points[i]) < target) { acc += prev.distanceTo(points[i]); prev = points[i].clone(); i++; }
+        if (i >= points.length) break;
+        const seg = prev.distanceTo(points[i]);
+        out.push(prev.clone().lerp(points[i], seg ? (target - acc) / seg : 0));
+      }
+      out.push(points[points.length - 1].clone());
+      return { points: out, length: total };
+    }
+    function addArrow(points, record = true) {
+      const obj = makeArrowObject(points);
+      scene.add(obj);
+      const item = { kind: "arrow", points, object: obj };
+      items.push(item);
+      if (record) changed();
+      return item;
     }
 
-    function makeArrow(start, end, color) {
-      const dir = new THREE.Vector3().subVectors(end, start);
-      const length = Math.max(dir.length(), 0.001);
-      dir.normalize();
-      const headLength = Math.min(0.08, length * 0.4);
-      const headWidth = Math.min(0.05, length * 0.3);
-      return new THREE.ArrowHelper(dir, start, length, color, headLength, headWidth);
-    }
-
+    // --- Remolinos ---
     function makeWhorlSprite(rotation) {
       const c = document.createElement("canvas");
-      c.width = 64; c.height = 64;
+      c.width = 96; c.height = 96;
       const ctx = c.getContext("2d");
       ctx.fillStyle = rotation === "horario" ? "#2563eb" : "#dc2626";
-      ctx.beginPath(); ctx.arc(32, 32, 28, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "white";
-      ctx.font = "bold 34px sans-serif";
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(rotation === "horario" ? "↻" : "↺", 33, 34);
-      const texture = new THREE.CanvasTexture(c);
-      // depthTest en true por el mismo motivo que el marcador de zona (ver
-      // makeZoneMarkerSprite): un remolino marcado en un lateral/atrás no
-      // debe verse "flotando" sobre la cara al mirar la cabeza de frente,
-      // debe ocultarse detrás de la cabeza como cualquier punto real de la
-      // piel que en ese momento no mira hacia la cámara.
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: true }));
-      sprite.scale.set(0.2, 0.2, 1);
-      return sprite;
-    }
-
-    function setZoneStroke(zoneName, start, end) {
-      const existing = zoneStrokes[zoneName];
-      if (existing) scene.remove(existing.arrow);
-      const arrow = makeArrow(start, end, 0x4fe3ff);
-      scene.add(arrow);
-      zoneStrokes[zoneName] = { start: start.toArray(), end: end.toArray(), arrow };
-      updateZoneMarkerLook(zoneName);
-      renderZoneLegend();
-    }
-
-    function clearZoneStroke(zoneName) {
-      const existing = zoneStrokes[zoneName];
-      if (existing) {
-        scene.remove(existing.arrow);
-        delete zoneStrokes[zoneName];
+      ctx.beginPath(); ctx.arc(48, 48, 40, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 7; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(48, 48, 22, 0.35, Math.PI * 1.75); ctx.stroke();
+      // punta de flecha al final del arco, en el sentido del giro
+      const endA = rotation === "horario" ? Math.PI * 1.75 : 0.35;
+      const ex = 48 + 22 * Math.cos(endA), ey = 48 + 22 * Math.sin(endA);
+      const dir = rotation === "horario" ? 1 : -1;
+      const tx = -Math.sin(endA) * dir, ty = Math.cos(endA) * dir;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.moveTo(ex + tx * 13, ey + ty * 13);
+      ctx.lineTo(ex - ty * 10 - tx * 3, ey + tx * 10 - ty * 3);
+      ctx.lineTo(ex + ty * 10 - tx * 3, ey - tx * 10 - ty * 3);
+      ctx.fill();
+      if (rotation !== "horario") { // antihorario: espejo horizontal del dibujo
+        const m = document.createElement("canvas"); m.width = 96; m.height = 96;
+        const mc = m.getContext("2d"); mc.translate(96, 0); mc.scale(-1, 1); mc.drawImage(c, 0, 0);
+        return spriteFrom(m);
       }
-      delete zoneAngles[zoneName];
-      updateZoneMarkerLook(zoneName);
-      renderZoneLegend();
+      return spriteFrom(c);
     }
-
-    function addWhorl(point, rotation) {
+    function spriteFrom(c) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: true, transparent: true }));
+      s.scale.set(0.2, 0.2, 1);
+      s.renderOrder = 5;
+      return s;
+    }
+    function addWhorl(point, rotation, record = true) {
       const sprite = makeWhorlSprite(rotation);
       sprite.position.copy(point);
       scene.add(sprite);
-      whorls.push({ point: point.toArray(), rotation, object: sprite });
+      const item = { kind: "whorl", point, rotation, object: sprite };
+      items.push(item);
+      if (record) changed();
+      return item;
     }
 
-    // --- Leyenda de zonas: además de tocar el marcador 3D, sirve para
-    // "armar" una zona desde la lista (más fiable en tablet si el marcador
-    // ha quedado tapado por la propia cabeza al rotar) y para borrar solo
-    // la dirección de una zona sin tocar las demás. ---
-    const zoneLegendEl = document.getElementById("zone-legend");
-    function renderZoneLegend() {
-      zoneLegendEl.innerHTML = "";
-      for (const zone of HEAD_ZONES) {
-        const row = document.createElement("button");
-        row.type = "button";
-        row.className = "zone-row" + (armedZone === zone.name ? " armed" : "");
-        const isSet = !!zoneStrokes[zone.name];
-        row.innerHTML = `
-          <span class="zone-dot${isSet ? " set" : ""}"></span>
-          <span>${zone.label}</span>
-          ${isSet ? '<span class="zone-reset" role="button" aria-label="Borrar dirección" data-zone-reset="' + zone.name + '">' + UI.icon("x") + '</span>' : ""}
-        `;
-        row.addEventListener("click", (e) => {
-          if (e.target.dataset && e.target.dataset.zoneReset) {
-            e.stopPropagation();
-            clearZoneStroke(e.target.dataset.zoneReset);
-            return;
-          }
-          armZone(zone.name);
+    function removeItem(item) {
+      scene.remove(item.object);
+      item.object.traverse?.((o) => o.geometry && o.geometry.dispose());
+      items = items.filter((x) => x !== item);
+      changed();
+    }
+
+    // --- Mechones que siguen las flechas ---
+    // Campo de direcciones en cada punto del cuero cabelludo:
+    //  - por defecto, el pelo sale de la coronilla hacia fuera (cae hacia la
+    //    cara delante, hacia abajo en los lados y la nuca);
+    //  - cerca de una flecha manda la flecha (peso gaussiano, σ = 0,16);
+    //  - cerca de un remolino, el pelo gira alrededor de él.
+    // Se proyecta siempre al plano tangente.
+    const HAIR_ROOTS = 2600, HAIR_SEGS = 6, HAIR_STEP = 0.022;
+    let hairObject = null;
+    let hairVisible = true;
+    function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+    let hairRoots = null; // [{p, n}] en mundo
+    function sampleRoots() {
+      const rnd = mulberry32(7);
+      const g = skinMesh.geometry, idx = g.index.array;
+      const tris = [], areas = [];
+      const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
+      let total = 0;
+      for (let f = 0; f < idx.length; f += 3) {
+        const a = idx[f], b = idx[f + 1], c = idx[f + 2];
+        const s = (grid.scalp[a] + grid.scalp[b] + grid.scalp[c]) / 3;
+        if (s < 0.5) continue;
+        A.fromArray(grid.pos, a * 3); B.fromArray(grid.pos, b * 3); C.fromArray(grid.pos, c * 3);
+        const area = B.clone().sub(A).cross(C.clone().sub(A)).length() / 2;
+        total += area; tris.push(f); areas.push(total);
+      }
+      const roots = [];
+      for (let k = 0; k < HAIR_ROOTS; k++) {
+        const r = rnd() * total;
+        let lo = 0, hi = areas.length - 1;
+        while (lo < hi) { const mid = (lo + hi) >> 1; if (areas[mid] < r) lo = mid + 1; else hi = mid; }
+        const f = tris[lo];
+        let u = rnd(), v = rnd(); if (u + v > 1) { u = 1 - u; v = 1 - v; }
+        const a = idx[f], b = idx[f + 1], c = idx[f + 2];
+        const p = new THREE.Vector3(), n = new THREE.Vector3();
+        for (const [i, w] of [[a, 1 - u - v], [b, u], [c, v]]) {
+          p.x += grid.pos[i * 3] * w; p.y += grid.pos[i * 3 + 1] * w; p.z += grid.pos[i * 3 + 2] * w;
+          n.x += grid.nrm[i * 3] * w; n.y += grid.nrm[i * 3 + 1] * w; n.z += grid.nrm[i * 3 + 2] * w;
+        }
+        roots.push({ p, n: n.normalize(), shade: 0.75 + rnd() * 0.5 });
+      }
+      hairRoots = roots;
+    }
+    function tangential(v, n) { return v.clone().sub(n.clone().multiplyScalar(v.dot(n))); }
+    function flowField() {
+      const segs = [];
+      for (const it of items) {
+        if (it.kind !== "arrow") continue;
+        for (let i = 0; i + 1 < it.points.length; i++) {
+          segs.push({ m: it.points[i].clone().add(it.points[i + 1]).multiplyScalar(0.5), t: it.points[i + 1].clone().sub(it.points[i]).normalize() });
+        }
+      }
+      const whorls = items.filter((it) => it.kind === "whorl");
+      // La coronilla "de verdad" es el remolino más alto marcado por encima del centro, si lo hay.
+      let crown = crownDefault;
+      const high = whorls.filter((w) => w.point.y > headCenter.y + 0.3).sort((a, b) => b.point.y - a.point.y);
+      if (high.length) crown = high[0].point;
+      const SIG2 = 0.16 * 0.16, WSIG2 = 0.13 * 0.13;
+      return function (p, n) {
+        const v = tangential(p.clone().sub(crown), n);
+        if (v.lengthSq() > 1e-8) v.normalize().multiplyScalar(0.25);
+        for (const s of segs) {
+          const d2 = p.distanceToSquared(s.m);
+          if (d2 > 9 * SIG2) continue;
+          v.add(s.t.clone().multiplyScalar(Math.exp(-d2 / SIG2)));
+        }
+        for (const w of whorls) {
+          const r = tangential(p.clone().sub(w.point), n);
+          const d2 = r.lengthSq();
+          if (d2 > 9 * WSIG2 || d2 < 1e-10) continue;
+          const swirl = r.clone().cross(n).multiplyScalar(w.rotation === "horario" ? 1 : -1).normalize();
+          const radial = r.clone().normalize();
+          v.add(swirl.multiplyScalar(0.8).add(radial.multiplyScalar(0.45)).normalize().multiplyScalar(3 * Math.exp(-d2 / WSIG2)));
+        }
+        const t = tangential(v, n);
+        return t.lengthSq() > 1e-10 ? t.normalize() : null;
+      };
+    }
+    function buildHair() {
+      if (!skinMesh) return;
+      if (!hairRoots) sampleRoots();
+      if (hairObject) { scene.remove(hairObject); hairObject.geometry.dispose(); }
+      const field = flowField();
+      const pos = new Float32Array(HAIR_ROOTS * HAIR_SEGS * 6);
+      const col = new Float32Array(HAIR_ROOTS * HAIR_SEGS * 6);
+      const root = new THREE.Color(0.13, 0.10, 0.085), tip = new THREE.Color(0.47, 0.37, 0.29);
+      let o = 0;
+      for (const r of hairRoots) {
+        let p = r.p.clone().add(r.n.clone().multiplyScalar(0.004)), n = r.n.clone();
+        for (let k = 0; k < HAIR_SEGS; k++) {
+          const d = field(p, n);
+          if (!d) break;
+          const next = snap(p.clone().add(d.multiplyScalar(HAIR_STEP)), 0.004 + 0.0045 * (k + 1), false);
+          const c0 = root.clone().lerp(tip, k / HAIR_SEGS).multiplyScalar(r.shade), c1 = root.clone().lerp(tip, (k + 1) / HAIR_SEGS).multiplyScalar(r.shade);
+          pos.set([p.x, p.y, p.z, next.p.x, next.p.y, next.p.z], o);
+          col.set([c0.r, c0.g, c0.b, c1.r, c1.g, c1.b], o);
+          o += 6;
+          p = next.p; n = next.n;
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(pos.subarray(0, o), 3));
+      g.setAttribute("color", new THREE.BufferAttribute(col.subarray(0, o), 3));
+      hairObject = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true }));
+      hairObject.visible = hairVisible;
+      scene.add(hairObject);
+    }
+    let hairTimer = null;
+    function scheduleHair() { clearTimeout(hairTimer); hairTimer = setTimeout(buildHair, 60); }
+
+    document.getElementById("hair-toggle").addEventListener("click", (e) => {
+      hairVisible = !hairVisible;
+      if (hairObject) hairObject.visible = hairVisible;
+      e.currentTarget.classList.toggle("off", !hairVisible);
+      e.currentTarget.setAttribute("aria-pressed", String(hairVisible));
+    });
+
+    // --- Resumen (lo interpreta el backend, igual que para recomendar) ---
+    let summaryTimer = null;
+    function changed() {
+      scheduleHair();
+      clearTimeout(summaryTimer);
+      summaryTimer = setTimeout(refreshSummary, 350);
+    }
+    async function refreshSummary() {
+      const box = document.getElementById("summary");
+      if (!items.length) { box.innerHTML = ""; return; }
+      try {
+        const res = await fetch(`${API_BASE}/growth-map/summary`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload()),
         });
-        zoneLegendEl.appendChild(row);
-      }
+        if (!res.ok) return;
+        const data = await res.json();
+        box.innerHTML = data.lines.map((l) => `<span class="chip">${UI.icon(l.startsWith("Remolino") ? "rotate-cw" : l.startsWith("Raya") ? "scissors" : "move")}${esc(l)}</span>`).join("");
+      } catch (e) { /* no crítico */ }
     }
 
-    function armZone(zoneName) {
-      if (armedZone && armedZone !== zoneName) updateZoneMarkerLook(armedZone);
-      armedZone = zoneName;
-      updateZoneMarkerLook(zoneName);
-      renderZoneLegend();
-      openCompassFor(zoneName);
-      const zone = HEAD_ZONES.find((z) => z.name === zoneName);
-      aimHintEl.innerHTML = `${UI.icon("compass")} <strong>${zone.label}</strong> · gira el disco`;
+    // --- Modos ---
+    const HINTS = {
+      none: ["rotate-3d", "Arrastra para girar · pellizca para acercar"],
+      arrow: ["pen-line", "Desliza el dedo sobre el pelo en el sentido en que crece"],
+      "whorl-cw": ["rotate-cw", "Toca donde está el remolino"],
+      "whorl-ccw": ["rotate-ccw", "Toca donde está el remolino"],
+      erase: ["eraser", "Toca una flecha o un remolino para quitarlo"],
+    };
+    function setMode(m) {
+      mode = m;
+      document.querySelectorAll(".toolbar button[data-mode]").forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
+      wrap.classList.toggle("drawing", m !== "none");
+      // En los modos de marcar, un dedo dibuja/toca; girar sigue con dos dedos (pellizco) o volviendo a "Girar".
+      controls.touches.ONE = m === "none" ? THREE.TOUCH.ROTATE : null;
+      hintEl.innerHTML = `${UI.icon(HINTS[m][0])}<span>${HINTS[m][1]}</span>`;
     }
+    document.querySelectorAll(".toolbar button[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
 
-    function disarmZone() {
-      const previous = armedZone;
-      armedZone = null;
-      if (previous) updateZoneMarkerLook(previous);
-      renderZoneLegend();
-      closeCompass();
-      aimHintEl.textContent = "";
-    }
-
-    // --- Brújula de dirección ---
-    // Sustituye al arrastre directo sobre la cabeza 3D (difícil de hacer
-    // con precisión en tablet, sobre todo en zonas pequeñas como los
-    // laterales): es un control 2D de tamaño fijo, siempre en el mismo
-    // sitio en pantalla, independiente del ángulo de cámara o de dónde
-    // caiga exactamente el dedo sobre la piel.
-    const compassPanel = document.getElementById("compass-panel");
-    const compassSvg = document.getElementById("compass-svg");
-    const compassNeedle = document.getElementById("compass-needle");
-    const compassTitleEl = document.getElementById("compass-title");
-    const compassReadoutEl = document.getElementById("compass-readout");
-
-    // Marcas cada 45° alrededor del disco, solo de referencia visual (el
-    // imán de angleFromPointer() usa los mismos 8 puntos).
-    (function drawCompassTicks() {
-      const ticksGroup = document.getElementById("compass-ticks");
-      for (let i = 0; i < 8; i++) {
-        const angle = (i * Math.PI) / 4;
-        const x1 = 60 + Math.sin(angle) * 44, y1 = 60 - Math.cos(angle) * 44;
-        const x2 = 60 + Math.sin(angle) * 52, y2 = 60 - Math.cos(angle) * 52;
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", x1); line.setAttribute("y1", y1);
-        line.setAttribute("x2", x2); line.setAttribute("y2", y2);
-        ticksGroup.appendChild(line);
-      }
-    })();
-
-    function updateCompassNeedle(angleRad) {
-      const x = 60 + Math.sin(angleRad) * 46;
-      const y = 60 - Math.cos(angleRad) * 46;
-      compassNeedle.setAttribute("x2", x);
-      compassNeedle.setAttribute("y2", y);
-      const deg = Math.round(((angleRad * 180) / Math.PI + 360) % 360);
-      // 0°/90°/180°/270° son siempre "hacia la cara/derecha/nuca/izquierda"
-      // en las 5 zonas (ver WORLD_FRONT en placeZoneMarkers), así que se
-      // puede dar una etiqueta con sentido real en vez de solo el número.
-      const ETIQUETAS_CARDINALES = { 0: "hacia la cara", 90: "hacia la derecha", 180: "hacia la nuca", 270: "hacia la izquierda" };
-      const etiqueta = ETIQUETAS_CARDINALES[deg];
-      compassReadoutEl.textContent = etiqueta ? `${deg}° (${etiqueta})` : `${deg}°`;
-    }
-
-    function openCompassFor(zoneName) {
-      const zone = HEAD_ZONES.find((z) => z.name === zoneName);
-      compassTitleEl.textContent = zone.label;
-      updateCompassNeedle(zoneAngles[zoneName] || 0);
-      compassPanel.style.display = "block";
-    }
-
-    function closeCompass() {
-      compassPanel.style.display = "none";
-    }
-
-    // Convierte la posición del puntero (en coordenadas de pantalla) en un
-    // ángulo de brújula: 0 = arriba, sentido horario. Con imán a los 8
-    // puntos cardinales (cada 45°) si se está a menos de ~7°, para poder
-    // apuntar "justo hacia delante/atrás/al lado" sin necesitar pulso
-    // perfecto -- que era la queja principal del sistema de arrastre
-    // anterior sobre la propia cabeza 3D.
-    function angleFromPointer(event) {
-      const rect = compassSvg.getBoundingClientRect();
-      const scale = 120 / rect.width; // el viewBox del SVG es 120x120
-      const dx = (event.clientX - rect.left) * scale - 60;
-      const dy = (event.clientY - rect.top) * scale - 60;
-      let angle = Math.atan2(dx, -dy);
-      if (angle < 0) angle += Math.PI * 2;
-      const step = Math.PI / 4;
-      const nearest = Math.round(angle / step) * step;
-      if (Math.abs(angle - nearest) < (7 * Math.PI) / 180) angle = nearest % (Math.PI * 2);
-      return angle;
-    }
-
-    let compassDragging = false;
-
-    compassSvg.addEventListener("pointerdown", (event) => {
-      if (!armedZone) return;
-      compassDragging = true;
-      try { compassSvg.setPointerCapture(event.pointerId); } catch (err) { /* no crítico */ }
-      const angle = angleFromPointer(event);
-      updateCompassNeedle(angle);
-      applyZoneAngle(armedZone, angle);
-      event.preventDefault();
-    });
-    compassSvg.addEventListener("pointermove", (event) => {
-      if (!compassDragging || !armedZone) return;
-      const angle = angleFromPointer(event);
-      updateCompassNeedle(angle);
-      applyZoneAngle(armedZone, angle);
-    });
-    function finishCompassDrag(event) {
-      if (!compassDragging) return;
-      compassDragging = false;
-      try { if (compassSvg.hasPointerCapture(event.pointerId)) compassSvg.releasePointerCapture(event.pointerId); } catch (err) { /* no crítico */ }
-      if (armedZone) {
-        aimHintEl.innerHTML = `${UI.icon("circle-check")} <strong>${HEAD_ZONES.find((z) => z.name === armedZone).label}</strong> marcada`;
-      }
-    }
-    compassSvg.addEventListener("pointerup", finishCompassDrag);
-    compassSvg.addEventListener("pointercancel", finishCompassDrag);
-
-    document.getElementById("compass-done-btn").addEventListener("click", () => disarmZone());
-    document.getElementById("compass-clear-btn").addEventListener("click", () => {
-      if (!armedZone) return;
-      clearZoneStroke(armedZone);
-      updateCompassNeedle(0);
-    });
-
-    // --- Modo remolino (sin cambios de fondo respecto a la versión
-    // anterior, solo que ahora conviven con el rotar-siempre por defecto) ---
-    function setMode(newMode) {
-      mode = newMode;
-      document.querySelectorAll(".toolbar button[data-mode]").forEach((b) => b.classList.remove("active"));
-      document.querySelector(`[data-mode="${newMode}"]`).classList.add("active");
-      if (newMode !== "none") disarmZone();
-    }
-    document.querySelectorAll(".toolbar button[data-mode]").forEach((btn) => {
-      btn.addEventListener("click", () => setMode(btn.dataset.mode));
-    });
-
-    // --- Interacción del canvas ---
-    // La dirección de cada zona ya NO se fija arrastrando sobre la propia
-    // cabeza 3D (ver la brújula más arriba), así que aquí solo queda un
-    // caso especial antes de dejar que OrbitControls rote: un toque en
-    // modo remolino. Con una zona armada, tocar la cabeza para rotarla
-    // sigue funcionando con normalidad -- es útil para ver mejor la zona
-    // mientras se gira el disco de dirección.
+    // --- Interacción en el lienzo (fase de captura: antes que OrbitControls) ---
+    let drawing = null; // { points:[Vector3], preview }
+    function stopOrbit() { controls.enabled = false; }
     canvas.addEventListener("pointerdown", (event) => {
-      if (event.button !== 0 || !event.isPrimary) return;
-      if (mode !== "whorl-cw" && mode !== "whorl-ccw") return;
-      updateMouseNdc(event);
-      const point = raycastHead();
-      if (!point) return;
-      event.preventDefault();
-      addWhorl(point, mode === "whorl-cw" ? "horario" : "antihorario");
+      if (!skinMesh || mode === "none" || !event.isPrimary || event.button !== 0) return;
+      const hit = hitHead(event);
+      if (!hit) return;
+      if (mode === "arrow") {
+        if (hit.scalp < 0.35) { hintEl.innerHTML = `${UI.icon("triangle-alert")}<span>Empieza la flecha sobre el pelo</span>`; return; }
+        stopOrbit();
+        event.preventDefault(); event.stopPropagation();
+        try { canvas.setPointerCapture(event.pointerId); } catch (e) { /* no crítico */ }
+        const p = hit.point.clone().add(hit.normal.clone().multiplyScalar(ARROW_LIFT));
+        const g = new THREE.BufferGeometry().setFromPoints([p, p]);
+        const preview = new THREE.Line(g, new THREE.LineBasicMaterial({ color: ARROW_COLOR }));
+        scene.add(preview);
+        drawing = { points: [p], preview };
+        return;
+      }
+      stopOrbit();
+      event.preventDefault(); event.stopPropagation();
+      if (mode === "whorl-cw" || mode === "whorl-ccw") {
+        if (hit.scalp < 0.2) { hintEl.innerHTML = `${UI.icon("triangle-alert")}<span>El remolino va sobre el pelo</span>`; return; }
+        addWhorl(hit.point.clone().add(hit.normal.clone().multiplyScalar(0.03)), mode === "whorl-cw" ? "horario" : "antihorario");
+      } else if (mode === "erase") {
+        let best = null, bestD = 0.12;
+        for (const it of items) {
+          const pts = it.kind === "arrow" ? it.points : [it.point];
+          for (const q of pts) { const d = q.distanceTo(hit.point); if (d < bestD) { bestD = d; best = it; } }
+        }
+        if (best) removeItem(best);
+      }
+    }, { capture: true });
+    canvas.addEventListener("pointermove", (event) => {
+      if (!drawing) return;
+      const hit = hitHead(event);
+      if (!hit || hit.scalp < 0.2) return;
+      const p = hit.point.clone().add(hit.normal.clone().multiplyScalar(ARROW_LIFT));
+      if (p.distanceTo(drawing.points[drawing.points.length - 1]) < 0.02) return;
+      drawing.points.push(p);
+      drawing.preview.geometry.dispose();
+      drawing.preview.geometry = new THREE.BufferGeometry().setFromPoints(drawing.points);
+    }, { capture: true });
+    function endPointer(event) {
+      if (drawing) {
+        scene.remove(drawing.preview);
+        drawing.preview.geometry.dispose();
+        const { points, length } = resample(drawing.points, 24);
+        drawing = null;
+        if (length >= MIN_ARROW_LEN) {
+          addArrow(points);
+          hintEl.innerHTML = `${UI.icon("circle-check")}<span>Flecha añadida</span>`;
+        } else {
+          hintEl.innerHTML = `${UI.icon("triangle-alert")}<span>Desliza un poco más largo</span>`;
+        }
+      }
+      controls.enabled = true;
+    }
+    canvas.addEventListener("pointerup", endPointer, { capture: true });
+    canvas.addEventListener("pointercancel", endPointer, { capture: true });
+
+    document.getElementById("undo-btn").addEventListener("click", () => {
+      const last = items[items.length - 1];
+      if (last) removeItem(last);
+    });
+    const clearBtn = document.getElementById("clear-btn");
+    let clearArmed = null;
+    clearBtn.addEventListener("click", () => {
+      if (!items.length) return;
+      if (!clearArmed) {
+        clearBtn.classList.add("danger-armed");
+        hintEl.innerHTML = `${UI.icon("triangle-alert")}<span>Toca otra vez para borrar todo</span>`;
+        clearArmed = setTimeout(() => { clearArmed = null; clearBtn.classList.remove("danger-armed"); }, 3000);
+        return;
+      }
+      clearTimeout(clearArmed); clearArmed = null; clearBtn.classList.remove("danger-armed");
+      for (const it of [...items]) scene.remove(it.object);
+      items = [];
+      changed();
     });
 
-    document.getElementById("undo-whorl-btn").addEventListener("click", () => {
-      const last = whorls.pop();
-      if (last) scene.remove(last.object);
-    });
-
-    document.getElementById("clear-btn").addEventListener("click", () => {
-      for (const name of Object.keys(zoneStrokes)) clearZoneStroke(name);
-      for (const it of whorls) scene.remove(it.object);
-      whorls = [];
-      for (const it of legacyStrokes) scene.remove(it.object);
-      legacyStrokes = [];
-    });
+    // --- Vistas rápidas ---
+    // "Izq." = lado izquierdo del cliente (su oreja izquierda, +x del maniquí).
+    const VIEWS = {
+      front: new THREE.Vector3(0, 0.15, 1),
+      left: new THREE.Vector3(1, 0.15, 0),
+      right: new THREE.Vector3(-1, 0.15, 0),
+      back: new THREE.Vector3(0, 0.15, -1),
+      top: new THREE.Vector3(0, 1, 0.22),
+    };
+    let tween = null;
+    function goView(name) {
+      document.querySelectorAll("#views button").forEach((b) => b.classList.toggle("on", b.dataset.view === name));
+      const dist = camera.position.distanceTo(controls.target);
+      const from = camera.position.clone().sub(controls.target).normalize();
+      const to = VIEWS[name].clone().normalize();
+      tween = { from, to, dist, t0: performance.now() };
+    }
+    document.querySelectorAll("#views button").forEach((b) => b.addEventListener("click", () => goView(b.dataset.view)));
+    controls.addEventListener("start", () => { tween = null; document.querySelectorAll("#views button").forEach((b) => b.classList.remove("on")); });
 
     function resizeRenderer() {
       const { w, h } = currentSize();
@@ -799,17 +727,22 @@
       renderer.setSize(w, h, false);
     }
     window.addEventListener("resize", resizeRenderer);
-
     function animate() {
       requestAnimationFrame(animate);
+      if (tween) {
+        const k = Math.min(1, (performance.now() - tween.t0) / 380);
+        const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        const dir = tween.from.clone().lerp(tween.to, e);
+        if (dir.lengthSq() < 1e-6) dir.set(0, 0.15, 1); // de frente a atrás en línea recta: pasa por el lado
+        camera.position.copy(controls.target).add(dir.normalize().multiplyScalar(tween.dist));
+        camera.lookAt(controls.target);
+        if (k >= 1) tween = null;
+      }
       controls.update();
       renderer.render(scene, camera);
     }
 
     // --- Ajuste de proporciones a partir de una foto (opcional) ---
-    // Ver pipeline/head_shape.py: solo se miden ancho/alto (lo único que se
-    // puede medir de verdad en una foto de frente), la profundidad del
-    // maniquí no se toca.
     document.getElementById("shape-photo").addEventListener("change", async (event) => {
       const file = event.target.files[0];
       if (!file || !headGroup) return;
@@ -825,15 +758,11 @@
           return;
         }
         const shape = await res.json();
-        headGroup.scale.set(headBaseScale * shape.scale_x, headBaseScale * shape.scale_y, headBaseScale);
-        placeZoneMarkers();
-        // Los trazos/remolinos ya dibujados quedan en sus coordenadas
-        // originales (sobre la cabeza sin escalar); al cambiar la escala del
-        // grupo dejan de coincidir exactamente con la superficie. Como es
-        // un ajuste opcional y de un solo uso al principio, lo más simple y
-        // menos sorprendente es avisar en vez de intentar recolocarlos solos.
-        const hadDrawing = Object.keys(zoneStrokes).length > 0 || whorls.length > 0;
-        statusSpan.textContent = "✓ Ajustada" + (hadDrawing ? " · revisa las flechas y remolinos" : "");
+        headGroup.scale.set(HEAD_SCALE * shape.scale_x, HEAD_SCALE * shape.scale_y, HEAD_SCALE);
+        buildGrid();
+        hairRoots = null;
+        buildHair();
+        statusSpan.textContent = "✓ Ajustada" + (items.length ? " · revisa las flechas y remolinos" : "");
       } catch (e) {
         statusSpan.textContent = `Sin conexión: ${e.message}`;
       } finally {
@@ -841,40 +770,44 @@
       }
     });
 
+    // --- Cargar / guardar ---
     const recommendationsBtn = document.getElementById("recommendations-btn");
+    function payload() {
+      return {
+        strokes: items.filter((it) => it.kind === "arrow").map((it) => {
+          const a = it.points[0], b = it.points[it.points.length - 1];
+          return { x1: a.x, y1: a.y, z1: a.z, x2: b.x, y2: b.y, z2: b.z,
+                   points: it.points.map((p) => [+p.x.toFixed(4), +p.y.toFixed(4), +p.z.toFixed(4)]) };
+        }),
+        whorls: items.filter((it) => it.kind === "whorl").map((it) => ({ x: it.point.x, y: it.point.y, z: it.point.z, rotation: it.rotation })),
+      };
+    }
 
     function applyClientToScene(client) {
       currentClient = client;
-      for (const name of Object.keys(zoneStrokes)) clearZoneStroke(name);
-      for (const it of whorls) scene.remove(it.object);
-      whorls = [];
-      for (const it of legacyStrokes) scene.remove(it.object);
-      legacyStrokes = [];
-
-      if (client.custom_growth_map) {
-        for (const s of client.custom_growth_map.strokes || []) {
-          const start = new THREE.Vector3(s.x1, s.y1, s.z1);
-          const end = new THREE.Vector3(s.x2, s.y2, s.z2);
-          const zoneNames = HEAD_ZONES.map((z) => z.name);
-          if (s.zone && zoneNames.includes(s.zone)) {
-            setZoneStroke(s.zone, start, end);
-            // Recupera el ángulo de brújula a partir del vector guardado,
-            // para que si el peluquero vuelve a abrir esta zona la aguja
-            // aparezca ya en su sitio en vez de resetearse a 0°.
-            zoneAngles[s.zone] = angleFromDirection(s.zone, end.clone().sub(start));
-          } else {
-            const arrow = makeArrow(start, end, 0x8891a8);
-            scene.add(arrow);
-            legacyStrokes.push({ start: [s.x1, s.y1, s.z1], end: [s.x2, s.y2, s.z2], object: arrow });
+      for (const it of items) scene.remove(it.object);
+      items = [];
+      const map = client.custom_growth_map;
+      if (map) {
+        for (const s of map.strokes || []) {
+          let pts = (s.points && s.points.length >= 2)
+            ? s.points.map((p) => new THREE.Vector3(p[0], p[1], p[2]))
+            : null;
+          if (!pts) {
+            // Mapas de antes (una flecha recta por zona, o trazos libres):
+            // se convierten en flechas normales pegadas a la superficie.
+            const a = new THREE.Vector3(s.x1, s.y1, s.z1 ?? 0), b = new THREE.Vector3(s.x2, s.y2, s.z2 ?? 0);
+            pts = [0, 0.25, 0.5, 0.75, 1].map((t) => a.clone().lerp(b, t));
           }
+          pts = pts.map((p) => snap(p, ARROW_LIFT, false).p);
+          addArrow(pts, false);
         }
-        for (const wh of client.custom_growth_map.whorls || []) {
-          addWhorl(new THREE.Vector3(wh.x, wh.y, wh.z), wh.rotation);
+        for (const w of map.whorls || []) {
+          addWhorl(snap(new THREE.Vector3(w.x, w.y, w.z ?? 0), 0.03, false).p, w.rotation, false);
         }
       }
-      if (client.display_name) {
-        document.getElementById("client-name").value = client.display_name;
-      }
+      changed();
+      if (client.display_name) document.getElementById("client-name").value = client.display_name;
       document.getElementById("hair-type-section").style.display = "block";
       document.getElementById("hair-texture").value = client.hair_texture_override || "";
       document.getElementById("face-shape").value = client.face_shape_override || "";
@@ -882,23 +815,16 @@
     }
 
     recommendationsBtn.addEventListener("click", () => {
-      if (!currentClient) return;
-      window.location.href = `recomendaciones.html?client_id=${encodeURIComponent(currentClient.id)}`;
+      if (currentClient) window.location.href = `recomendaciones.html?client_id=${encodeURIComponent(currentClient.id)}`;
     });
 
-    // Si se llega desde "recomendaciones.html" con ?client_id=..., carga
-    // directamente ese perfil sin obligar a volver a escribir el nombre.
     async function loadClientFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const clientId = params.get("client_id");
+      const clientId = new URLSearchParams(window.location.search).get("client_id");
       if (!clientId) return;
       say("busy", "Cargando…");
       try {
         const res = await fetch(`${API_BASE}/clients/${clientId}`);
-        if (!res.ok) {
-          say("warn", "Cliente no encontrado");
-          return;
-        }
+        if (!res.ok) { say("warn", "Cliente no encontrado"); return; }
         const client = await res.json();
         document.getElementById("consent").checked = true;
         applyClientToScene(client);
@@ -908,42 +834,22 @@
       }
     }
 
-    // --- Cargar o crear el perfil del cliente por nombre ---
     document.getElementById("load-btn").addEventListener("click", async () => {
       const name = document.getElementById("client-name").value.trim();
-      const consent = document.getElementById("consent").checked;
-
-      if (!name) {
-        say("warn", "Falta el nombre");
-        return;
-      }
-      if (!consent) {
-        say("warn", "Falta el consentimiento");
-        return;
-      }
-
+      if (!name) { say("warn", "Falta el nombre"); return; }
+      if (!document.getElementById("consent").checked) { say("warn", "Falta el consentimiento"); return; }
       say("busy", "Buscando…");
       try {
-        const listRes = await fetch(`${API_BASE}/clients`);
-        const clients = await listRes.json();
-        let match = clients.find(
-          (c) => (c.display_name || "").trim().toLowerCase() === name.toLowerCase()
-        );
-
+        const clients = await (await fetch(`${API_BASE}/clients`)).json();
+        let match = clients.find((c) => (c.display_name || "").trim().toLowerCase() === name.toLowerCase());
         if (!match) {
           const createRes = await fetch(`${API_BASE}/clients`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ display_name: name, consent_history: true }),
           });
-          if (!createRes.ok) {
-            const err = await createRes.json();
-            say("warn", `No se pudo crear: ${err.detail || createRes.statusText}`);
-            return;
-          }
+          if (!createRes.ok) { const err = await createRes.json(); say("warn", `No se pudo crear: ${err.detail || createRes.statusText}`); return; }
           match = await createRes.json();
         }
-
         applyClientToScene(match);
         say("ok", `${match.display_name || "Ficha abierta"}${match.custom_growth_map ? " · mapa guardado" : ""}`);
       } catch (e) {
@@ -951,98 +857,35 @@
       }
     });
 
-    // --- Guardar el mapa dibujado ---
     document.getElementById("save-btn").addEventListener("click", async () => {
-      if (!currentClient) {
-        say("warn", "Antes, abre la ficha del cliente");
-        return;
-      }
-
-      // El tipo de pelo hace falta para poder calcular recomendaciones de
-      // corte, así que se exige aquí en vez de dejar que la página de
-      // recomendaciones se encuentre con un cliente a medio rellenar.
+      if (!currentClient) { say("warn", "Antes, abre la ficha del cliente"); return; }
       const hairTexture = document.getElementById("hair-texture").value;
-      if (!hairTexture) {
-        say("warn", "Falta el tipo de pelo");
-        return;
-      }
-
-      const zoneStrokesPayload = Object.entries(zoneStrokes).map(([zone, s]) => ({
-        x1: s.start[0], y1: s.start[1], z1: s.start[2],
-        x2: s.end[0], y2: s.end[1], z2: s.end[2],
-        zone,
-      }));
-      const legacyPayload = legacyStrokes.map((s) => ({
-        x1: s.start[0], y1: s.start[1], z1: s.start[2],
-        x2: s.end[0], y2: s.end[1], z2: s.end[2],
-        zone: null,
-      }));
-
-      const payload = {
-        strokes: [...zoneStrokesPayload, ...legacyPayload],
-        whorls: whorls.map((w) => ({
-          x: w.point[0], y: w.point[1], z: w.point[2], rotation: w.rotation,
-        })),
-      };
-
+      if (!hairTexture) { say("warn", "Falta el tipo de pelo"); return; }
       const faceShape = document.getElementById("face-shape").value;
-
       say("busy", "Guardando…");
+      const send = (url, body) => fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       try {
-        const hairRes = await fetch(`${API_BASE}/clients/${currentClient.id}/hair-type`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ texture: hairTexture }),
-        });
-        if (!hairRes.ok) {
-          const err = await hairRes.json();
-          say("warn", `Error (tipo de pelo): ${err.detail || hairRes.statusText}`);
-          return;
-        }
-
-        // La forma de cara es opcional: solo se guarda si el barbero la
-        // seleccionó, no bloquea el guardado si se deja en blanco.
+        let res = await send(`${API_BASE}/clients/${currentClient.id}/hair-type`, { texture: hairTexture });
+        if (!res.ok) { const err = await res.json(); say("warn", `Error (tipo de pelo): ${err.detail || res.statusText}`); return; }
         if (faceShape) {
-          const faceRes = await fetch(`${API_BASE}/clients/${currentClient.id}/face-shape`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ face_shape: faceShape }),
-          });
-          if (!faceRes.ok) {
-            const err = await faceRes.json();
-            say("warn", `Error (forma de cara): ${err.detail || faceRes.statusText}`);
-            return;
-          }
+          res = await send(`${API_BASE}/clients/${currentClient.id}/face-shape`, { face_shape: faceShape });
+          if (!res.ok) { const err = await res.json(); say("warn", `Error (forma de cara): ${err.detail || res.statusText}`); return; }
         }
-
-        const res = await fetch(`${API_BASE}/clients/${currentClient.id}/growth-map`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          say("warn", `No se pudo guardar: ${err.detail || res.statusText}`);
-          return;
-        }
+        res = await send(`${API_BASE}/clients/${currentClient.id}/growth-map`, payload());
+        if (!res.ok) { const err = await res.json(); say("warn", `No se pudo guardar: ${err.detail || res.statusText}`); return; }
         currentClient = await res.json();
         recommendationsBtn.style.display = "block";
         say("ok", "Guardado · abriendo recomendaciones…");
-        setTimeout(() => {
-          window.location.href = `recomendaciones.html?client_id=${encodeURIComponent(currentClient.id)}`;
-        }, 900);
+        setTimeout(() => { window.location.href = `recomendaciones.html?client_id=${encodeURIComponent(currentClient.id)}`; }, 900);
       } catch (e) {
         say("warn", `Sin conexión: ${e.message}`);
       }
     });
 
     // --- Arranque ---
-    renderZoneLegend();
+    setMode("none");
     loadHeadModel()
-      .then(() => {
-        animate();
-        return loadClientFromUrl();
-      })
+      .then(() => { buildHair(); animate(); return loadClientFromUrl(); })
       .catch((err) => {
         console.error("No se pudo cargar el modelo 3D de la cabeza:", err);
         say("warn", "No se pudo cargar la cabeza 3D · recarga la página");

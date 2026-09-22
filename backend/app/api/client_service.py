@@ -15,7 +15,7 @@ from app import config
 from app.api.schemas import ReasonOut, RecommendationsOut, SimulationResponse, StyleOut, StyleRecommendationOut
 from app.db import repository
 from app.db.models import ClientProfile
-from app.pipeline import haircut_editor, trait_rules
+from app.pipeline import growth_analysis, haircut_editor, maintenance, trait_rules
 from app.pipeline.recommender import recommend_styles
 from app.pipeline.style_catalog import get_style_by_id
 
@@ -40,8 +40,9 @@ def build_recommendations(client: ClientProfile) -> RecommendationsOut:
     whorls = (client.custom_growth_map or {}).get("whorls", [])
     # face_shape_override: la marca el peluquero o el propio cliente en su
     # cuestionario; nunca la detección automática sin confirmar.
-    recs = recommend_styles(texture, whorls=whorls, face_shape=client.face_shape_override,
-                            visagismo_profile=client.visagismo_profile)
+    recs = recommend_styles(texture, face_shape=client.face_shape_override,
+                            visagismo_profile=client.visagismo_profile, growth_map=client.custom_growth_map)
+    growth = growth_analysis.summarize(client.custom_growth_map)
     return RecommendationsOut(
         client_id=client.id,
         hair_texture=texture,
@@ -59,6 +60,8 @@ def build_recommendations(client: ClientProfile) -> RecommendationsOut:
         ],
         beard_advice=[ReasonOut(**b) for b in trait_rules.beard_advice(client.visagismo_profile)],
         liked_styles=client.liked_styles,
+        growth_summary=growth.lines(),
+        natural_part=growth.natural_part,
     )
 
 
@@ -105,3 +108,21 @@ def simulate_with_stored_photo(client: ClientProfile, style_id: str, provider: s
         image_base64=base64.b64encode(buf).decode(),
         provider=use,
     )
+
+
+def visit_frequency_days(client: ClientProfile) -> int | None:
+    return ((client.visagismo_profile or {}).get("lifestyle_and_preferences") or {}).get("barbershop_visit_frequency_days")
+
+
+def next_visit_for(client: ClientProfile, last: dict | None) -> dict | None:
+    """Cuándo le toca volver (ver maintenance.next_visit), con el nombre del
+    corte que lleva si quedó registrado."""
+    if not last:
+        return None
+    style = get_style_by_id(last["style_id"]) if last.get("style_id") else None
+    weeks = maintenance.weeks_for_style(style) if style else None
+    nv = maintenance.next_visit(last["at"], weeks, visit_frequency_days(client))
+    if nv:
+        nv["last_visit"] = last["at"]
+        nv["style_name"] = style.name if style else None
+    return nv

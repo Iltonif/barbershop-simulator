@@ -648,6 +648,95 @@ y pueda enseñar fácilmente "quiero este", con un máximo por cliente.
 - Tabla `haircut_history`. Tests en `tests/test_sessions.py` (máximo y
   borrado de fotos, petición, que un cliente no ve cortes de otro, permiso).
 
+## Maniquí v4, flechas con el dedo, crecimiento en las recomendaciones y frecuencia de retoque (sept 2026)
+
+Pedro pidió mejorar el maniquí de remolinos y el sistema de flechas, que
+las recomendaciones tengan en cuenta el crecimiento (y la forma de cara), y
+evitar que los clientes "aguanten" demasiado entre visitas. Eligió: cabeza
+masculina, zona del pelo pintada, pelo que sigue las flechas, vistas
+rápidas para tablet, y flechas trazadas deslizando el dedo (en vez del
+disco por zona). Para las visitas no eligió; se hizo frecuencia visible +
+aviso + desempate hacia retoque frecuente sin ir contra lo que dice el
+cliente.
+
+- **Maniquí v4** (`frontend/assets/head.glb`, script
+  `tools/construir_cabeza_masculina.py`, que SÍ queda en el repo): parte
+  del maniquí neutro v3 y le aplica los targets CC0 de MakeHuman de hombre
+  joven (media de las tres etnias = "género 100 %") y unos pocos de rasgos
+  (cabeza algo cuadrada, mentón/mandíbula marcados, cejas más bajas). Cada
+  vértice se mueve con el triángulo del base mesh deformado (baricéntricas)
+  y el desplazamiento se suaviza 8 pasadas (sin eso se ven facetas y
+  arrugas del base mesh). El cráneo se realinea con el v3 (error ~2 cm a
+  escala real), así los mapas ya guardados siguen cayendo encima; además la
+  página los pega a la superficie al cargar. Se pintan por vértice la zona
+  del pelo (como pelo al cero), cejas y sombra de barba, y la máscara del
+  cuero cabelludo va en el atributo `_SCALP` (Three.js lo lee como
+  `geometry.attributes._scalp`). La línea del nacimiento del pelo es una
+  tabla ángulo→altura ajustada a ojo (`HAIRLINE` en el script).
+  Intentos descartados: interpolar el desplazamiento por vecinos (IDW)
+  dejaba la cabeza con bultos; suavizar 40 pasadas borraba lo masculino.
+- **`frontend/growth-map.html`** (reescrita): modos Girar / Flecha /
+  Horario / Antihorario / Borrar; deshacer y borrar todo (dos toques)
+  sobre el lienzo; vistas Frente/Izq./Dcha./Atrás/Arriba ("Izq." = lado
+  izquierdo del cliente, +x); botón "Pelo".
+  - Flecha: se desliza el dedo sobre el cuero cabelludo (solo donde
+    `_scalp` > 0,35 al empezar); los puntos se remuestrean (máx. 24) y se
+    dibuja un tubo con punta. En los modos de marcar, un dedo dibuja y
+    girar queda para "Girar", las vistas o el pellizco (el listener va en
+    fase de captura para adelantarse a OrbitControls).
+  - Pelo: ~2600 mechones de 6 tramos con raíz en el cuero cabelludo; la
+    dirección sale de un campo interpolado (por defecto desde la coronilla
+    hacia fuera; cerca de una flecha manda la flecha, σ = 0,16; cerca de un
+    remolino gira a su alrededor). Para pegarse a la superficie usa una
+    rejilla de vértices, no raycasts (serían miles por redibujo).
+  - Se guardan `points` (lista de [x,y,z], coordenadas de mundo, maniquí x2
+    y bajado 0,3) además de x1..z2. Los mapas antiguos (una flecha recta
+    por zona) se cargan como flechas normales.
+  - Debajo del lienzo, chips con cómo lo interpreta el backend
+    (`POST /api/growth-map/summary`, solo peluquero, no guarda).
+- **`app/pipeline/growth_analysis.py`**: zona de cada punto por su
+  dirección desde el centro de la cabeza (frente, arriba, coronilla,
+  laterales, nuca; umbrales ajustados pintando las zonas sobre el
+  maniquí), dirección dominante por zona, remolinos por zona y raya
+  natural (remolino de la coronilla horario → izquierda, antihorario →
+  derecha; si no, el lado contrario al que va el pelo de la frente).
+- **`app/pipeline/growth_rules.py`** sustituye la regla vieja de remolinos
+  (que avisaba con < 1 cm arriba, al revés de lo que dicen las guías):
+  coronilla: 2,5-7,5 cm arriba = aviso salvo con textura; < 2,5 o > 7,5 a
+  favor; doble remolino: undercut o textura. Frente: remolino → aviso a
+  flequillo liso, a favor de tupé, flequillo con textura o raya en el
+  remolino; crecimiento hacia delante → flequillo a favor, hacia atrás en
+  contra (y al revés). Raya lateral del lado natural a favor. Nuca con
+  remolino o crecimiento de lado: línea recta/cuadrada en contra, largo o
+  degradado a favor. Fuentes en el docstring (Book of Barbering, Cadmen
+  Academy, Fellow Barber). La forma de cara sigue igual y se suma.
+- **Frecuencia de retoque** (`app/pipeline/maintenance.py`): semanas por
+  corte (degradado alto/a piel 2-3, bajo/medio 3-4, corto 3-4, medio 4-6,
+  largo 6-8; guías de barbería citadas en el docstring), en
+  `StyleOut.maintenance_weeks` y como etiqueta "2-3 sem." en catálogo y
+  recomendaciones. En `recommend_styles`: si el cliente dijo cada cuánto
+  viene, aviso "Se verá crecido antes" cuando el corte no aguanta hasta su
+  próxima visita y "Encaja con sus visitas" si viene cada ≤ 3,5 semanas y
+  el corte pide retoque frecuente; y en empate de puntuación, primero los
+  de retoque más frecuente (los que no aguantan hasta su visita, al final).
+  El cliente ve "Próximo corte en N días" / "Te toca corte" en su espacio
+  (`GET /api/me/next-visit`), y la sala tiene "Les toca volver"
+  (`GET /api/return-due`, solo peluquero): quién se ha pasado de fecha (o
+  le toca en 2 días) y no está hoy, con WhatsApp (mensaje ya escrito,
+  `wa.me`, prefijo 34 si el número tiene 9 cifras) y llamada. La fecha sale
+  del último corte registrado (con su intervalo) o del último "Terminado"
+  (intervalo por defecto 3-5), acortada si el cliente dijo que viene más a
+  menudo (`repository.last_visits`).
+- Tests: `tests/test_growth.py` (zonas, direcciones, raya, reglas,
+  semanas, desempate) y dos nuevos en `tests/test_sessions.py` (lista de
+  vuelta y próxima visita, endpoint de resumen). Probado con Playwright:
+  dibujo con ratón y con toques reales (CDP), remolinos, vistas, borrar,
+  guardar y recargar, mapa antiguo, sala, espacio del cliente y
+  recomendaciones.
+- Pendiente: la línea del pelo del maniquí es genérica (no la del
+  cliente); el mapa sigue siendo sobre la cabeza genérica, no sobre su
+  foto.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

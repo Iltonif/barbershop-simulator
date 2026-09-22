@@ -88,6 +88,10 @@ _DEFAULT_STROKE_TEMPLATE = [
     ("nuca", 0.0, 0.20, 270, 0.14),
 ]
 
+# ⚠️ LEGADO (sept 2026): growth-map.html ya no usa zonas fijas; las flechas
+# se trazan con el dedo y `growth_analysis.py` calcula la zona de cada
+# punto. Estas zonas solo explican el campo `zone` de los mapas guardados
+# con la versión anterior (que se siguen leyendo igual).
 # Zonas fijas para el sistema de "una dirección dominante por zona" de
 # frontend/growth-map.html (sustituye al dibujo de flechas libres a mano
 # alzada de antes). Los nombres coinciden a propósito con

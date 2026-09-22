@@ -126,6 +126,7 @@
     white-space: nowrap; border: 1px solid rgba(79, 124, 255, 0.28);
   }
   .badge.fade { background: rgba(52, 211, 153, 0.15); color: #86e6c4; border-color: rgba(52, 211, 153, 0.3); }
+  .badge .ico { width: 11px; height: 11px; margin-right: 3px; vertical-align: -1px; }
   .source { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
 
   .card details > summary {
@@ -321,6 +322,7 @@
       const badges = [];
       if (s.length_category) badges.push(`<span class="badge">${LENGTH_LABELS[s.length_category] || s.length_category}</span>`);
       badges.push(`<span class="badge fade">${FADE_LABELS[s.fade_type] || s.fade_type}</span>`);
+      if (s.maintenance_weeks) badges.push(`<span class="badge" title="Retoque cada ${s.maintenance_weeks[0]}-${s.maintenance_weeks[1]} semanas">${UI.icon("calendar-clock")}${s.maintenance_weeks[0]}-${s.maintenance_weeks[1]} sem.</span>`);
       // Los tipos de pelo no van en la tarjeta (demasiadas etiquetas): se
       // filtran con el desplegable "Pelo" y se ven al ampliar la foto.
       return `<div class="badges">${badges.join("")}</div>`;

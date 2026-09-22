@@ -95,6 +95,7 @@
     white-space: nowrap;
   }
   .badge.fade { background: rgba(52, 211, 153, 0.15); color: #86e6c4; }
+  .badge .ico { width: 11px; height: 11px; margin-right: 3px; vertical-align: -1px; }
   .note { font-size: 12px; color: var(--warning); margin-top: 4px; }
   .source { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
   details.more > summary { cursor: pointer; font-size: 12px; color: var(--accent-cyan); padding-top: 8px; list-style: none; }
@@ -127,6 +128,7 @@
   <div id="subtitle" class="chips"></div>
 
   <div id="beard"></div>
+  <div id="growth"></div>
   <div id="status"></div>
   <div id="grid" class="grid"></div>
 </div>
@@ -191,6 +193,7 @@
       const badges = [];
       if (s.length_category) badges.push(`<span class="badge">${LENGTH_LABELS[s.length_category] || s.length_category}</span>`);
       badges.push(`<span class="badge fade">${FADE_LABELS[s.fade_type] || s.fade_type}</span>`);
+      if (s.maintenance_weeks) badges.push(`<span class="badge" title="Retoque cada ${s.maintenance_weeks[0]}-${s.maintenance_weeks[1]} semanas">${UI.icon("calendar-clock")}${s.maintenance_weeks[0]}-${s.maintenance_weeks[1]} sem.</span>`);
       return `<div class="badges">${badges.join("")}</div>`;
     }
 
@@ -345,7 +348,6 @@
         data.face_shape
           ? chip("scan-face", FACE_SHAPE_LABELS[data.face_shape] || data.face_shape)
           : `<a class="chip missing" href="${quiz}">${UI.icon("scan-face")}+ forma de cara</a>`,
-        data.whorl_count > 0 ? chip("rotate-cw", `${data.whorl_count} remolino${data.whorl_count === 1 ? "" : "s"}`) : "",
         `<a class="chip" href="${quiz}" title="Responder o cambiar el cuestionario">${UI.icon("clipboard-list")}${barberMode ? "Cuestionario" : "Mi perfil"}</a>`,
       ].join("");
 
@@ -359,6 +361,15 @@
             `<span class="why plus">${UI.icon("check")}${b.label}</span>`).join("")}
             <details class="info"><summary aria-label="Consejo de barba">${UI.icon("info")}</summary><div class="info-body">${beard.map((b) =>
             `<p><b>${b.label}.</b> ${b.detail}</p>`).join("")}</div></details></div>`
+        : "";
+      // Cómo crece su pelo (del mapa de remolinos), con el detalle en el ⓘ.
+      const growth = data.growth_summary || [];
+      document.getElementById("growth").innerHTML = growth.length
+        ? `<div class="head-row beard-row"><span class="beard-title">${UI.icon("rotate-cw")}Crecimiento</span>${
+            data.natural_part ? `<span class="why plus">${UI.icon("check")}Raya a su ${data.natural_part}</span>` : ""}
+            <span class="why">${growth.length} dato${growth.length === 1 ? "" : "s"}</span>
+            <details class="info"><summary aria-label="Cómo crece el pelo">${UI.icon("info")}</summary><div class="info-body">${growth.map((l) =>
+            `<p>${l}</p>`).join("")}<p class="hint">Las recomendaciones lo tienen en cuenta (remolinos, hacia dónde crece, raya).</p></div></details></div>`
         : "";
       const families = groupByFamily(data.recommendations);
       statusEl.textContent = `${data.recommendations.length} cortes`;

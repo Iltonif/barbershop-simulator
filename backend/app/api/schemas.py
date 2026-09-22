@@ -1,6 +1,8 @@
 """Modelos Pydantic de request/response de la API."""
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
+
+from app.pipeline import maintenance
 
 
 class StyleOut(BaseModel):
@@ -16,6 +18,13 @@ class StyleOut(BaseModel):
     length_category: str | None = None
     source: str | None = None
     style_family: str | None = None
+
+    @computed_field
+    @property
+    def maintenance_weeks(self) -> list[int]:
+        """Cada cuántas semanas conviene retocarlo (ver pipeline/maintenance.py)."""
+        return list(maintenance.weeks_for(self.fade_type, self.length_top_mm, self.length_sides_mm,
+                                          self.length_category, self.style_family))
 
 
 class ReasonOut(BaseModel):
@@ -48,6 +57,9 @@ class RecommendationsOut(BaseModel):
     # Consejo de barba según mentón/mandíbula (no depende del corte).
     beard_advice: list[ReasonOut] = []
     liked_styles: list[str] = []
+    # Cómo se ha leído el mapa de remolinos (una línea por dato), y la raya natural.
+    growth_summary: list[str] = []
+    natural_part: str | None = None
 
 
 class SimulationResponse(BaseModel):
@@ -247,6 +259,17 @@ class GrowthStrokeIn(BaseModel):
     y2: float
     z2: float
     zone: str | None = None
+    # Flecha trazada con el dedo (maniquí v4): puntos sobre la superficie,
+    # en orden de crecimiento. x1..z2 son el primero y el último, para que
+    # el código antiguo que solo lee inicio/fin siga funcionando.
+    points: list[list[float]] | None = Field(default=None, max_length=64)
+
+    @field_validator("points")
+    @classmethod
+    def _points_are_3d(cls, v):
+        if v is not None and any(len(p) != 3 for p in v):
+            raise ValueError("cada punto debe tener x, y, z")
+        return v
 
 
 class WhorlIn(BaseModel):
@@ -261,8 +284,17 @@ class CustomGrowthMapIn(BaseModel):
     del lienzo de `frontend/growth-map.html`, no un delta — sustituye
     cualquier mapa guardado anteriormente para ese cliente."""
 
-    strokes: list[GrowthStrokeIn] = []
-    whorls: list[WhorlIn] = []
+    strokes: list[GrowthStrokeIn] = Field(default=[], max_length=80)
+    whorls: list[WhorlIn] = Field(default=[], max_length=20)
+
+
+class GrowthSummaryOut(BaseModel):
+    """Cómo interpreta el backend el mapa (`growth_analysis.summarize`)."""
+
+    lines: list[str]
+    zone_direction: dict[str, str]
+    whorl_zones: list[str]
+    natural_part: str | None = None
 
 
 class HeadShapeOut(BaseModel):
@@ -393,3 +425,18 @@ class WaitingOut(BaseModel):
 
 class WaitingStatusIn(BaseModel):
     status: str  # waiting | in_service | done
+
+
+class NextVisitOut(BaseModel):
+    """Cuándo le toca volver (ver pipeline/maintenance.py)."""
+
+    due: str
+    days_left: int              # negativo = ya se ha pasado
+    weeks: list[int]            # intervalo de retoque del corte que lleva
+    last_visit: str
+    style_name: str | None = None
+
+
+class ReturnDueOut(BaseModel):
+    client: ClientOut
+    next_visit: NextVisitOut

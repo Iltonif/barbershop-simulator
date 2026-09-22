@@ -42,8 +42,10 @@ from app.api.schemas import (
     HaircutOut,
     HaircutRequestIn,
     LikesIn,
+    NextVisitOut,
     QuestionnaireIn,
     RecommendationsOut,
+    ReturnDueOut,
     SimulationResponse,
     StoredPhotoSimulationIn,
     WaitingOut,
@@ -491,3 +493,30 @@ def my_set_request(payload: HaircutRequestIn, request: Request):
     entry = repository.get_waiting_entry_today(client.id) or repository.check_in(client.id)
     repository.set_requested_history(entry.id, payload.history_id)
     return {"in_waiting": True, "history_id": payload.history_id}
+
+
+# --- Cuándo toca volver (ver pipeline/maintenance.py) ---
+
+@router.get("/return-due", response_model=list[ReturnDueOut], dependencies=[Depends(auth.require_barber)])
+def return_due(days_ahead: int = 2, max_overdue_days: int = 120):
+    """Clientes a los que ya les toca (o les tocará en `days_ahead` días)
+    y no están hoy en la sala: para avisarles. Primero los que menos se
+    han pasado, que son los que más fácil vuelven."""
+    waiting_today = {w.client_id for w in repository.list_waiting_today(include_done=True)}
+    last = repository.last_visits()
+    out = []
+    for client in repository.list_clients():
+        if client.id in waiting_today or client.id not in last:
+            continue
+        nv = client_service.next_visit_for(client, last[client.id])
+        if nv and -max_overdue_days <= nv["days_left"] <= days_ahead:
+            out.append(ReturnDueOut(client=_client_out(client), next_visit=NextVisitOut(**nv)))
+    out.sort(key=lambda r: -r.next_visit.days_left)
+    return out[:60]
+
+
+@router.get("/me/next-visit", response_model=NextVisitOut | None)
+def my_next_visit(request: Request):
+    client = _me(request)
+    nv = client_service.next_visit_for(client, repository.last_visits().get(client.id))
+    return NextVisitOut(**nv) if nv else None

@@ -401,3 +401,25 @@ def clear_haircut_photos(client_id: str) -> list[str]:
                             (client_id,)).fetchall()
         conn.execute("UPDATE haircut_history SET photo_path = NULL WHERE client_id = ?", (client_id,))
     return [r["photo_path"] for r in rows]
+
+
+def last_visits() -> dict[str, dict]:
+    """Última visita de cada cliente: el último corte registrado o, si es
+    más reciente, la última vez que se le marcó "Terminado" en la sala.
+    {client_id: {"at": iso, "style_id": str | None}}; `style_id` solo si
+    ese último corte quedó registrado (ver maintenance.next_visit)."""
+    out: dict[str, dict] = {}
+    with get_connection() as conn:
+        cuts = conn.execute(
+            "SELECT client_id, created_at, style_id FROM haircut_history h WHERE created_at = "
+            "(SELECT MAX(created_at) FROM haircut_history WHERE client_id = h.client_id)").fetchall()
+        done = conn.execute(
+            "SELECT client_id, MAX(updated_at) AS at FROM waiting WHERE status = 'done' GROUP BY client_id").fetchall()
+    for r in cuts:
+        out[r["client_id"]] = {"at": r["created_at"], "style_id": r["style_id"]}
+    for r in done:
+        prev = out.get(r["client_id"])
+        # Mismo día que el corte registrado = la misma visita: se queda el corte.
+        if prev is None or r["at"][:10] > prev["at"][:10]:
+            out[r["client_id"]] = {"at": r["at"], "style_id": None}
+    return out

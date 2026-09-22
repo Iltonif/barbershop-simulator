@@ -197,6 +197,14 @@
     document.getElementById("hello").textContent = `Hola, ${(me.display_name || "").split(" ")[0]}`;
     const chips = [`<span class="chip ok">${UI.icon("clock")}En lista de espera</span>`];
     if (me.liked_styles.length) chips.push(`<span class="chip">${UI.icon("heart")}${me.liked_styles.length}</span>`);
+    try {
+      const nv = await (await fetch("/api/me/next-visit")).json();
+      if (nv) {
+        const d = nv.days_left;
+        const txt = d > 1 ? `Próximo corte en ${d} días` : d === 1 ? "Próximo corte: mañana" : "Te toca corte";
+        chips.push(`<span class="chip${d <= 0 ? " warn" : ""}" title="Tu corte pide retoque cada ${nv.weeks[0]}-${nv.weeks[1]} semanas">${UI.icon("calendar-clock")}${txt}</span>`);
+      }
+    } catch (e) { /* no crítico */ }
     document.getElementById("state-chips").innerHTML = chips.join("");
     try {
       const cuts = await (await fetch("/api/me/history")).json();

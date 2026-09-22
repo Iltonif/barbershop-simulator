@@ -44,6 +44,13 @@
   .r-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; }
   .r-row .w-main { font-size: 14px; }
   .r-row button, .r-row a.chip { width: auto; margin: 0; min-height: 36px; }
+  .count { font-size: 12px; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: var(--glass-strong); color: var(--text-main); }
+  #due-head { margin: 0; }
+  #due-head h2.sec { margin-bottom: 10px; }
+  .late { color: var(--warning); }
+  a.icon-link { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px;
+                border: 1px solid var(--glass-border); background: var(--glass); color: var(--accent-cyan); flex: none; }
+  a.icon-link .ico { width: 18px; height: 18px; }
   .qr-box { display: flex; gap: 18px; align-items: center; padding: 16px; flex-wrap: wrap; }
   .qr-box img { width: 150px; height: 150px; border-radius: 10px; background: #fff; }
   .qr-box p { margin: 0 0 10px; color: var(--text-dim); font-size: 13.5px; max-width: 360px; }
@@ -70,6 +77,14 @@
   </div>
 
   <div class="list" id="list"></div>
+
+  <div class="head-row" id="due-head" hidden>
+    <h2 class="sec"><span data-icon="bell-ring"></span>Les toca volver <span class="count" id="due-count"></span></h2>
+    <details class="info"><summary></summary><div class="info-body">
+      Clientes a los que ya les toca corte según el corte que llevan (o su frecuencia, si la dijo) y que hoy no han venido. Toca <b>WhatsApp</b> para escribirle con un mensaje ya preparado, o el teléfono para llamar.
+    </div></details>
+  </div>
+  <div class="results" id="due"></div>
 
   <h2 class="sec"><span data-icon="users"></span>Todos los clientes</h2>
   <div class="search-row">
@@ -160,12 +175,45 @@
     }));
   }
   document.getElementById("q").addEventListener("input", renderResults);
+
+  // Les toca volver: el backend calcula la fecha con el intervalo de retoque del corte.
+  function waLink(c) {
+    const digits = (c.phone || "").replace(/\D/g, "");
+    if (!digits) return "";
+    const intl = digits.length === 9 ? "34" + digits : digits;
+    const text = `Hola ${(c.display_name || "").split(" ")[0]}, ¡ya te toca corte! ¿Te guardamos un hueco esta semana?`;
+    return `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
+  }
+  function whenText(d) {
+    if (d > 1) return `le toca en ${d} días`;
+    if (d === 1) return "le toca mañana";
+    if (d === 0) return "le toca hoy";
+    return `<span class="late">se ha pasado ${-d} día${d === -1 ? "" : "s"}</span>`;
+  }
+  async function loadDue() {
+    const res = await fetch("/api/return-due");
+    if (!res.ok) return;
+    const items = await res.json();
+    document.getElementById("due-head").hidden = !items.length;
+    document.getElementById("due-count").textContent = items.length || "";
+    document.getElementById("due").innerHTML = items.map(({ client: c, next_visit: nv }) => {
+      const wa = waLink(c);
+      return `<div class="glass-card r-row">
+        <span class="avatar" style="width:36px;height:36px;font-size:15px">${initial(c.display_name)}</span>
+        <a class="w-main" href="ficha.html?client_id=${encodeURIComponent(c.id)}" style="text-decoration:none;color:inherit">${esc(c.display_name)}
+          <div class="w-meta" style="margin:0">${whenText(nv.days_left)}${nv.style_name ? " · " + esc(nv.style_name) : ""}</div></a>
+        ${wa ? `<a class="icon-link" href="${wa}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">${UI.icon("message-circle")}</a>` : ""}
+        ${c.phone ? `<a class="icon-link" href="tel:${esc(c.phone)}" aria-label="Llamar" title="Llamar">${UI.icon("phone")}</a>` : ""}
+      </div>`;
+    }).join("");
+  }
   document.getElementById("lock-btn").addEventListener("click", () => Session.logoutBarber());
 
   (async () => {
     await Session.requireBarber();
     loadWaiting();
     loadClients();
+    loadDue();
     setInterval(() => loadWaiting(true), 15000);
   })();
 </script>
