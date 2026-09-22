@@ -3,7 +3,8 @@
 // cortar). El SVG lo genera el backend: /api/qr.svg. Los estilos van aquí
 // porque la portada (inicio.html) no carga theme.css.
 window.QR = {
-  zoom() {
+  // path: dirección que abre el QR (por defecto, la parte del cliente).
+  zoom(path = "/cliente.html?qr=1", caption = "Escanéalo con la cámara del móvil") {
     if (!document.getElementById("qr-zoom-style")) {
       const st = document.createElement("style");
       st.id = "qr-zoom-style";
@@ -14,7 +15,7 @@ window.QR = {
     }
     const z = document.createElement("div");
     z.className = "qr-zoom";
-    z.innerHTML = `<img src="/api/qr.svg" alt="Código QR de la parte del cliente" /><div>Escanéalo con la cámara del móvil<br>Toca para cerrar</div>`;
+    z.innerHTML = `<img src="/api/qr.svg?path=${encodeURIComponent(path)}" alt="Código QR" /><div>${caption}<br>Toca para cerrar</div>`;
     const close = () => { z.remove(); document.removeEventListener("keydown", onKey); };
     const onKey = (e) => { if (e.key === "Escape") close(); };
     z.addEventListener("click", close);

@@ -54,7 +54,6 @@
   .qr-box { display: flex; gap: 18px; align-items: center; padding: 16px; flex-wrap: wrap; }
   .qr-box img { width: 150px; height: 150px; border-radius: 10px; background: #fff; }
   .qr-box p { margin: 0 0 10px; color: var(--text-dim); font-size: 13.5px; max-width: 360px; }
-  @media print { body * { visibility: hidden; } .qr-box, .qr-box * { visibility: visible; } .qr-box { position: absolute; top: 0; left: 0; } }
 </style>
 </head>
 <body>
@@ -92,18 +91,19 @@
   </div>
   <div class="results" id="results"></div>
 
-  <h2 class="sec"><span data-icon="qr-code"></span>QR para el móvil del cliente</h2>
+  <h2 class="sec"><span data-icon="qr-code"></span>Abrir en tu móvil</h2>
   <div class="glass-card qr-box">
-    <img src="/api/qr.svg" alt="Código QR de la parte del cliente" />
+    <img src="/api/qr.svg?path=%2Fpeluquero.html%3Fpel%3D1" alt="Código QR de la parte del peluquero" id="barber-qr" style="cursor:zoom-in" />
     <div>
-      <p>El cliente lo escanea con su móvil y entra solo en su parte (catálogo, recomendaciones, su perfil). Imprímelo y déjalo en el espejo o en la sala.</p>
-      <button type="button" class="secondary btn-ico" style="width:auto" onclick="window.print()"><span data-icon="printer"></span>Imprimir</button>
+      <p>Escanéalo con tu móvil para llevar la sala y las fichas contigo mientras cortas. Pide el PIN, igual que aquí.</p>
+      <button type="button" class="secondary btn-ico" style="width:auto" id="barber-qr-btn"><span data-icon="zoom-in"></span>Ampliar</button>
     </div>
   </div>
   <div id="status" role="status"></div>
 </div>
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
+<script src="assets/qr.js"></script>
 <script>
   const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const initial = (n) => esc((n || "?").trim().charAt(0).toUpperCase());
@@ -208,6 +208,9 @@
     }).join("");
   }
   document.getElementById("lock-btn").addEventListener("click", () => Session.logoutBarber());
+  const barberQr = () => QR.zoom("/peluquero.html?pel=1", "Escanéalo con tu móvil · luego pide el PIN");
+  document.getElementById("barber-qr").addEventListener("click", barberQr);
+  document.getElementById("barber-qr-btn").addEventListener("click", barberQr);
 
   (async () => {
     await Session.requireBarber();

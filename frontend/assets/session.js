@@ -25,6 +25,9 @@
 
   // ?qr=1 fija el modo "móvil del cliente" en este navegador.
   if (new URLSearchParams(location.search).get("qr") === "1") store(MODE_KEY, "qr");
+  // ?pel=1 (QR del peluquero en la sala): el móvil del peluquero deja de
+  // estar en "modo cliente" aunque antes hubiera entrado por el QR del cliente.
+  if (new URLSearchParams(location.search).get("pel") === "1") store(MODE_KEY, "tablet");
   const isQr = () => store(MODE_KEY) === "qr";
 
   async function getJson(url) {

@@ -236,8 +236,9 @@ def barber_simulate(client_id: str, payload: StoredPhotoSimulationIn):
 
 @router.get("/qr.svg")
 def qr_code(request: Request, path: str = "/cliente.html?qr=1"):
-    """QR con la dirección de la parte del cliente, para imprimirlo o
-    enseñarlo en la sala de espera (frontend/sala.html)."""
+    """QR con una dirección de la web. Por defecto la parte del cliente
+    (portada y bienvenida del cliente); la sala del peluquero lo pide con
+    `path=/peluquero.html?pel=1` para abrir su parte en su propio móvil."""
     import segno
 
     if not path.startswith("/"):
