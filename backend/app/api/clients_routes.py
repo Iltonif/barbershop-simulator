@@ -17,6 +17,7 @@ import numpy as np
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.api.schemas import (
+    AppearanceIn,
     ClientCreateIn,
     ClientOut,
     ClientWithHistoryOut,
@@ -36,7 +37,7 @@ from app.api.schemas import (
 from app.config import ANTHROPIC_MODEL
 from app.db import repository
 from app.api import client_service
-from app.pipeline import facial_traits_analysis, growth_analysis, visagismo_ai_advisor
+from app.pipeline import avatar, facial_traits_analysis, growth_analysis, visagismo_ai_advisor
 from app.pipeline.recommender import recommend_styles
 
 router = APIRouter()
@@ -94,6 +95,27 @@ def override_face_shape(client_id: str, payload: FaceShapeOverrideIn):
     if client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return ClientOut(**client.__dict__)
+
+
+@router.get("/clients/{client_id}/avatar")
+def client_avatar(client_id: str):
+    """Cómo tiene que verse su maniquí: pelo (tipo, largo de hoy, color,
+    densidad, línea del pelo) y rasgos de la cara (ver pipeline/avatar.py)."""
+    client = repository.get_client(client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return client_service.avatar_for(client)
+
+
+@router.patch("/clients/{client_id}/appearance")
+def set_client_appearance(client_id: str, payload: AppearanceIn):
+    if payload.hair_color is not None and payload.hair_color not in avatar.HAIR_COLORS:
+        raise HTTPException(status_code=422, detail="Color de pelo no válido")
+    client = repository.set_appearance(client_id, payload.hair_color,
+                                       payload.current_length.model_dump() if payload.current_length else None)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return client_service.avatar_for(client)
 
 
 @router.post("/growth-map/summary", response_model=GrowthSummaryOut)

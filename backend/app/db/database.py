@@ -109,6 +109,12 @@ _MIGRATIONS = [
     # "Quiero repetir este corte": el cliente elige uno de su historial
     # mientras espera y el peluquero lo ve en la sala y en la ficha.
     ("waiting", "requested_history_id", "TEXT"),
+    # Maniquí del cliente (growth-map.html): color de pelo y largo actual
+    # puesto a mano por el peluquero ({"top","sides","back"} en mm) con su
+    # fecha, para seguir sumando lo que crece desde entonces.
+    ("clients", "hair_color", "TEXT"),
+    ("clients", "current_length", "TEXT"),
+    ("clients", "current_length_at", "TEXT"),
 ]
 
 

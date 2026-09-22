@@ -46,6 +46,9 @@ def _row_to_client(row) -> ClientProfile:
         consent_simulation=bool(row["consent_simulation"]),
         simulation_photo_path=row["simulation_photo_path"],
         liked_styles=json.loads(row["liked_styles"]) if row["liked_styles"] else [],
+        hair_color=row["hair_color"],
+        current_length=json.loads(row["current_length"]) if row["current_length"] else None,
+        current_length_at=row["current_length_at"],
     )
 
 
@@ -423,3 +426,17 @@ def last_visits() -> dict[str, dict]:
         if prev is None or r["at"][:10] > prev["at"][:10]:
             out[r["client_id"]] = {"at": r["at"], "style_id": None}
     return out
+
+
+def set_appearance(client_id: str, hair_color: str | None, current_length: dict | None) -> ClientProfile | None:
+    """Color de pelo y largo actual del maniquí. `current_length=None`
+    vuelve al cálculo automático (último corte + lo crecido)."""
+    if get_client(client_id) is None:
+        return None
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE clients SET hair_color = ?, current_length = ?, current_length_at = ? WHERE id = ?",
+            (hair_color, json.dumps(current_length) if current_length else None,
+             _now() if current_length else None, client_id),
+        )
+    return get_client(client_id)

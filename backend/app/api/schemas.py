@@ -440,3 +440,17 @@ class NextVisitOut(BaseModel):
 class ReturnDueOut(BaseModel):
     client: ClientOut
     next_visit: NextVisitOut
+
+
+class LengthIn(BaseModel):
+    top: float = Field(ge=0, le=600)
+    sides: float = Field(ge=0, le=600)
+    back: float = Field(ge=0, le=600)
+    fade: str | None = None   # degradado que conserva (ninguno/bajo/medio/alto/skin)
+
+
+class AppearanceIn(BaseModel):
+    """Maniquí: color de pelo y largo actual puesto a mano (None = automático)."""
+
+    hair_color: str | None = None
+    current_length: LengthIn | None = None

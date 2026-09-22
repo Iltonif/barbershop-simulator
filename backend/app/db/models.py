@@ -41,6 +41,9 @@ class ClientProfile:
     consent_simulation: bool = False
     simulation_photo_path: str | None = None
     liked_styles: list[str] = field(default_factory=list)
+    hair_color: str | None = None
+    current_length: dict | None = None      # {"top", "sides", "back"} en mm, puesto a mano
+    current_length_at: str | None = None
 
 
 @dataclass

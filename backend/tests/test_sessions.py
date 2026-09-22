@@ -217,6 +217,20 @@ class SessionFlowTest(unittest.TestCase):
         self.assertEqual(self.barber.post("/api/growth-map/summary", json=body).status_code, 422)
         self.assertEqual(self.client_tab.post("/api/growth-map/summary", json={}).status_code, 401)
 
+    def test_avatar_and_appearance(self):
+        cid = self._register().json()["id"]
+        self.assertEqual(self.barber.get(f"/api/clients/{cid}/avatar").status_code, 401)
+        self._barber_login()
+        av = self.barber.get(f"/api/clients/{cid}/avatar").json()
+        self.assertEqual(av["length"]["source"], "defecto")
+        r = self.barber.patch(f"/api/clients/{cid}/appearance",
+                              json={"hair_color": "negro", "current_length": {"top": 120, "sides": 30, "back": 40}})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual((r.json()["hair_color"], r.json()["length"]["source"], r.json()["length"]["top"]), ("negro", "peluquero", 120))
+        self.assertEqual(self.barber.patch(f"/api/clients/{cid}/appearance", json={"hair_color": "verde"}).status_code, 422)
+        r = self.barber.patch(f"/api/clients/{cid}/appearance", json={"hair_color": "negro", "current_length": None})
+        self.assertEqual(r.json()["length"]["source"], "defecto")
+
 
 if __name__ == "__main__":
     unittest.main()

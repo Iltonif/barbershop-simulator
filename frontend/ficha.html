@@ -90,6 +90,10 @@
           align-items: center; justify-content: center; padding: 16px; gap: 10px; color: var(--text-dim); text-align: center; }
   .zoom img { max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; }
   @media (max-width: 480px) { .pelo-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  /* Maniquí del cliente (growth-map.html en modo vista) */
+  .mani { position: relative; margin-top: 14px; }
+  .mani iframe { display: block; width: 100%; height: 320px; border: 1px solid var(--glass-border); border-radius: 14px; background: #0b0d18; }
+  .mani-edit { position: absolute; right: 10px; bottom: 10px; background: rgba(8, 10, 18, 0.85); }
 </style>
 </head>
 <body>
@@ -162,6 +166,10 @@
       <a class="tool" id="t-remolinos" href="#"><span data-icon="compass"></span>Remolinos<span class="state" id="s-remolinos"></span></a>
       <a class="tool" id="t-visajismo" href="#"><span data-icon="scan-face"></span>Visajismo<span class="state" id="s-visajismo"></span></a>
       <a class="tool" id="t-recs" href="#"><span data-icon="sparkles"></span>Recomendaciones</a>
+    </div>
+    <div class="mani">
+      <iframe id="mani-frame" title="Maniquí del cliente" loading="lazy"></iframe>
+      <a class="chip mani-edit" id="mani-edit" href="#"><span data-icon="pen-line"></span>Editar maniquí</a>
     </div>
   </section>
 
@@ -250,6 +258,10 @@
     const stateIcon = (ok) => `<span class="${ok ? "ok" : "warn"}">${UI.icon(ok ? "circle-check" : "triangle-alert")}</span>`;
     const whorls = ((c.custom_growth_map || {}).whorls || []).length;
     q("t-remolinos").href = with_id("growth-map.html");
+    q("mani-edit").href = with_id("growth-map.html");
+    // Maniquí con su pelo y sus rasgos; se recarga si cambian (p.ej. el tipo de pelo).
+    const maniSrc = with_id("growth-map.html") + `&embed=1&v=${encodeURIComponent((c.hair_texture_override || "") + (c.hair_color || ""))}`;
+    if (q("mani-frame").getAttribute("src") !== maniSrc) q("mani-frame").setAttribute("src", maniSrc);
     q("s-remolinos").innerHTML = stateIcon(!!c.custom_growth_map) + (whorls ? ` ${whorls}` : "");
     q("t-visajismo").href = with_id("visagismo.html");
     q("s-visajismo").innerHTML = stateIcon(Object.values(feats).some((v) => v !== null && v !== "" && v !== false));

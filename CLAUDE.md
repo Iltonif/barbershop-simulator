@@ -768,6 +768,69 @@ cliente.
   cliente); el mapa sigue siendo sobre la cabeza genérica, no sobre su
   foto.
 
+## Maniquí personalizado del cliente (v5, sept 2026)
+
+Pedro: "que el maniquí vaya cambiando en función de las características del
+cliente: si tiene el pelo afro, que tenga pelo afro y sus físicas, así con
+todos los tipos de cabello, la longitud y las características de visajismo
+(mandíbula, ojos, simetría, orejas, entradas...)". Eligió verlo en Remolinos
+y en la ficha, largo automático + ajustable, balanceo al girar y selector de
+color.
+
+- **Parámetros** (`app/pipeline/avatar.py`, `GET /api/clients/{id}/avatar`,
+  solo peluquero): tipo de pelo (el del peluquero, si no el del cliente, si
+  no liso), color (`clients.hair_color`), densidad y línea del pelo
+  (`hair_physical_metrics`), largo de hoy y pesos de los rasgos.
+- **Largo de hoy**: largo puesto a mano (`clients.current_length` +
+  `current_length_at`, con el degradado que conserve) o el del último corte
+  del historial que sea del catálogo, más lo crecido (0,41 mm/día, máx. 6
+  meses); si no hay nada, 4/1,5/1,5 cm. `PATCH /api/clients/{id}/appearance`
+  guarda color y largo (`current_length: null` = volver a automático).
+- **Rasgos → morphs** (tabla en `avatar.morph_weights`): forma de cara
+  (override del peluquero/cliente o `facial_geometry`, 7 formas), cráneo
+  braqui/dolicocéfalo, mentón retraído/prominente, mandíbula suave/definida,
+  orejas salientes, ojos juntos/separados, asimetría ocular (solo si la nota
+  del análisis dice qué ojo está más abierto; si no, no se inventa el lado),
+  perfil convexo/cóncavo, cuello corto/largo, arco superciliar marcado y
+  frente alta/baja. Los morphs son targets CC0 de MakeHuman calculados sobre
+  el maniquí (`frontend/assets/rasgos/*.bin`, int16 dispersos + índice,
+  2,3 MB en total pero cada cliente descarga solo 2-5 archivos pequeños);
+  los genera `tools/construir_cabeza_masculina.py` (tabla `MORPHS`). Se probó
+  meterlos como morph targets del .glb: 5 MB, y WebGL solo mezcla 8 a la vez;
+  por eso van aparte y se suman en la CPU al cargar.
+- **Línea del pelo y color** (`assets/avatar.js`): el .glb v5 ya no trae el
+  pelo pintado; trae `_HAIRH` (distancia a la línea del pelo), `_HAIRTH`
+  (ángulo) y `_EARS`, y la página pinta el color del cliente y mueve la
+  línea: entradas en M (sube en las sienes), frente alta, pico de viuda.
+  Densidad baja = menos mechones y cuero cabelludo más claro.
+- **Pelo por tipo** (`Avatar.buildHair`): línea central que sigue el campo de
+  flechas/remolinos junto a la raíz, luego gravedad (liso 1, ondulado 0,75,
+  rizado 0,3, afro 0) o hacia fuera (rizado 0,5, afro 1,6), sin atravesar la
+  cabeza; encima, ondas (ondulado) o espiral (rizado R=1,6 cm·escala, afro
+  espiral pequeña y apretada); "encogimiento" del rizo (rizado 0,6, afro
+  0,7). Largo por zona (arriba/laterales/nuca, mezcla suave) y degradado
+  (bajo/medio/alto/piel: por debajo de su altura el largo baja a lo crecido).
+  Por delante de la cara el pelo largo se aparta a los lados para no taparla.
+  ~2.600 mechones (afro ×1,6, rizado ×1,25); 50-250 ms por redibujo.
+- **Balanceo**: muelle amortiguado movido por la velocidad de giro de la
+  cámara; desplaza las puntas en el shader (atributo `sway`, más en pelo
+  largo y liso, casi nada en afro), sin rehacer los mechones.
+- **Remolinos** (`growth-map.html`): nuevos controles Color y "Largo de hoy"
+  (3 deslizadores, chip con el origen del largo y botón Auto). "Guardar"
+  guarda también color/largo. Al aplicar rasgos se rehace la rejilla y se
+  vuelven a pegar flechas y remolinos a la superficie.
+- **Ficha**: vista del maniquí incrustada (`growth-map.html?embed=1` en un
+  iframe, solo lienzo y vistas) con "Editar maniquí".
+- Tests: `tests/test_avatar.py` (rasgos, lado de la asimetría, que cada morph
+  tenga su archivo, largo automático/manual/tope) y
+  `test_sessions.test_avatar_and_appearance`. Capturas probadas: afro con
+  cara redonda, orejas salientes y mentón retraído; liso largo rubio con
+  entradas; rizado con cara alargada, nariz convexa, cuello largo y un ojo
+  más pequeño; ondulado con degradado alto, pico y densidad baja.
+- Límites: el pelo son líneas de 1 px (no hay grosor ni sombras propias); la
+  barba del cliente todavía no se dibuja; la escala 1 mm = 0,0041 supone una
+  cabeza de ~15,5 cm de ancho.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

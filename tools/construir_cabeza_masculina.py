@@ -12,7 +12,12 @@ Uso (el resultado ya está en el repo; solo hace falta para rehacerlo):
         makehuman/data/targets/chin makehuman/data/targets/eyebrows
     git show 5948b9e:frontend/assets/head.glb > /tmp/head_v3_neutral.glb
     pip install trimesh pygltflib scipy rtree
-    python tools/construir_cabeza_masculina.py /tmp/mh /tmp/head_v3_neutral.glb frontend/assets/head.glb
+    python tools/construir_cabeza_masculina.py /tmp/mh /tmp/head_v3_neutral.glb /tmp/v5/head_a.glb
+    python tools/mejorar_ojos_cabeza.py /tmp/v5/head_a.glb frontend/assets/head.glb
+    rm -rf frontend/assets/rasgos && cp -r /tmp/v5/rasgos frontend/assets/rasgos
+
+(el sparse-checkout necesita además makehuman/data/targets/{ears,eyes,nose,
+neck,forehead} para los rasgos del paso 6)
 
 Pasos:
 1. Se ajusta (ICP con escala) el base mesh recortado a la piel del maniquí
@@ -27,11 +32,19 @@ Pasos:
 4. Se realinea para que el cráneo quede donde estaba (error ~2 cm a escala
    real): los mapas de remolinos ya guardados siguen cayendo sobre la
    cabeza, y growth-map.html además los pega a la superficie al cargarlos.
-5. Se pinta por vértice la zona del pelo (como un pelo muy corto), las
-   cejas y una sombra de barba suave, y se guarda la máscara del cuero
-   cabelludo en el atributo `_SCALP` (0-1). growth-map.html la usa para
-   saber dónde se puede dibujar y dónde nacen los mechones.
+5. Se pintan por vértice las cejas y una sombra de barba suave. El color
+   del pelo ya NO se hornea (v5): se guardan la máscara del cuero
+   cabelludo (`_SCALP`), la distancia a la línea del pelo (`_HAIRH`), el
+   ángulo desde la cara (`_HAIRTH`) y las orejas (`_EARS`), y
+   growth-map.html pinta el color del cliente y mueve la línea del pelo
+   (entradas, frente alta, pico) al vuelo.
+6. Rasgos del cliente ("morph targets", tabla MORPHS): cada uno se guarda
+   aparte en `rasgos/<nombre>.bin` (int16, solo los vértices que se mueven)
+   con `rasgos/index.json`; la página descarga solo los que necesita ese
+   cliente. Se compensa la traslación del cráneo para que los mapas de
+   remolinos sigan cayendo encima.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -48,6 +61,37 @@ EXTRA_TARGETS = {
     "chin/chin-prominent-incr": 0.2,
     "eyebrows/eyebrows-trans-down": 0.35,
     "eyebrows/eyebrows-trans-forward": 0.3,
+}
+# Rasgos del cliente como "morph targets" (se mezclan en growth-map.html
+# según su ficha, ver backend/app/pipeline/avatar.py). Cada uno es una
+# combinación de targets CC0 de MakeHuman. "l" = lado izquierdo del
+# personaje = +x del maniquí = lado izquierdo del cliente.
+MORPHS = {
+    "face-oval": {"head/head-oval": 1.0},
+    "face-round": {"head/head-round": 1.0},
+    "face-square": {"head/head-square": 1.0},
+    "face-rectangular": {"head/head-rectangular": 1.0},
+    "face-diamond": {"head/head-diamond": 1.0},
+    "face-triangle": {"head/head-triangular": 1.0},
+    "face-heart": {"head/head-invertedtriangular": 1.0},
+    "skull-short": {"head/head-back-scale-depth-decr": 1.0},
+    "skull-long": {"head/head-back-scale-depth-incr": 1.0},
+    "chin-retruded": {"chin/chin-prominent-decr": 1.0, "chin/chin-prognathism-decr": 0.5},
+    "chin-prominent": {"chin/chin-prominent-incr": 1.0, "chin/chin-prognathism-incr": 0.5},
+    "jaw-soft": {"chin/chin-bones-decr": 1.0, "chin/chin-width-decr": 0.5},
+    "jaw-defined": {"chin/chin-bones-incr": 1.0, "chin/chin-width-incr": 0.5},
+    "ears-prominent": {"ears/l-ear-wing-incr": 1.0, "ears/r-ear-wing-incr": 1.0},
+    "eyes-close": {"eyes/l-eye-trans-in": 1.0, "eyes/r-eye-trans-in": 1.0},
+    "eyes-wide": {"eyes/l-eye-trans-out": 1.0, "eyes/r-eye-trans-out": 1.0},
+    "eye-l-small": {"eyes/l-eye-height2-decr": 1.0, "eyes/l-eye-height1-decr": 0.5},
+    "eye-r-small": {"eyes/r-eye-height2-decr": 1.0, "eyes/r-eye-height1-decr": 0.5},
+    "nose-convex": {"nose/nose-hump-incr": 1.0, "nose/nose-scale-depth-incr": 0.5},
+    "nose-concave": {"nose/nose-curve-concave": 1.0},
+    "neck-short": {"neck/neck-scale-vert-decr": 1.0, "neck/neck-scale-horiz-incr": 0.6},
+    "neck-long": {"neck/neck-scale-vert-incr": 1.0, "neck/neck-scale-horiz-decr": 0.5},
+    "brow-ridge": {"eyebrows/eyebrows-trans-forward": 1.0, "forehead/forehead-nubian-incr": 0.5},
+    "forehead-tall": {"forehead/forehead-scale-vert-incr": 1.0},
+    "forehead-short": {"forehead/forehead-scale-vert-decr": 1.0},
 }
 CROP_Y = 5.5            # recorte del base mesh (cabeza + cuello), unidades MakeHuman
 SMOOTH_ITERS = 8
@@ -98,6 +142,21 @@ def rebuild(g, blob, replace, add=()):
     g.buffers[0].byteLength = len(out)
     g.set_binary_blob(bytes(out))
     return ids
+
+
+def write_morph(path, dm):
+    """Rasgo en binario compacto (lo lee assets/rasgos.js):
+    uint32 n_vértices_movidos, float32 escala, n x uint32 índices,
+    n x 3 x int16 desplazamiento / escala * 32767."""
+    idx = np.where(np.abs(dm).max(1) > 0)[0].astype(np.uint32)
+    vals = dm[idx]
+    scale = float(np.abs(vals).max()) if len(idx) else 1.0
+    q = np.round(vals / scale * 32767).astype(np.int16)
+    with open(path, "wb") as f:
+        f.write(np.array([len(idx)], np.uint32).tobytes())
+        f.write(np.array([scale], np.float32).tobytes())
+        f.write(idx.tobytes())
+        f.write(q.tobytes())
 
 
 # --- MakeHuman ---
@@ -166,6 +225,9 @@ def main(mh_root, neutral_glb, out_glb):
         bary = trimesh.triangles.points_to_barycentric(base.triangles[fid], cp)
         return (Vd[tri[fid]] * bary[:, :, None]).sum(1) + (pts - cp)
 
+    cp_s, _, fid_s = trimesh.proximity.closest_point(base, P_skin)
+    bary_s = trimesh.triangles.points_to_barycentric(base.triangles[fid_s], cp_s)
+
     new = {skin.attributes.POSITION: transfer(P_skin),
            lashes.attributes.POSITION: transfer(read_acc(g, blob, lashes.attributes.POSITION).astype(float))}
     PE = read_acc(g, blob, eyes.attributes.POSITION).astype(float)
@@ -213,11 +275,12 @@ def main(mh_root, neutral_glb, out_glb):
         tt = np.clip((x - e0) / (e1 - e0), 0, 1)
         return tt * tt * (3 - 2 * tt)
 
-    mask = smooth(-0.035, 0.035, h - np.interp(th, HAIRLINE[:, 0], HAIRLINE[:, 1]))
-    mask[(th > 70) & (th < 125) & (h > -0.75) & (h < 0.30) & (np.abs(S[:, 0]) > 0.235)] = 0  # orejas
+    hair_h = h - np.interp(th, HAIRLINE[:, 0], HAIRLINE[:, 1])   # >0 = por encima del nacimiento del pelo
+    ears = ((th > 70) & (th < 125) & (h > -0.75) & (h < 0.30) & (np.abs(S[:, 0]) > 0.235)).astype(np.float32)
+    mask = smooth(-0.035, 0.035, hair_h) * (1 - ears)
+    # El color del pelo YA NO va horneado: lo pinta growth-map.html con el
+    # color de pelo del cliente y su línea del pelo (entradas, frente alta).
     out = col.copy()
-    a = 0.8 * mask
-    out[:, :3] = out[:, :3] * (1 - a[:, None]) + HAIR_RGB * a[:, None]
     for ex, ey, ez in eye_pts:
         side = np.sign(ex)
         dx = (S[:, 0] - ex) / (0.36 * ipd)
@@ -229,7 +292,36 @@ def main(mh_root, neutral_glb, out_glb):
     beard = np.maximum(beard, smooth(-0.26, -0.30, h) * (1 - smooth(-0.40, -0.44, h)) * (th < 22)) * 0.22
     out[:, :3] = out[:, :3] * (1 - beard[:, None]) + np.array([0.30, 0.26, 0.25]) * beard[:, None]
     rebuild(g, blob, {skin.attributes.COLOR_0: (np.clip(out, 0, 1) * 255).round()})
-    skin.attributes._SCALP = rebuild(g, g.binary_blob(), {}, [(mask.astype(np.float32), "SCALAR", 5126)])[0]
+    ids = rebuild(g, g.binary_blob(), {}, [(mask.astype(np.float32), "SCALAR", 5126),
+                                           (hair_h.astype(np.float32), "SCALAR", 5126),
+                                           (th.astype(np.float32), "SCALAR", 5126),
+                                           (ears, "SCALAR", 5126)])
+    skin.attributes._SCALP, skin.attributes._HAIRH, skin.attributes._HAIRTH, skin.attributes._EARS = ids
+
+    # 6. Rasgos (morph targets). Desplazamiento del base mesh -> maniquí por
+    #    las mismas baricéntricas, suavizado igual, girado/escalado como el
+    #    realineado, y sin traslación del cráneo (si un rasgo "mueve" la
+    #    cabeza entera, p.ej. el cuello, se compensa para que los mapas de
+    #    remolinos sigan cayendo encima).
+    top = S[:, 1] > 0.33
+    out_dir = Path(out_glb).parent / "rasgos"
+    out_dir.mkdir(exist_ok=True)
+    index = {}
+    for name, parts in MORPHS.items():
+        Dm = sum(load_target(data / f"targets/{t}.target", n) * w for t, w in parts.items())
+        dm = s * (Dm[tri[fid_s]] * bary_s[:, :, None]).sum(1)
+        for _ in range(SMOOTH_ITERS):
+            dm = 0.5 * dm + 0.5 * (L @ dm)
+        dm = (k * (R @ dm.T)).T
+        drift = dm[top].mean(0)
+        dm -= drift
+        # Por debajo de ~0,3 mm reales no se ve: fuera (el archivo baja mucho).
+        dm[np.abs(dm).max(1) < 6e-4] = 0
+        write_morph(out_dir / f"{name}.bin", dm)
+        eyes_d = [((k * (R @ (Dm[side].mean(0) * s))) - drift).round(5).tolist() for side in (le, rei)]
+        index[name] = {"eyes": eyes_d}   # [izquierdo, derecho]: los ojos se mueven enteros
+        print(f"  rasgo {name}: {int((np.abs(dm).max(1) > 0).sum())} vértices, máx {np.abs(dm).max():.4f}")
+    (out_dir / "index.json").write_text(json.dumps({"vertices": len(S), "morphs": index}, indent=1))
     g.save(out_glb)
     print(f"{out_glb}: cuero cabelludo {int((mask > 0.5).sum())} vértices de {len(S)}")
 

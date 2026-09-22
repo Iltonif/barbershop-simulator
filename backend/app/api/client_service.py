@@ -15,7 +15,7 @@ from app import config
 from app.api.schemas import ReasonOut, RecommendationsOut, SimulationResponse, StyleOut, StyleRecommendationOut
 from app.db import repository
 from app.db.models import ClientProfile
-from app.pipeline import growth_analysis, haircut_editor, maintenance, trait_rules
+from app.pipeline import avatar, growth_analysis, haircut_editor, maintenance, trait_rules
 from app.pipeline.recommender import recommend_styles
 from app.pipeline.style_catalog import get_style_by_id
 
@@ -126,3 +126,22 @@ def next_visit_for(client: ClientProfile, last: dict | None) -> dict | None:
         nv["last_visit"] = last["at"]
         nv["style_name"] = style.name if style else None
     return nv
+
+
+def last_cut_lengths(client: ClientProfile) -> dict | None:
+    """Largo con el que salió del último corte registrado (si era uno del
+    catálogo), para el maniquí."""
+    for record in repository.list_haircuts(client.id):
+        style = get_style_by_id(record.style_id) if record.style_id else None
+        if style:
+            return {"at": record.created_at, "top": style.length_top_mm, "sides": style.length_sides_mm,
+                    "back": style.length_back_mm, "fade": style.fade_type, "style_name": style.name}
+    return None
+
+
+def avatar_for(client: ClientProfile) -> dict:
+    texture, _ = effective_hair_texture(client)
+    cut = last_cut_lengths(client)
+    params = avatar.avatar_params(client, cut, texture)
+    params["length"]["style_name"] = cut["style_name"] if cut and params["length"]["source"] == "corte" else None
+    return params
