@@ -217,6 +217,7 @@
     face: { ovalada: "Cara ovalada", redonda: "Cara redonda", cuadrada: "Cara cuadrada", alargada: "Cara alargada" },
     hairline: { linear_straight: "Nacimiento recto", m_shaped_receding: "Entradas", widows_peak: "Pico", high_forehead: "Frente alta" },
     maint: { zero_minutes: "No se peina", low_1_5_mins: "1-5 min peinado", medium_5_15_mins: "5-15 min peinado", high_requires_blowdryer: "Usa secador" },
+    length: { rapado: "Rapado", lados_cortos: "Lados cortos", corto: "Pelo corto", medio: "Pelo medio", largo: "Pelo largo", melena: "Melena" },
     beard: { clean_shaven: "Afeitado", stubble_short: "Barba de pocos días", full_long_volume: "Barba larga", sharp_lined: "Barba perfilada" },
   };
   const TEXTURES = [["liso", "Liso"], ["ondulado", "Ondulado"], ["rizado", "Rizado"], ["afro", "Afro"]];
@@ -240,6 +241,7 @@
 
     const answers = [
       hair.hair_pattern_shape && chip("scissors", `${LABELS.hair_pattern_shape[hair.hair_pattern_shape]} (dice él)`),
+      hair.hair_length && chip("ruler", `${LABELS.length[hair.hair_length]} (${new Date(hair.hair_length_at).toLocaleDateString("es-ES")})`),
       c.face_shape_override && chip("scan-face", LABELS.face[c.face_shape_override] || c.face_shape_override),
       hair.frontal_hairline_shape && chip("user-round", LABELS.hairline[hair.frontal_hairline_shape]),
       life.daily_maintenance_commitment && chip("clock", LABELS.maint[life.daily_maintenance_commitment]),

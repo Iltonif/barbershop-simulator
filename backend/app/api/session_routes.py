@@ -25,6 +25,7 @@ Rutas de cliente: `/api/me/*` (solo su propia ficha, cookie
 from __future__ import annotations
 
 import io
+from datetime import datetime, timezone
 
 import cv2
 import numpy as np
@@ -52,6 +53,7 @@ from app.api.schemas import (
     WaitingStatusIn,
 )
 from app.db import repository
+from app.pipeline.avatar import HAIR_LENGTHS
 from app.pipeline.style_catalog import get_style_by_id, load_catalog
 
 router = APIRouter()
@@ -342,6 +344,12 @@ def my_questionnaire(payload: QuestionnaireIn, request: Request):
         hair["hair_pattern_shape"] = payload.hair_pattern_shape
     if payload.frontal_hairline_shape:
         hair["frontal_hairline_shape"] = payload.frontal_hairline_shape
+    if payload.hair_length in HAIR_LENGTHS:
+        # La fecha solo cambia si cambia la respuesta: volver a guardar el
+        # cuestionario sin tocarla no debe "reiniciar" lo que ha crecido.
+        if payload.hair_length != hair.get("hair_length") or not hair.get("hair_length_at"):
+            hair["hair_length_at"] = datetime.now(timezone.utc).isoformat()
+        hair["hair_length"] = payload.hair_length
     if payload.face_shape in geometry:
         anat["facial_geometry"] = geometry[payload.face_shape]
         repository.update_face_shape_override(client.id, payload.face_shape)

@@ -230,6 +230,21 @@ class SessionFlowTest(unittest.TestCase):
         self.assertEqual(self.barber.patch(f"/api/clients/{cid}/appearance", json={"hair_color": "verde"}).status_code, 422)
         r = self.barber.patch(f"/api/clients/{cid}/appearance", json={"hair_color": "negro", "current_length": None})
         self.assertEqual(r.json()["length"]["source"], "defecto")
+        # El cliente dice cómo de largo lo tiene: el maniquí lo usa.
+        self.client_tab.patch("/api/me/questionnaire", json={"hair_length": "largo"})
+        hp = self.client_tab.get("/api/me").json()["visagismo_profile"]["hair_physical_metrics"]
+        at = hp["hair_length_at"]
+        av = self.barber.get(f"/api/clients/{cid}/avatar").json()
+        self.assertEqual((av["length"]["source"], av["length"]["top"]), ("cliente", 140))
+        # Volver a guardar la misma respuesta no reinicia la fecha; y una desconocida se ignora.
+        self.client_tab.patch("/api/me/questionnaire", json={"hair_length": "largo"})
+        self.client_tab.patch("/api/me/questionnaire", json={"hair_length": "kilometrico"})
+        hp = self.client_tab.get("/api/me").json()["visagismo_profile"]["hair_physical_metrics"]
+        self.assertEqual((hp["hair_length"], hp["hair_length_at"]), ("largo", at))
+        # La ficha de visagismo guardada por el peluquero conserva el largo.
+        vp = self.barber.get(f"/api/clients/{cid}").json()["visagismo_profile"]
+        self.barber.patch(f"/api/clients/{cid}/visagismo-profile", json=vp)
+        self.assertEqual(self.barber.get(f"/api/clients/{cid}/avatar").json()["length"]["source"], "cliente")
 
 
 if __name__ == "__main__":

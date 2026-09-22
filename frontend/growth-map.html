@@ -567,7 +567,7 @@
     }
     function buildHair() {
       if (!skinMesh) return;
-      if (hairObject) { scene.remove(hairObject); hairObject.geometry.dispose(); }
+      if (hairObject) { scene.remove(hairObject); Avatar.disposeHair(hairObject); }
       if (!hairMask) hairMask = Avatar.hairMask(skinMesh, look.hairline);
       hairObject = Avatar.buildHair({
         grid, triIndex: skinMesh.geometry.index.array, snap, field: flowField(), headCenter,
@@ -848,6 +848,7 @@
         document.getElementById(id + "-v").textContent = `${(look.length[k] / 10).toFixed(1)} cm`;
       }
       const src = { corte: `Último corte + ${Math.round(look.length.grown_mm || 0)} mm`,
+                    cliente: `Dice él + ${Math.round(look.length.grown_mm || 0)} mm`,
                     peluquero: "Ajustado", defecto: "Por defecto" }[look.length.source] || "";
       document.getElementById("len-src").textContent = lengthManual ? "Ajustado (sin guardar)" : src;
       document.getElementById("len-auto").hidden = !(lengthManual || look.length.source === "peluquero");

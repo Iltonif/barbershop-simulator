@@ -79,6 +79,22 @@ class LengthTest(unittest.TestCase):
         self.assertAlmostEqual(L["grown_mm"], avatar.MAX_GROWTH_DAYS * avatar.GROWTH_MM_PER_DAY, places=1)
         self.assertEqual(avatar.current_length(client(), None, self.NOW)["source"], "defecto")
 
+    def test_client_answer_vs_last_cut(self):
+        said_at = (self.NOW - timedelta(days=20)).isoformat()
+        c = client(visagismo_profile={"hair_physical_metrics": {"hair_length": "medio", "hair_length_at": said_at}})
+        # Cortado antes de contestar: manda lo que dice él, más lo crecido desde entonces.
+        old_cut = {"at": (self.NOW - timedelta(days=60)).isoformat(), "top": 20, "sides": 5, "back": 5}
+        L = avatar.current_length(c, old_cut, self.NOW)
+        self.assertEqual(L["source"], "cliente")
+        self.assertAlmostEqual(L["top"], 70 + 20 * avatar.GROWTH_MM_PER_DAY, places=1)
+        # Cortado después: manda el corte.
+        new_cut = {"at": (self.NOW - timedelta(days=5)).isoformat(), "top": 20, "sides": 5, "back": 5}
+        self.assertEqual(avatar.current_length(c, new_cut, self.NOW)["source"], "corte")
+        # Sin historial: lo que dice él. Y el peluquero manda sobre todo.
+        self.assertEqual(avatar.current_length(c, None, self.NOW)["source"], "cliente")
+        c.current_length, c.current_length_at = {"top": 10, "sides": 3, "back": 3}, said_at
+        self.assertEqual(avatar.current_length(c, None, self.NOW)["source"], "peluquero")
+
     def test_params(self):
         c = client(hair_color="rubio", visagismo_profile={"hair_physical_metrics": {
             "hair_pattern_shape": "coily", "frontal_hairline_shape": "m_shaped_receding", "hair_density": "low_thinning"}})

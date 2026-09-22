@@ -15,8 +15,9 @@ Aquí solo se traduce la ficha a números; la forma de cada rasgo son
 `frontend/assets/avatar.js`.
 
 Largo actual: si el peluquero lo puso a mano, eso más lo que ha crecido
-desde entonces; si no, el del último corte registrado más lo crecido; si
-tampoco hay, uno corto por defecto. El pelo crece de media ~1,25 cm al mes
+desde entonces; si no, lo más reciente entre el último corte registrado y
+el largo que dijo el cliente en "Mi perfil" ("¿Cómo de largo tienes el
+pelo?"), más lo crecido; si tampoco hay, uno corto por defecto. El pelo crece de media ~1,25 cm al mes
 (~0,4 mm/día); se limita a 6 meses de crecimiento para no inventar melenas.
 """
 
@@ -30,6 +31,18 @@ from app.db.models import ClientProfile
 GROWTH_MM_PER_DAY = 0.41
 MAX_GROWTH_DAYS = 180
 DEFAULT_LENGTH = {"top": 40, "sides": 15, "back": 15}
+
+# Respuestas de "¿Cómo de largo tienes el pelo?" -> mm por zona (valores
+# típicos de cada largo: rapado a máquina, corto de tijera, por encima de
+# las orejas, por la barbilla, por los hombros).
+HAIR_LENGTHS = {
+    "rapado": {"top": 4, "sides": 3, "back": 3},
+    "lados_cortos": {"top": 45, "sides": 6, "back": 6},
+    "corto": {"top": 30, "sides": 15, "back": 15},
+    "medio": {"top": 70, "sides": 40, "back": 45},
+    "largo": {"top": 140, "sides": 110, "back": 130},
+    "melena": {"top": 240, "sides": 200, "back": 230},
+}
 
 HAIR_COLORS = ("negro", "castano_oscuro", "castano", "castano_claro", "rubio", "pelirrojo", "canoso")
 
@@ -113,9 +126,17 @@ def current_length(client: ClientProfile, last_cut: dict | None, now: datetime |
         days = max(0.0, (now - _parse(since)).total_seconds() / 86400)
         return round(min(days, MAX_GROWTH_DAYS) * GROWTH_MM_PER_DAY, 1)
 
+    hp = _get(client.visagismo_profile, "hair_physical_metrics") or {}
+    said = HAIR_LENGTHS.get(hp.get("hair_length") or "")
+    said_at = hp.get("hair_length_at")
+    if said and said_at and last_cut and _parse(last_cut["at"]) >= _parse(said_at):
+        said = None   # se cortó después de contestarlo: manda el corte
     if client.current_length and client.current_length_at:
         g = grown(client.current_length_at)
         base, source, fade = client.current_length, "peluquero", client.current_length.get("fade") or "ninguno"
+    elif said and said_at:
+        g = grown(said_at)
+        base, source, fade = said, "cliente", "ninguno"
     elif last_cut:
         g = grown(last_cut["at"])
         base, source, fade = last_cut, "corte", last_cut.get("fade") or "ninguno"

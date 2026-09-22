@@ -156,6 +156,10 @@ class HairPhysicalMetricsIn(BaseModel):
     hair_pattern_shape: str | None = None  # "straight" | "wavy" | "curly" | "coily"
     growth_directions_cowlicks: GrowthDirectionsCowlicksIn = GrowthDirectionsCowlicksIn()
     frontal_hairline_shape: str | None = None  # "linear_straight" | "m_shaped_receding" | "widows_peak" | "high_forehead"
+    # Largo que dijo tener el cliente en "Mi perfil" y cuándo lo dijo (el
+    # maniquí le suma lo crecido desde entonces). Ver avatar.HAIR_LENGTHS.
+    hair_length: str | None = None  # "rapado" | "lados_cortos" | "corto" | "medio" | "largo" | "melena"
+    hair_length_at: str | None = None
 
 
 class StylingProductsUsageIn(BaseModel):
@@ -384,6 +388,7 @@ class QuestionnaireIn(BaseModel):
     hair_pattern_shape: str | None = None  # straight | wavy | curly | coily
     face_shape: str | None = None  # ovalada | redonda | cuadrada | alargada
     frontal_hairline_shape: str | None = None
+    hair_length: str | None = None  # rapado | lados_cortos | corto | medio | largo | melena
     daily_maintenance_commitment: str | None = None
     barbershop_visit_frequency_days: int | None = None
     beard_preference: str | None = None

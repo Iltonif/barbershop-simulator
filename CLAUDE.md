@@ -827,9 +827,42 @@ color.
   cara redonda, orejas salientes y mentón retraído; liso largo rubio con
   entradas; rizado con cara alargada, nariz convexa, cuello largo y un ojo
   más pequeño; ondulado con degradado alto, pico y densidad baja.
-- Límites: el pelo son líneas de 1 px (no hay grosor ni sombras propias); la
-  barba del cliente todavía no se dibuja; la escala 1 mm = 0,0041 supone una
-  cabeza de ~15,5 cm de ancho.
+- Límites: la barba del cliente todavía no se dibuja; la escala 1 mm =
+  0,0041 supone una cabeza de ~15,5 cm de ancho.
+
+**v5.1: pelo natural y largo que dice el cliente (sept 2026).** Pedro: "dale
+forma natural al pelo: aunque sea liso tiene un poco de textura, al peinarlo
+puede tapar entradas; más densidad, no tanta separación entre cabellos", y
+"pregunta también cómo de largo tiene el pelo, para el maniquí".
+
+- **Mechones en vez de líneas** (`Avatar.buildHair`, devuelve un
+  `THREE.Group` con `userData.uSway`; liberar con `Avatar.disposeHair`):
+  ~3.000 raíces (afro ×1,2), cada una una cinta ancha (liso 0,024 ≈ 6 mm,
+  ondulado 0,022, rizado 0,014, afro 0,011) con `MeshStandardMaterial`
+  iluminado, llena casi hasta el final y con punta afilada (`taper`), más una
+  hebra fina encima (líneas) con algo de brillo. Las cintas se solapan y
+  tapan el cuero cabelludo; la pintura del cuero cabelludo sube a 0,92.
+- **Textura natural también en el liso**: cada mechón sale algo desviado del
+  peinado, con una ondulación suave e irregular (suma de dos senos), se
+  retuerce un poco, y los largos varían ±15 % (puntas desiguales).
+- **Peinado que tapa**: la gravedad va sobre todo a lo largo de la piel (el
+  pelo se apoya en la cabeza y cae por los lados) y cada tramo queda algo
+  más separado de la piel, en capas; el pelo largo de arriba cae sobre la
+  frente y las entradas. El apartado de la cara solo actúa por debajo de las
+  cejas (un flequillo sobre la frente sí se ve).
+- Rendimiento (swiftshader): 70 mm liso ~160 k vértices / 230 ms; melena
+  larga ~340 k / 700 ms; afro ~350 k / 320 ms.
+- **Pregunta "¿Cómo de largo tienes el pelo?"** en `cuestionario.html` (7
+  preguntas): rapado, lados cortos, corto, medio, por la barbilla, por los
+  hombros, con dibujos de la cabeza con el pelo hasta donde llega. Se guarda
+  en `hair_physical_metrics.hair_length` + `hair_length_at` (la fecha solo
+  cambia si cambia la respuesta). Tabla de mm en `avatar.HAIR_LENGTHS`.
+- **Largo de hoy** (`avatar.current_length`): manda el puesto a mano por el
+  peluquero; si no, lo más reciente entre el último corte y la respuesta del
+  cliente (fuente "cliente", chip "Dice él + N mm"), más lo crecido. Sale en
+  la ficha como chip.
+- Tests: `test_avatar.test_client_answer_vs_last_cut` y el final de
+  `test_sessions.test_avatar_and_appearance`.
 
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 

@@ -112,7 +112,7 @@ window.Avatar = (function () {
     const base = skin.userData.baseColor;
     const col = COLORS[colorName] || COLORS[DEFAULT_COLOR];
     const k = C.normalized || C.array instanceof Uint8Array ? 255 : 1;
-    const cover = 0.82 * (density === "low_thinning" ? 0.6 : 1);
+    const cover = 0.92 * (density === "low_thinning" ? 0.65 : 1);
     for (let i = 0; i < C.count; i++) {
       const a = cover * mask[i];
       for (let c = 0; c < 3; c++) C.array[i * C.itemSize + c] = base[i * C.itemSize + c] * (1 - a) + col[c] * 0.8 * k * a;
@@ -159,70 +159,100 @@ window.Avatar = (function () {
         p.x += pos[i * 3] * w; p.y += pos[i * 3 + 1] * w; p.z += pos[i * 3 + 2] * w;
         n.x += nrm[i * 3] * w; n.y += nrm[i * 3 + 1] * w; n.z += nrm[i * 3 + 2] * w;
       }
-      roots.push({ p, n: n.normalize(), shade: 0.8 + rnd() * 0.4, phase: rnd() * Math.PI * 2 });
+      roots.push({ p, n: n.normalize(), shade: 0.8 + rnd() * 0.4, phase: rnd() * Math.PI * 2, width: 0.75 + rnd() * 0.5, layer: rnd(), lenVar: 0.82 + rnd() * 0.3 });
     }
     return roots;
   }
 
-  function makeMaterial() {
-    const mat = new THREE.LineBasicMaterial({ vertexColors: true });
-    mat.userData.uSway = { value: new THREE.Vector3() };
+  // Material con balanceo: desplaza cada vértice uSway * sway en el shader.
+  function withSway(mat, uSway) {
     mat.onBeforeCompile = (sh) => {
-      sh.uniforms.uSway = mat.userData.uSway;
+      sh.uniforms.uSway = uSway;
       sh.vertexShader = "attribute float sway;\nuniform vec3 uSway;\n" +
         sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed += uSway * sway;");
     };
     return mat;
   }
 
+  // Ruido suave 1D (suma de senos con fases por mechón): textura natural.
+  // Ancho a lo largo del mechón: lleno casi hasta el final y punta afilada.
+  const taper = (fr) => 1 - 0.25 * fr - 0.65 * Math.pow(fr, 3);
+  const wobble = (s, ph, len) => Math.sin((2 * Math.PI * s) / len + ph) + 0.45 * Math.sin((2 * Math.PI * s) / (len * 0.43) + ph * 1.7);
+
+  // El pelo son MECHONES: cada raíz es una cinta ancha (tapa el cuero
+  // cabelludo como el pelo real, sin huecos entre pelos) con unas hebras
+  // finas encima que le dan detalle y brillo. Pedro: "aunque sea liso tiene
+  // un poco de textura, al peinarlo puede tapar entradas; más densidad, no
+  // tanta separación entre cabellos".
   function buildHair(ctx) {
     const P = ctx.params;
-    const tex = TEXTURES[P.hair_texture] || TEXTURES.liso;
+    const texName = TEXTURES[P.hair_texture] ? P.hair_texture : "liso";
+    const tex = TEXTURES[texName];
     const col = COLORS[P.hair_color] || COLORS[DEFAULT_COLOR];
     const dens = DENSITY[P.hair_density] || 1;
-    const count = Math.round(2600 * dens * (P.hair_texture === "afro" ? 1.6 : P.hair_texture === "rizado" ? 1.25 : 1));
+    const count = Math.round(3000 * dens * (texName === "afro" ? 1.2 : 1));
+    // Ancho del mechón en la raíz (unidades de escena; 0,01 ≈ 2,4 mm).
+    const W0 = { liso: 0.024, ondulado: 0.022, rizado: 0.014, afro: 0.011 }[texName] * (dens < 1 ? 0.85 : 1);
     const roots = sampleRoots(ctx, count, 7);
-    const pos = [], colr = [], sway = [];
     const DOWN = new THREE.Vector3(0, -1, 0);
     const tmp = new THREE.Vector3();
-    const rootC = col.map((c) => c * 0.55), tipC = col.map((c) => Math.min(1, c * 1.2 + 0.03));
+    const rootC = col.map((c) => c * 0.6), tipC = col.map((c) => Math.min(1, c * 1.15 + 0.03));
+    const hiC = col.map((c) => Math.min(1, c * 1.45 + 0.06));
+    // Cinta: posiciones, normales, colores, balanceo, índices. Hebras: líneas.
+    const rp = [], rn = [], rc = [], rs = [], ri = [];
+    const lp = [], lc = [], ls = [];
+    const rnd = mulberry32(11);
+    const swayOf = (s) => Math.pow(Math.min(1, s / 0.35), 1.5) * (1 - tex.stiff);
+
     for (const r of roots) {
       const u = r.p.clone().sub(ctx.headCenter).normalize();
       const mm = lengthAt(u, P.length);
       if (mm < 2.5) continue;
-      const Lw = mm * MM * tex.shrink;
+      const Lw = mm * MM * tex.shrink * (mm > 15 ? r.lenVar : 1);   // puntas desiguales
       const stubble = mm < 12;
-      const segs = Math.max(2, Math.min(36, Math.ceil(Lw / 0.012)));
+      const segs = Math.max(2, Math.min(28, Math.ceil(Lw / 0.015)));
       const ds = Lw / segs;
+      // Cada mechón sale un poco desviado del peinado (no todos paralelos).
+      const jit = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5);
+      jit.sub(r.n.clone().multiplyScalar(jit.dot(r.n))).multiplyScalar(0.5);
       // 1) Línea central: sigue el crecimiento cerca de la raíz y luego cae
-      //    por gravedad (o sale hacia fuera en rizado/afro), sin atravesar la cabeza.
-      const pts = [r.p.clone().add(r.n.clone().multiplyScalar(0.003))], nrms = [r.n.clone()], ss = [0];
+      //    por gravedad (o sale hacia fuera en rizado/afro), sin atravesar la
+      //    cabeza. Cada tramo queda algo más separado de la piel que el
+      //    anterior, así el pelo se superpone en capas y el de arriba tapa
+      //    zonas sin pelo (entradas, coronilla clara) si es lo bastante largo.
+      const pts = [r.p.clone().add(r.n.clone().multiplyScalar(0.002))], nrms = [r.n.clone()], ss = [0];
       let p = pts[0].clone(), n = r.n.clone(), s = 0;
       for (let i = 0; i < segs; i++) {
         const f = ctx.field(p, n) || DOWN.clone().sub(n.clone().multiplyScalar(n.y)).normalize();
-        const gw = tex.gravity * smooth(0.0, 0.05, s);
-        const dir = f.clone().multiplyScalar(1 - gw).add(DOWN.clone().multiplyScalar(gw));
+        f.add(jit.clone().multiplyScalar(1 - smooth(0, 0.08, s) * 0.6));
+        // Gravedad "peinada": sobre todo a lo largo de la piel (el pelo se
+        // apoya en la cabeza y cae por los lados), y algo de caída libre.
+        const gw = tex.gravity * smooth(0.0, 0.04, s);
+        const tDown = DOWN.clone().sub(n.clone().multiplyScalar(n.y));
+        const dir = f.clone().multiplyScalar(1 - 0.6 * gw).add(tDown.multiplyScalar(1.3 * gw)).add(DOWN.clone().multiplyScalar(0.35 * gw));
         dir.add(n.clone().multiplyScalar(stubble ? 0.5 + tex.outward : tex.outward));
         // Cara despejada: por delante de la cara, el pelo largo se aparta a
         // los lados (como con raya), en vez de caer como una cortina.
         const rel = tmp.copy(p).sub(ctx.headCenter);
-        if (rel.z > 0.12 && rel.y < 0.42 && Math.abs(rel.x) < 0.3) {
-          const k = smooth(0.12, 0.3, rel.z) * (1 - smooth(0.22, 0.3, Math.abs(rel.x)));
+        // Solo por debajo de las cejas: un flequillo sobre la frente sí vale.
+        if (rel.z > 0.12 && rel.y < 0.2 && Math.abs(rel.x) < 0.3) {
+          const k = smooth(0.12, 0.3, rel.z) * (1 - smooth(0.22, 0.3, Math.abs(rel.x))) * (1 - smooth(0.06, 0.16, rel.y));
           dir.x += (r.p.x >= ctx.headCenter.x ? 1 : -1) * 2.2 * k;
           dir.z -= 0.6 * k;
         }
         dir.normalize();
         const q = p.clone().add(dir.multiplyScalar(ds));
         const sn = ctx.snap(q, 0, false);
-        const minH = 0.003 + (0.025 + 0.06 * tex.outward) * Math.min(s, 0.25);
+        const minH = 0.0025 + (0.018 + 0.06 * tex.outward) * Math.min(s, 0.25) + 0.004 * r.layer;
         const hgt = tmp.copy(q).sub(sn.p).dot(sn.n);
         if (hgt < minH) q.add(sn.n.clone().multiplyScalar(minH - hgt));
         s += ds; p = q; n = sn.n;
         pts.push(q.clone()); nrms.push(n.clone()); ss.push(s);
       }
-      // 2) Ondas / espirales alrededor de la línea central.
-      const sub = tex.coil ? 4 : tex.wave ? 2 : 1;
-      let prev = null, prevS = 0;
+      // 2) Forma: espiral (rizado/afro), ondas (ondulado) y, en todos, una
+      //    textura suave e irregular (también en el liso).
+      const sub = tex.coil ? 3 : tex.wave ? 2 : 1;
+      const line = [], lnrm = [], lss = [], side = [];
       for (let i = 0; i < pts.length - 1; i++) {
         const a = pts[i], b = pts[i + 1];
         const T = b.clone().sub(a).normalize();
@@ -232,32 +262,90 @@ window.Avatar = (function () {
         for (let j = (i === 0 ? 0 : 1); j <= sub; j++) {
           const t = j / sub, sc = ss[i] + (ss[i + 1] - ss[i]) * t;
           const c = a.clone().lerp(b, t);
-          const ramp = smooth(0, 0.01, sc);
+          const ramp = smooth(0, 0.012, sc);
           if (tex.coil) {
             const ph = (2 * Math.PI * sc) / tex.pitch + r.phase;
             c.add(Bv.clone().multiplyScalar(Math.cos(ph) * tex.coil * ramp)).add(N2.clone().multiplyScalar(Math.sin(ph) * tex.coil * ramp));
           } else if (tex.wave) {
             c.add(Bv.clone().multiplyScalar(Math.sin((2 * Math.PI * sc) / tex.waveLen + r.phase) * tex.wave * ramp));
           }
-          if (prev) {
-            pos.push(prev.x, prev.y, prev.z, c.x, c.y, c.z);
-            for (const [ssv] of [[prevS], [sc]]) {
-              const k = ssv / Lw;
-              for (let ch = 0; ch < 3; ch++) colr.push((rootC[ch] + (tipC[ch] - rootC[ch]) * k) * r.shade);
-              sway.push(Math.pow(Math.min(1, ssv / 0.35), 1.5) * (1 - tex.stiff));
-            }
+          // Textura natural: el liso no es una línea perfecta.
+          const amp = (texName === "liso" ? 0.0024 : 0.0016) * ramp * Math.min(1, sc / 0.05);
+          c.add(Bv.clone().multiplyScalar(amp * wobble(sc, r.phase, 0.11)))
+           .add(N2.clone().multiplyScalar(0.5 * amp * wobble(sc, r.phase * 2.3, 0.07)));
+          line.push(c); lnrm.push(nrms[i].clone().lerp(nrms[i + 1], t).normalize()); lss.push(sc); side.push(Bv);
+        }
+      }
+      // 3) Cinta del mechón: ancha en la raíz y afinándose hacia la punta.
+      const w0 = W0 * r.width, base = rp.length / 3;
+      for (let k = 0; k < line.length; k++) {
+        const c = line[k], sc = lss[k], fr = sc / Lw;
+        const half = 0.5 * w0 * taper(fr);
+        // Eje lateral de la cinta: perpendicular a la dirección del pelo y a la piel.
+        const Tk = (k + 1 < line.length ? line[k + 1].clone().sub(c) : c.clone().sub(line[k - 1])).normalize();
+        let sd = new THREE.Vector3().crossVectors(Tk, lnrm[k]);
+        if (sd.lengthSq() < 1e-8) sd = side[k].clone(); else sd.normalize();
+        const tw = Math.sin(r.phase + sc * 25) * 0.25;   // se retuerce un poco
+        const nk = lnrm[k].clone().add(sd.clone().multiplyScalar(tw)).normalize();
+        const shade = (0.5 + 0.5 * r.shade) * (0.94 + 0.06 * wobble(sc, r.phase, 0.09));
+        for (const sgn of [-1, 1]) {
+          rp.push(c.x + sd.x * half * sgn, c.y + sd.y * half * sgn, c.z + sd.z * half * sgn);
+          rn.push(nk.x, nk.y, nk.z);
+          for (let ch = 0; ch < 3; ch++) rc.push((rootC[ch] + (tipC[ch] - rootC[ch]) * fr) * shade);
+          rs.push(swayOf(sc));
+        }
+        if (k > 0) {
+          const a = base + 2 * (k - 1), b = base + 2 * k;
+          ri.push(a, a + 1, b + 1, a, b + 1, b);
+        }
+      }
+      // 4) Hebras finas sobre la cinta: detalle de pelo y reflejos.
+      const nStr = 1;
+      const lit = 1.25;   // las cintas se iluminan; las hebras no: igualar tono
+      for (let h = 0; h < nStr; h++) {
+        const off = (rnd() - 0.5) * 0.8, lift = 0.0006 + rnd() * 0.0008, ph = rnd() * 6.28;
+        const bright = 0.92 + rnd() * 0.16;
+        for (let k = 1; k < line.length; k++) {
+          for (const kk of [k - 1, k]) {
+            const fr = lss[kk] / Lw, half = 0.5 * w0 * taper(fr);
+            const o = half * (off + 0.25 * Math.sin(lss[kk] * 9 + ph));
+            const c = line[kk], sd = side[kk], nn = lnrm[kk];
+            lp.push(c.x + sd.x * o + nn.x * lift, c.y + sd.y * o + nn.y * lift, c.z + sd.z * o + nn.z * lift);
+            const hl = 0.5 + 0.5 * Math.sin(fr * 5 + ph);   // brillo repartido a lo largo
+            for (let ch = 0; ch < 3; ch++) lc.push(((rootC[ch] + (tipC[ch] - rootC[ch]) * fr) * (1 - 0.25 * hl) + hiC[ch] * 0.25 * hl) * (0.5 + 0.5 * r.shade) * bright * lit);
+            ls.push(swayOf(lss[kk]));
           }
-          prev = c; prevS = sc;
         }
       }
     }
+    const uSway = { value: new THREE.Vector3() };
+    const group = new THREE.Group();
+    group.userData.uSway = uSway;
     const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute("color", new THREE.Float32BufferAttribute(colr, 3));
-    g.setAttribute("sway", new THREE.Float32BufferAttribute(sway, 1));
-    const obj = new THREE.LineSegments(g, makeMaterial());
-    obj.frustumCulled = false;
-    return obj;
+    g.setAttribute("position", new THREE.Float32BufferAttribute(rp, 3));
+    g.setAttribute("normal", new THREE.Float32BufferAttribute(rn, 3));
+    g.setAttribute("color", new THREE.Float32BufferAttribute(rc, 3));
+    g.setAttribute("sway", new THREE.Float32BufferAttribute(rs, 1));
+    g.setIndex(rp.length / 3 > 65535 ? new THREE.Uint32BufferAttribute(ri, 1) : new THREE.Uint16BufferAttribute(ri, 1));
+    const ribbons = new THREE.Mesh(g, withSway(new THREE.MeshStandardMaterial({
+      vertexColors: true, side: THREE.DoubleSide, roughness: 0.62, metalness: 0.0,
+    }), uSway));
+    ribbons.name = "hair-locks";
+    const gl = new THREE.BufferGeometry();
+    gl.setAttribute("position", new THREE.Float32BufferAttribute(lp, 3));
+    gl.setAttribute("color", new THREE.Float32BufferAttribute(lc, 3));
+    gl.setAttribute("sway", new THREE.Float32BufferAttribute(ls, 1));
+    const strands = new THREE.LineSegments(gl, withSway(new THREE.LineBasicMaterial({ vertexColors: true }), uSway));
+    strands.name = "hair-strands";
+    for (const o of [ribbons, strands]) { o.frustumCulled = false; group.add(o); }
+    group.userData.vertexCount = rp.length / 3 + lp.length / 3;
+    return group;
+  }
+
+  // Libera la memoria de un pelo ya dibujado.
+  function disposeHair(hair) {
+    if (!hair) return;
+    hair.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
   }
 
   // ---------- Balanceo ----------
@@ -283,8 +371,8 @@ window.Avatar = (function () {
     const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
     const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
     const amp = 0.8;   // ~1 cm en las puntas del pelo largo al girar a ritmo normal
-    hair.material.userData.uSway.value.copy(right.multiplyScalar(state.x * amp)).add(up.multiplyScalar(state.y * amp));
+    hair.userData.uSway.value.copy(right.multiplyScalar(state.x * amp)).add(up.multiplyScalar(state.y * amp));
   }
 
-  return { MM, COLORS, TEXTURES, applyMorphs, hairMask, paintScalp, buildHair, createSway, updateSway };
+  return { MM, COLORS, TEXTURES, applyMorphs, hairMask, paintScalp, buildHair, disposeHair, createSway, updateSway };
 })();

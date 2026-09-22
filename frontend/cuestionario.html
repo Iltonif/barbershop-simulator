@@ -30,7 +30,7 @@
   .dots span.now { background: linear-gradient(90deg, var(--accent-blue), var(--accent-pink)); }
   .q-title { font-size: clamp(20px, 4.5vw, 26px); font-weight: 800; margin: 0 0 16px; }
   .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  @media (min-width: 640px) { .options { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (min-width: 640px) { .options { grid-template-columns: repeat(4, minmax(0, 1fr)); } .options.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   button.opt { margin: 0; width: 100%; min-height: 0; padding: 14px 10px 12px; border-radius: 18px; background: var(--glass);
                border: 1.5px solid var(--glass-border); color: var(--text-main); display: flex; flex-direction: column;
                align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
@@ -65,7 +65,7 @@
   <div class="head-row page-head">
     <h1 class="page-title">Tu perfil</h1>
     <details class="info"><summary></summary><div class="info-body">
-      Seis preguntas rápidas para que las recomendaciones de corte se ajusten a ti. Si no sabes una, sáltala. Se guarda en tu ficha de la barbería.
+      Siete preguntas rápidas para que las recomendaciones de corte se ajusten a ti. Si no sabes una, sáltala. Se guarda en tu ficha de la barbería.
     </div></details>
   </div>
   <p class="hello" id="hello" hidden></p>
@@ -179,12 +179,39 @@
     coily: strand('<path d="M30 16 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 M52 16 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 M74 16 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5 c6 0 6 5 0 5 c-6 0 -6 5 0 5"/>', 2.5),
   };
 
+  // Largo del pelo: cabeza de frente con el pelo hasta donde llega. Cada
+  // capa: forma del pelo, hasta dónde tapa la frente (H) y hasta dónde baja (B).
+  function lengthArt(layers) {
+    const n = clipN++;
+    const defs = layers.map((l, i) => `
+      <clipPath id="lb${n}_${i}"><rect x="0" y="0" width="100" height="${l.B}"/></clipPath>
+      <clipPath id="lh${n}_${i}"><rect x="0" y="${l.H}" width="100" height="100"/></clipPath>
+      <mask id="lm${n}_${i}"><rect width="100" height="100" fill="white"/><ellipse cx="50" cy="50" rx="22" ry="30" fill="black" clip-path="url(#lh${n}_${i})"/></mask>`).join("");
+    const hair = layers.map((l, i) => `<g clip-path="url(#lb${n}_${i})"><g mask="url(#lm${n}_${i})">${l.shape.replace("/>", ` fill="currentColor" opacity="${l.op || 0.85}"/>`)}</g></g>`).join("");
+    return `<svg class="art" viewBox="0 0 100 100" aria-hidden="true"><defs>${defs}</defs>${hair}
+      <ellipse cx="50" cy="50" rx="22" ry="30" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M41 54 h5 M54 54 h5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`;
+  }
+  const LENGTH_ART = {
+    rapado: lengthArt([{ shape: '<ellipse cx="50" cy="50" rx="23.5" ry="31.5"/>', H: 30, B: 56, op: 0.35 }]),
+    lados_cortos: lengthArt([{ shape: '<ellipse cx="50" cy="50" rx="23.5" ry="31.5"/>', H: 32, B: 56, op: 0.35 },
+                             { shape: '<path d="M30 34 C27 8 73 8 70 34 C62 29 38 29 30 34 Z"/>', H: 32, B: 40 }]),
+    corto: lengthArt([{ shape: '<ellipse cx="50" cy="47" rx="26" ry="33"/>', H: 33, B: 48 }]),
+    medio: lengthArt([{ shape: '<ellipse cx="50" cy="49" rx="28.5" ry="36"/>', H: 39, B: 64 }]),
+    largo: lengthArt([{ shape: '<path d="M50 11 C79 11 83 40 80 84 L20 84 C17 40 21 11 50 11 Z"/>', H: 36, B: 86 }]),
+    melena: lengthArt([{ shape: '<path d="M50 11 C82 11 87 44 90 100 L10 100 C13 44 18 11 50 11 Z"/>', H: 35, B: 100 }]),
+  };
+
   // ---- Preguntas ----
   const FACE_TO_GEOMETRY = { ovalada: "oval", redonda: "round", cuadrada: "square", alargada: "rectangular_elongated" };
   const QUESTIONS = [
     { key: "hair", title: "¿Cómo es tu pelo?", options: [
       ["straight", "Liso", HAIR_ART.straight], ["wavy", "Ondulado", HAIR_ART.wavy],
       ["curly", "Rizado", HAIR_ART.curly], ["coily", "Afro", HAIR_ART.coily]] },
+    { key: "length", title: "¿Cómo de largo tienes el pelo?", cols: 3, options: [
+      ["rapado", "Rapado", LENGTH_ART.rapado], ["lados_cortos", "Lados cortos", LENGTH_ART.lados_cortos],
+      ["corto", "Corto", LENGTH_ART.corto], ["medio", "Medio", LENGTH_ART.medio],
+      ["largo", "Por la barbilla", LENGTH_ART.largo], ["melena", "Por los hombros", LENGTH_ART.melena]] },
     { key: "face_shape", title: "¿Qué forma tiene tu cara?", options: [
       ["ovalada", "Ovalada", FACE_ART.ovalada], ["redonda", "Redonda", FACE_ART.redonda],
       ["cuadrada", "Cuadrada", FACE_ART.cuadrada], ["alargada", "Alargada", FACE_ART.alargada]] },
@@ -217,7 +244,7 @@
     const box = document.getElementById("question");
     box.className = "fade-in";
     void box.offsetWidth;
-    box.innerHTML = `<h2 class="q-title">${q.title}</h2><div class="options">${q.options.map(([v, label, art]) =>
+    box.innerHTML = `<h2 class="q-title">${q.title}</h2><div class="options${q.cols === 3 ? " cols-3" : ""}">${q.options.map(([v, label, art]) =>
       `<button type="button" class="opt" data-v="${v}" aria-pressed="${answers[q.key] === v}">${art}<span>${label}</span></button>`
     ).join("")}</div>`;
     box.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => {
@@ -258,6 +285,7 @@
     if (c.face_shape_override) answers.face_shape = c.face_shape_override;
     if (hair.frontal_hairline_shape) answers.hairline = hair.frontal_hairline_shape;
     if (hair.hair_pattern_shape) answers.hair = hair.hair_pattern_shape;
+    if (hair.hair_length) answers.length = hair.hair_length;
     if (life.daily_maintenance_commitment) answers.maintenance = life.daily_maintenance_commitment;
     if (life.barbershop_visit_frequency_days) {
       const d = life.barbershop_visit_frequency_days;
@@ -297,7 +325,8 @@
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         hair_pattern_shape: answers.hair || null, face_shape: answers.face_shape || null,
-        frontal_hairline_shape: answers.hairline || null, daily_maintenance_commitment: answers.maintenance || null,
+        frontal_hairline_shape: answers.hairline || null, hair_length: answers.length || null,
+        daily_maintenance_commitment: answers.maintenance || null,
         barbershop_visit_frequency_days: answers.visits || null, beard_preference: answers.beard || null,
       }),
     });
@@ -315,6 +344,12 @@
     if (answers.face_shape) vp.anatomical_metrics.facial_geometry = FACE_TO_GEOMETRY[answers.face_shape];
     if (answers.hair) vp.hair_physical_metrics.hair_pattern_shape = answers.hair;
     if (answers.hairline) vp.hair_physical_metrics.frontal_hairline_shape = answers.hairline;
+    if (answers.length) {
+      // La fecha solo cambia si cambia la respuesta (el maniquí suma lo crecido desde entonces).
+      const hp = vp.hair_physical_metrics;
+      if (answers.length !== hp.hair_length || !hp.hair_length_at) hp.hair_length_at = new Date().toISOString();
+      hp.hair_length = answers.length;
+    }
     if (answers.maintenance) vp.lifestyle_and_preferences.daily_maintenance_commitment = answers.maintenance;
     if (answers.visits) vp.lifestyle_and_preferences.barbershop_visit_frequency_days = answers.visits;
     if (answers.beard) vp.lifestyle_and_preferences.beard_preference = answers.beard;
