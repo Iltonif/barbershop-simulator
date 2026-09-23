@@ -32,12 +32,15 @@
   .trait .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
   .trait .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
   .match { display: grid; gap: 8px; }
-  .match a { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; text-decoration: none; color: inherit;
+  .match-row { display: flex; align-items: center; gap: 8px; }
+  .match a { flex: 1; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; text-decoration: none; color: inherit;
              padding: 10px 12px; border-radius: 14px; background: var(--glass); border: 1px solid var(--glass-border); }
   .match .name { font-weight: 700; font-size: 14.5px; }
   .match .pct { font-weight: 800; font-size: 15px; color: var(--accent-cyan); }
   .match .bar { grid-column: 1 / -1; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
   .match .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
+  .sim-btn { margin: 0; min-height: 40px; padding: 0 12px; white-space: nowrap; }
+  #sim-img { width: 100%; border-radius: 14px; display: block; }
   table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; }
   table.sheet td { padding: 9px 4px; border-bottom: 1px solid var(--glass-border); vertical-align: top; }
   table.sheet td:first-child { color: var(--text-faint); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; width: 38%; }
@@ -104,6 +107,11 @@
       </div></details>
     </h2>
     <div class="match" id="match"></div>
+  </section>
+
+  <section class="glass-card sec" id="sim-sec" hidden>
+    <h2 class="sec-title"><span data-icon="wand-sparkles"></span>Simulado<span class="n" id="sim-title"></span></h2>
+    <img id="sim-img" alt="Simulación del corte sobre el gemelo" />
   </section>
 
   <section class="glass-card sec" id="sheet-sec" hidden>
@@ -259,16 +267,66 @@
       const recs = await api(`${API_BASE}/clients/${clientId}/recommendations`);
       const top = (recs.recommendations || []).slice(0, 3);
       q("match").innerHTML = top.map((r) => `
-        <a href="catalogo.html?style=${encodeURIComponent(r.style.id)}">
-          <span class="name">${r.style.name}</span><span class="pct">${r.match_percent} %</span>
-          <span class="bar"><i style="width:${r.match_percent}%"></i></span>
-        </a>`).join("");
+        <div class="match-row">
+          <a href="catalogo.html?style=${encodeURIComponent(r.style.id)}">
+            <span class="name">${r.style.name}</span><span class="pct">${r.match_percent} %</span>
+            <span class="bar"><i style="width:${r.match_percent}%"></i></span>
+          </a>
+          <button type="button" class="secondary sim-btn" data-style-id="${r.style.id}" data-style-name="${r.style.name}">
+            ${UI.icon("wand-sparkles")}<span class="keep-label">Probar</span>
+          </button>
+        </div>`).join("");
       q("match-sec").hidden = !top.length;
       const sheet = await api(`${API_BASE}/clients/${clientId}/barber-sheet`);
       q("sheet-style").textContent = sheet.style_name;
       q("sheet").innerHTML = sheet.rows.map((row) => `<tr><td>${row.campo}</td><td>${row.valor}</td></tr>`).join("");
       q("sheet-sec").hidden = false;
     } catch (e) { /* sin tipo de pelo todavía no hay recomendaciones: no es un error que enseñar */ }
+  }
+
+  // ---- Simular un corte sobre el gemelo (captura del visor, no la malla) ----
+  q("match").addEventListener("click", (e) => {
+    const btn = e.target.closest(".sim-btn");
+    if (btn) simulateOnTwin(btn.dataset.styleId, btn.dataset.styleName);
+  });
+
+  function captureFrontRender() {
+    return new Promise((resolve) => {
+      setView("front");
+      // Dos frames para que OrbitControls/la cámara terminen de moverse
+      // antes de leer el canvas. El canvas es transparente (para que se vea
+      // el degradado del visor), pero un JPEG no tiene canal alfa -- sin
+      // fondo propio saldría negro. Se pone uno neutro SOLO para la
+      // captura y se devuelve la escena a como estaba justo después.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const prevBg = scene.background;
+        scene.background = new THREE.Color(0xf1efe9);
+        renderer.render(scene, camera);
+        renderer.domElement.toBlob((blob) => {
+          scene.background = prevBg;
+          renderer.render(scene, camera);
+          resolve(blob);
+        }, "image/jpeg", 0.92);
+      }));
+    });
+  }
+
+  async function simulateOnTwin(styleId, styleName) {
+    if (!model) { say("warn", "Primero tiene que haber un gemelo 3D cargado."); return; }
+    say("busy", `Simulando "${styleName}" sobre el gemelo…`);
+    const blob = await captureFrontRender();
+    if (!blob) { say("warn", "No se pudo capturar el gemelo."); return; }
+    const body = new FormData();
+    body.append("style_id", styleId);
+    body.append("render", blob, "gemelo.jpg");
+    try {
+      const data = await api(`${API_BASE}/clients/${clientId}/avatar3d/simulate`, { method: "POST", body });
+      q("sim-title").textContent = styleName;
+      q("sim-img").src = `data:image/jpeg;base64,${data.image_base64}`;
+      q("sim-sec").hidden = false;
+      q("sim-sec").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      say("ok", "Simulación lista.");
+    } catch (err) { say("warn", err.message); }
   }
 
   async function load() {

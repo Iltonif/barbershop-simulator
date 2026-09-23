@@ -93,6 +93,38 @@ def barber_sheet_for(client: ClientProfile, style_id: str | None = None) -> Barb
                           rows=barber_sheet.build_sheet(style, texture, growth))
 
 
+def _simulate_checks(client: ClientProfile, provider: str | None, requested_by: str) -> str:
+    """Comprueba consentimiento, proveedor configurado y tope diario; los
+    comparten `simulate_with_stored_photo` y `simulate_on_avatar3d` -- la
+    única diferencia entre las dos es de dónde sale la imagen de partida
+    (la foto guardada o una captura del gemelo 3D), el resto de la
+    finalidad de tratamiento (mandar una imagen a un proveedor externo de
+    edición) es la misma, así que exige el mismo `consent_simulation`.
+    Devuelve el proveedor a usar."""
+    if not client.consent_simulation:
+        raise HTTPException(status_code=422, detail="Falta el consentimiento para enviar la foto y simular cortes.")
+    configured = [p.id for p in haircut_editor.available_providers()]
+    if not configured:
+        raise HTTPException(status_code=503, detail="La simulación todavía no está activada en la barbería.")
+    if provider and provider not in configured:
+        raise HTTPException(status_code=422, detail=f"El proveedor '{provider}' no está configurado")
+    if requested_by == "cliente" and repository.count_simulations_today(client.id, "cliente") >= config.MAX_CLIENT_SIMULATIONS_PER_DAY:
+        raise HTTPException(status_code=429, detail="Has llegado al máximo de simulaciones de hoy. Pídele al peluquero que te enseñe más.")
+    return provider or configured[0]
+
+
+def _run_edit(image, style, texture, use) -> SimulationResponse:
+    try:
+        result = haircut_editor.edit_haircut(image, style, texture, use,
+                                             reference=haircut_editor.load_reference_photo(style))
+    except haircut_editor.HaircutEditorNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except haircut_editor.HaircutEditorError as exc:
+        raise HTTPException(status_code=502, detail=f"No se pudo generar la simulación. {exc}")
+    _, buf = cv2.imencode(".jpg", result)
+    return buf
+
+
 def simulate_with_stored_photo(client: ClientProfile, style_id: str, provider: str | None,
                                requested_by: str) -> SimulationResponse:
     """Simula un corte sobre la foto que el peluquero guardó en la primera
@@ -104,30 +136,46 @@ def simulate_with_stored_photo(client: ClientProfile, style_id: str, provider: s
         raise HTTPException(status_code=404, detail="Corte no encontrado")
     if not client.simulation_photo_path:
         raise HTTPException(status_code=409, detail="Todavía no hay foto para simular: el peluquero la hace en la primera visita.")
-    if not client.consent_simulation:
-        raise HTTPException(status_code=422, detail="Falta el consentimiento para enviar la foto y simular cortes.")
-    configured = [p.id for p in haircut_editor.available_providers()]
-    if not configured:
-        raise HTTPException(status_code=503, detail="La simulación todavía no está activada en la barbería.")
-    if provider and provider not in configured:
-        raise HTTPException(status_code=422, detail=f"El proveedor '{provider}' no está configurado")
-    if requested_by == "cliente" and repository.count_simulations_today(client.id, "cliente") >= config.MAX_CLIENT_SIMULATIONS_PER_DAY:
-        raise HTTPException(status_code=429, detail="Has llegado al máximo de simulaciones de hoy. Pídele al peluquero que te enseñe más.")
+    use = _simulate_checks(client, provider, requested_by)
 
     image = cv2.imread(client.simulation_photo_path, cv2.IMREAD_COLOR)
     if image is None:
         raise HTTPException(status_code=409, detail="No se encuentra la foto guardada; el peluquero puede hacer otra.")
     texture = client.hair_texture_override  # solo si lo ha marcado una persona experta (ver routes.simulate)
-    use = provider or configured[0]
-    try:
-        result = haircut_editor.edit_haircut(image, style, texture, use,
-                                             reference=haircut_editor.load_reference_photo(style))
-    except haircut_editor.HaircutEditorNotConfigured as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    except haircut_editor.HaircutEditorError as exc:
-        raise HTTPException(status_code=502, detail=f"No se pudo generar la simulación. {exc}")
+    buf = _run_edit(image, style, texture, use)
     repository.log_simulation(client.id, requested_by)
-    _, buf = cv2.imencode(".jpg", result)
+    return SimulationResponse(
+        style_id=style.id,
+        detected_hair_texture=texture or "",
+        detected_face_shape=client.face_shape_override or "",
+        warnings=[],
+        image_base64=base64.b64encode(buf).decode(),
+        provider=use,
+    )
+
+
+def simulate_on_avatar3d(client: ClientProfile, style_id: str, provider: str | None,
+                         render_bgr, requested_by: str) -> SimulationResponse:
+    """Simula un corte del catálogo sobre una captura frontal del gemelo
+    3D, en vez de sobre la foto guardada (ver `simulate_with_stored_photo`
+    arriba). La imagen la manda ya hecha el visor de Three.js -- una foto
+    de lo que se ve en pantalla, no la malla en sí -- así que se reutiliza
+    tal cual el mismo editor de fotos por IA (`haircut_editor`): misma
+    finalidad de tratamiento (mandar una imagen a un proveedor externo),
+    por eso exige el mismo `consent_simulation` y respeta el mismo tope
+    diario, no uno nuevo ligado a `consent_3d_scan` (ese consentimiento ya
+    cubre crear y guardar el modelo 3D, no reenviar una vista de él a un
+    tercero). Además exige que el cliente ya tenga un gemelo 3D creado."""
+    style = get_style_by_id(style_id)
+    if style is None:
+        raise HTTPException(status_code=404, detail="Corte no encontrado")
+    if not client.avatar3d_path:
+        raise HTTPException(status_code=409, detail="Todavía no hay gemelo 3D creado para este cliente.")
+    use = _simulate_checks(client, provider, requested_by)
+
+    texture = client.hair_texture_override
+    buf = _run_edit(render_bgr, style, texture, use)
+    repository.log_simulation(client.id, requested_by)
     return SimulationResponse(
         style_id=style.id,
         detected_hair_texture=texture or "",

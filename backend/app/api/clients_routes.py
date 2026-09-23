@@ -14,7 +14,7 @@ pendiente, no solo técnica).
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app.api.schemas import (
@@ -30,6 +30,7 @@ from app.api.schemas import (
     HairTypeOverrideIn,
     ReasonOut,
     RecommendationsOut,
+    SimulationResponse,
     StyleOut,
     StyleRecommendationOut,
     VisagismoAIReportOut,
@@ -413,3 +414,17 @@ async def create_avatar3d(
 
     metrics = {"medidas": analysis.get("medidas"), "rasgos": rasgos, "avisos": avisos}
     return _avatar3d_out(repository.set_avatar3d(client_id, str(path), metrics))
+
+
+@router.post("/clients/{client_id}/avatar3d/simulate", response_model=SimulationResponse)
+async def simulate_on_avatar3d(client_id: str, style_id: str = Form(...), provider: str | None = Form(None),
+                               render: UploadFile = File(...)):
+    """Simula un corte del catálogo sobre una captura frontal del gemelo
+    3D (`render`, una foto de lo que se ve en el visor, no la malla) en
+    vez de sobre la foto guardada -- ver `client_service.simulate_on_avatar3d`
+    para por qué reutiliza el mismo `consent_simulation` en vez de uno
+    nuevo. El visor (`gemelo.html`) la genera con `canvas.toBlob()` justo
+    antes de mandarla."""
+    client = _client_or_404(client_id)
+    render_bgr = _read_upload_as_bgr(render, "captura del gemelo 3D")
+    return client_service.simulate_on_avatar3d(client, style_id, provider, render_bgr, requested_by="peluquero")

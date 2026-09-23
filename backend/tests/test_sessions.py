@@ -287,6 +287,61 @@ class SessionFlowTest(unittest.TestCase):
         finally:
             app_config.TRIPO_API_KEY = old_key
 
+    def test_avatar3d_simulate_reuses_the_photo_editor(self):
+        """Simular un corte sobre el gemelo 3D (captura del visor, no la
+        malla) reutiliza el mismo editor de fotos por IA que la simulación
+        sobre la foto guardada -- mismo `consent_simulation`, sin gemelo
+        creado da 409, sin proveedor configurado da 503."""
+        from pathlib import Path
+        from unittest import mock
+
+        from app import config as app_config
+        from app.pipeline import avatar3d
+
+        head = (Path(__file__).resolve().parents[2] / "frontend" / "assets" / "head.glb").read_bytes()
+        photos = {"photo_frontal": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+        # Sin consent_simulation desde el alta, para poder comprobar el 422 más abajo.
+        cid = self._register(consent_simulation=False).json()["id"]
+        self._barber_login()
+        style_id = self.barber.get(f"/api/clients/{cid}/recommendations").json()["recommendations"][0]["style"]["id"]
+        render = {"render": ("gemelo.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+
+        # Sin gemelo 3D todavía: 409, aunque el resto esté en orden.
+        r = self.barber.post(f"/api/clients/{cid}/avatar3d/simulate", data={"style_id": style_id}, files=render)
+        self.assertEqual(r.status_code, 409)
+
+        old_key = app_config.TRIPO_API_KEY
+        app_config.TRIPO_API_KEY = "test"
+        try:
+            self.barber.patch(f"/api/clients/{cid}/consents",
+                              json={"consent_3d_scan": True, "consent_simulation": True})
+            with mock.patch.object(avatar3d, "generate_twin", return_value=head):
+                self.barber.post(f"/api/clients/{cid}/avatar3d", files=photos)
+
+            # Ya tiene consent_simulation pero ningún proveedor de edición configurado: 503.
+            render = {"render": ("gemelo.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+            r = self.barber.post(f"/api/clients/{cid}/avatar3d/simulate", data={"style_id": style_id}, files=render)
+            self.assertEqual(r.status_code, 503)
+
+            with patch.object(config, "GEMINI_API_KEY", "g"), \
+                 patch("app.pipeline.haircut_editor.edit_haircut", return_value=np.zeros((8, 8, 3), np.uint8)) as edited:
+                # Ahora sí hay proveedor, pero se retira consent_simulation: 422
+                # (mismo consentimiento que exige la simulación sobre la foto 2D).
+                self.barber.patch(f"/api/clients/{cid}/consents", json={"consent_simulation": False})
+                render = {"render": ("gemelo.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+                r = self.barber.post(f"/api/clients/{cid}/avatar3d/simulate", data={"style_id": style_id}, files=render)
+                self.assertEqual(r.status_code, 422)
+
+                self.barber.patch(f"/api/clients/{cid}/consents", json={"consent_simulation": True})
+                render = {"render": ("gemelo.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+                r = self.barber.post(f"/api/clients/{cid}/avatar3d/simulate", data={"style_id": style_id}, files=render)
+                self.assertEqual(r.status_code, 200, r.text)
+                self.assertEqual(r.json()["style_id"], style_id)
+                self.assertTrue(r.json()["image_base64"])
+                self.assertEqual(edited.call_count, 1)
+        finally:
+            app_config.TRIPO_API_KEY = old_key
+
 
 if __name__ == "__main__":
     unittest.main()

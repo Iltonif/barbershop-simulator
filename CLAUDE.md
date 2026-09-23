@@ -940,6 +940,53 @@ guiadas de visajismo, y que lo lance el peluquero con un botón.
   y los remolinos siguen saliendo de la foto y de lo que marca el
   peluquero, no de la malla.
 
+**Simular un corte del catálogo sobre el gemelo (sept 2026).** Pedro pidió
+además que el gemelo sirviera para "extraer resultados de visajismo... y
+proponer cortes" (YA cubierto por lo de arriba: `mesh_metrics` ya
+alimenta `visagismo_profile`, que ya matiza `recommend_styles` -- no hizo
+falta código nuevo) y para "simular cortes del catálogo" sobre el propio
+modelo 3D. Antes de montarlo se investigó si el retexturizado de Tripo
+(`texture_model`, con `part_names` para apuntar a una pieza segmentada
+con `mesh_segmentation`) serviría para esto, y se descartó: solo cambia
+el COLOR/patrón de la superficie, no la geometría, así que no puede darle
+volumen a un corte largo -- como mucho serviría para algo muy rapado y
+pegado al cráneo, sin ninguna garantía de que el pelo salga como pieza
+segmentable en un escaneo fotorrealista (viene horneado en la piel, ver
+más arriba), y cada intento cuesta créditos aparte de los del gemelo.
+Pedro, tras ver esto, eligió reutilizar el editor de fotos por IA que ya
+existía (`haircut_editor.py`) en vez de tocar Tripo para esto:
+
+- **`client_service.simulate_on_avatar3d`**: misma función que
+  `simulate_with_stored_photo` (mismo `haircut_editor.edit_haircut`,
+  mismo `consent_simulation`, mismo tope diario para el cliente -- se
+  compartieron los chequeos en `_simulate_checks`), pero la imagen de
+  partida es una captura del VISOR del gemelo (una foto de lo que se ve
+  en pantalla, no la malla en sí), no la foto guardada. Exige que el
+  cliente ya tenga un gemelo 3D creado (409 si no). Deliberadamente NO
+  usa `consent_3d_scan` para esto: ese consentimiento ya cubre crear y
+  guardar el modelo, no reenviar una vista suya a un proveedor externo de
+  edición -- es la misma finalidad de tratamiento que la simulación sobre
+  foto, así que comparte su consentimiento, no crea uno nuevo.
+- **Endpoint**: `POST /api/clients/{id}/avatar3d/simulate` (multipart:
+  `style_id`, `provider` opcional, `render` la captura en sí). Solo
+  peluquero (mismo criterio que el resto de `clients_routes.py`).
+- **`frontend/gemelo.html`**: cada corte de "Su corte" tiene un botón
+  "Probar" que gira la cámara a Frente (`setView("front")`), espera dos
+  frames a que la escena termine de moverse, cambia `scene.background` a
+  un gris neutro SOLO para ese frame (el canvas es transparente para que
+  se vea el degradado del visor, pero un JPEG no tiene canal alfa: sin
+  esto la captura saldría con fondo negro), lee el canvas con
+  `renderer.domElement.toBlob(...)` y lo manda al endpoint de arriba. El
+  resultado se enseña debajo, en una sección nueva ("Simulado").
+- Tests: `tests/test_sessions.test_avatar3d_simulate_reuses_the_photo_editor`
+  (sin gemelo 409, sin proveedor 503, sin `consent_simulation` 422, éxito
+  con el editor simulado). Probado además con Playwright de extremo a
+  extremo contra un servidor con Tripo Y el editor de fotos simulados
+  (este último devuelve la misma imagen con un texto superpuesto, para
+  poder comprobar visualmente que la captura del gemelo llegó y volvió):
+  captura, envío, resultado en pantalla, sin errores de consola, en
+  escritorio y en móvil.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de
