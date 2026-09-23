@@ -107,3 +107,23 @@ MAX_CLIENT_SIMULATIONS_PER_DAY = int(os.environ.get("MAX_CLIENT_SIMULATIONS_PER_
 # del peluquero). Al pasar de este número se borran los más antiguos, con su
 # foto, para no llenar el Volume.
 MAX_HAIRCUT_HISTORY = int(os.environ.get("MAX_HAIRCUT_HISTORY", "12"))
+
+
+# Gemelo digital 3D del cliente (app/pipeline/avatar3d.py): las fotos
+# guiadas de visajismo se mandan a Tripo AI, que devuelve un .glb con la
+# cabeza del cliente. Igual que las claves anteriores: sin TRIPO_API_KEY el
+# botón no aparece y todo lo demás funciona igual.
+#   TRIPO_API_KEY: clave de https://platform.tripo3d.ai/ (cuenta de pago;
+#     en el plan gratuito los modelos llevan licencia CC BY, que obliga a
+#     citar a Tripo en la web).
+#   Coste: ~20-30 créditos por modelo, 1 crédito = 0,01 $ -> ~0,20-0,30 $.
+# RGPD: es la segunda vez que la foto sale del servidor (la primera es la
+# simulación) y además el resultado es una reconstrucción 3D de la cara de
+# una persona identificable, que SÍ se guarda. Consentimiento propio:
+# `consent_3d_scan` (ver app/db/models.py).
+TRIPO_API_KEY = os.environ.get("TRIPO_API_KEY")
+TRIPO_BASE_URL = os.environ.get("TRIPO_BASE_URL", "https://api.tripo3d.ai/v2/openapi")
+TRIPO_MODEL_VERSION = os.environ.get("TRIPO_MODEL_VERSION", "v3.1-20260211")
+# Cuánto se espera como mucho a que Tripo termine el modelo (suele tardar
+# entre medio minuto y unos pocos minutos).
+TRIPO_TIMEOUT_S = int(os.environ.get("TRIPO_TIMEOUT_S", "300"))

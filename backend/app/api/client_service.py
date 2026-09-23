@@ -12,11 +12,18 @@ import cv2
 from fastapi import HTTPException
 
 from app import config
-from app.api.schemas import ReasonOut, RecommendationsOut, SimulationResponse, StyleOut, StyleRecommendationOut
+from app.api.schemas import (
+    BarberSheetOut,
+    ReasonOut,
+    RecommendationsOut,
+    SimulationResponse,
+    StyleOut,
+    StyleRecommendationOut,
+)
 from app.db import repository
 from app.db.models import ClientProfile
-from app.pipeline import avatar, growth_analysis, haircut_editor, maintenance, trait_rules
-from app.pipeline.recommender import recommend_styles
+from app.pipeline import avatar, barber_sheet, growth_analysis, haircut_editor, maintenance, trait_rules
+from app.pipeline.recommender import match_percent, recommend_styles
 from app.pipeline.style_catalog import get_style_by_id
 
 # Lo que responde el cliente en "Mi perfil" (hair_pattern_shape) -> tipo de
@@ -55,6 +62,7 @@ def build_recommendations(client: ClientProfile) -> RecommendationsOut:
                 note=r.note,
                 reasons=[ReasonOut(label=e.label, detail=e.detail) for e in r.reasons],
                 warnings=[ReasonOut(label=e.label, detail=e.detail) for e in r.warnings],
+                match_percent=match_percent(r.score),
             )
             for r in recs
         ],
@@ -63,6 +71,26 @@ def build_recommendations(client: ClientProfile) -> RecommendationsOut:
         growth_summary=growth.lines(),
         natural_part=growth.natural_part,
     )
+
+
+def barber_sheet_for(client: ClientProfile, style_id: str | None = None) -> BarberSheetOut:
+    """La ficha "cómo pedirlo": del corte que se pida o, si no se pide
+    ninguno, del primero recomendado."""
+    if style_id:
+        style = get_style_by_id(style_id)
+        if style is None:
+            raise HTTPException(status_code=404, detail="Corte no encontrado")
+    else:
+        texture, _ = effective_hair_texture(client)
+        recs = recommend_styles(texture, face_shape=client.face_shape_override,
+                                visagismo_profile=client.visagismo_profile, growth_map=client.custom_growth_map)
+        if not recs:
+            raise HTTPException(status_code=409, detail="Todavía no hay ningún corte recomendado para este cliente.")
+        style = recs[0].style
+    texture, _ = effective_hair_texture(client)
+    growth = growth_analysis.summarize(client.custom_growth_map) if client.custom_growth_map else None
+    return BarberSheetOut(style_id=style.id, style_name=style.name,
+                          rows=barber_sheet.build_sheet(style, texture, growth))
 
 
 def simulate_with_stored_photo(client: ClientProfile, style_id: str, provider: str | None,

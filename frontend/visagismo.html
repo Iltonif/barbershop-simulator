@@ -216,6 +216,7 @@
         </div>
     </div>
     <button id="analyze-btn" type="button"><span data-icon="scan-face"></span>Analizar</button>
+    <button id="twin-btn" type="button" class="secondary"><span data-icon="box"></span>Crear gemelo 3D</button>
     <p class="field-hint" id="analyze-hint"><span data-icon="user-round"></span> Antes, abre la ficha del cliente (1).</p>
 
     <div id="results-section">
@@ -497,6 +498,32 @@
         say("ok", match.display_name || "Ficha abierta");
       } catch (e) {
         say("warn", `Sin conexión: ${e.message}`);
+      }
+    });
+
+    // Gemelo digital 3D: las mismas 3 fotos, a Tripo (ver gemelo.html y
+    // app/pipeline/avatar3d.py). Consentimiento propio: si falta, se
+    // manda al peluquero a la página del gemelo, que es donde se marca.
+    document.getElementById("twin-btn").addEventListener("click", async () => {
+      if (!currentClient) { say("warn", "Antes, abre la ficha del cliente (1)."); return; }
+      const frontal = photoFor("frontal"), izq = photoFor("izq"), dcha = photoFor("dcha");
+      if (!frontal) { say("warn", "Hace falta al menos la foto de frente."); return; }
+      const body = new FormData();
+      body.append("photo_frontal", frontal, "frontal.jpg");
+      if (izq) body.append("photo_perfil_izquierdo", izq, "perfil_izquierdo.jpg");
+      if (dcha) body.append("photo_perfil_derecho", dcha, "perfil_derecho.jpg");
+      say("busy", "Creando el gemelo 3D… puede tardar un par de minutos.");
+      try {
+        const res = await fetch(`${API_BASE}/clients/${currentClient.id}/avatar3d`, { method: "POST", body });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          say("warn", data.detail || res.statusText);
+          if (res.status === 422) location.href = `gemelo.html?client_id=${encodeURIComponent(currentClient.id)}`;
+          return;
+        }
+        location.href = `gemelo.html?client_id=${encodeURIComponent(currentClient.id)}`;
+      } catch (e) {
+        say("warn", `Error de red: ${e.message}`);
       }
     });
 

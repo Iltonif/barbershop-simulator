@@ -145,5 +145,31 @@ class MaintenanceTest(unittest.TestCase):
                                  for r in other for e in r.reasons + r.warnings))
 
 
+class BarberSheetTest(unittest.TestCase):
+    """La ficha "cómo pedirlo" (barber_sheet.py) y el % de encaje."""
+
+    def test_sheet_reads_the_style_and_the_growth_map(self):
+        from app.pipeline import barber_sheet
+        st = style(name="Textured crop", fade_type="medio", length_top_mm=55, length_sides_mm=6, length_back_mm=8)
+        rows = {r["campo"]: r["valor"] for r in barber_sheet.build_sheet(
+            st, "liso", ga.summarize({"strokes": [stroke(FRONT_TOP, FRONT_LOW)]}))}
+        self.assertIn("Fade medio", rows["Laterales"])
+        self.assertIn("cm", rows["Parte superior"])
+        self.assertEqual(rows["Nuca"], "Cónica, degradada")
+        self.assertEqual(rows["Peinado"], "Hacia delante, con volumen")
+        self.assertIn("semanas", rows["Mantenimiento"])
+        # Rapado: ni producto ni textura que explicar.
+        rapado = {r["campo"]: r["valor"] for r in barber_sheet.build_sheet(style(length_top_mm=6), "liso")}
+        self.assertNotIn("Producto", rapado)
+        self.assertIn("máquina", rapado["Parte superior"])
+
+    def test_match_percent(self):
+        from app.pipeline.recommender import match_percent
+        self.assertEqual(match_percent(0), 60)          # sin señales
+        self.assertGreater(match_percent(-3), match_percent(0))
+        self.assertLess(match_percent(3), match_percent(0))
+        self.assertTrue(20 <= match_percent(-99) <= 99 and 20 <= match_percent(99) <= 99)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -35,6 +35,7 @@ from fastapi.responses import FileResponse
 from app import config
 from app.api import auth, client_service
 from app.api.schemas import (
+    BarberSheetOut,
     BarberLoginIn,
     ClientLoginIn,
     ClientOut,
@@ -156,9 +157,12 @@ def barber_set_consents(client_id: str, payload: ConsentsIn):
     momento (p.ej. para guardar la foto en la primera visita). Si se retira
     el de guardar fotos, se borran todas las suyas."""
     _get_client_or_404(client_id)
-    updated = repository.update_consents(client_id, payload.consent_save_photo, payload.consent_simulation)
+    updated = repository.update_consents(client_id, payload.consent_save_photo, payload.consent_simulation,
+                                         payload.consent_3d_scan)
     if payload.consent_save_photo is False:
         _delete_all_photos(updated)
+    if payload.consent_3d_scan is False:
+        _delete_avatar3d(updated)
     return _client_out(repository.get_client(client_id))
 
 
@@ -211,6 +215,13 @@ def _delete_all_photos(client) -> None:
     _delete_photo(client)
     for path in repository.clear_haircut_photos(client.id):
         _unlink(path)
+
+
+def _delete_avatar3d(client) -> None:
+    """Al retirar el permiso del gemelo 3D se borra el modelo de su cara."""
+    if client.avatar3d_path:
+        _unlink(client.avatar3d_path)
+    repository.set_avatar3d(client.id, None, None)
 
 
 def _delete_photo(client) -> None:
@@ -273,7 +284,8 @@ def client_register(payload: ClientRegisterIn, request: Request, response: Respo
     client = repository.create_client(display_name=payload.display_name.strip(), consent_history=True,
                                       consent_save_photo=payload.consent_save_photo)
     repository.set_phone(client.id, phone)
-    client = repository.update_consents(client.id, consent_simulation=payload.consent_simulation)
+    client = repository.update_consents(client.id, consent_simulation=payload.consent_simulation,
+                                        consent_3d_scan=payload.consent_3d_scan)
     _login_client(request, response, client)
     return _client_out(client)
 
@@ -321,11 +333,15 @@ def my_likes(payload: LikesIn, request: Request):
 @router.patch("/me/consents", response_model=ClientOut)
 def my_consents(payload: ConsentsIn, request: Request):
     client = _me(request)
-    updated = repository.update_consents(client.id, payload.consent_save_photo, payload.consent_simulation)
+    updated = repository.update_consents(client.id, payload.consent_save_photo, payload.consent_simulation,
+                                         payload.consent_3d_scan)
     # Si retira el permiso de guardar fotos, se borran todas las suyas
     # (la de simular y las del historial de cortes).
     if payload.consent_save_photo is False:
         _delete_all_photos(updated)
+        updated = repository.get_client(client.id)
+    if payload.consent_3d_scan is False:
+        _delete_avatar3d(updated)
         updated = repository.get_client(client.id)
     return _client_out(updated)
 
@@ -361,6 +377,12 @@ def my_questionnaire(payload: QuestionnaireIn, request: Request):
         life["beard_preference"] = payload.beard_preference
     vp.update(anatomical_metrics=anat, hair_physical_metrics=hair, lifestyle_and_preferences=life)
     return _client_out(repository.update_visagismo_profile(client.id, vp))
+
+
+@router.get("/me/barber-sheet", response_model=BarberSheetOut)
+def my_barber_sheet(request: Request, style_id: str | None = None):
+    """La ficha "cómo pedirlo" que el cliente puede enseñar en la silla."""
+    return client_service.barber_sheet_for(_me(request), style_id)
 
 
 @router.get("/me/simulation-photo")

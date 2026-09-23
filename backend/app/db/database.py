@@ -33,6 +33,11 @@ CREATE TABLE IF NOT EXISTS clients (
     consent_save_photo_at TEXT,
     consent_ai_analysis INTEGER NOT NULL DEFAULT 0,
     consent_ai_analysis_at TEXT,
+    consent_3d_scan INTEGER NOT NULL DEFAULT 0,
+    consent_3d_scan_at TEXT,
+    avatar3d_path TEXT,
+    avatar3d_at TEXT,
+    avatar3d_metrics TEXT,
     hair_texture_override TEXT,
     face_shape_override TEXT,
     custom_growth_map TEXT,
@@ -115,6 +120,15 @@ _MIGRATIONS = [
     ("clients", "hair_color", "TEXT"),
     ("clients", "current_length", "TEXT"),
     ("clients", "current_length_at", "TEXT"),
+    # Gemelo digital 3D (app/pipeline/avatar3d.py): consentimiento propio
+    # (la foto va a un tercero nuevo y el modelo 3D de su cara SÍ se guarda)
+    # y ruta del .glb dentro del Volume, con la fecha en que se generó.
+    ("clients", "consent_3d_scan", "INTEGER NOT NULL DEFAULT 0"),
+    ("clients", "consent_3d_scan_at", "TEXT"),
+    ("clients", "avatar3d_path", "TEXT"),
+    ("clients", "avatar3d_at", "TEXT"),
+    # Medidas calculadas sobre esa malla (ver mesh_metrics.py).
+    ("clients", "avatar3d_metrics", "TEXT"),
 ]
 
 

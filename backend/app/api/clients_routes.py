@@ -15,9 +15,12 @@ pendiente, no solo técnica).
 import cv2
 import numpy as np
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 
 from app.api.schemas import (
     AppearanceIn,
+    Avatar3DOut,
+    BarberSheetOut,
     ClientCreateIn,
     ClientOut,
     ClientWithHistoryOut,
@@ -34,13 +37,28 @@ from app.api.schemas import (
     VisagismoProfileIn,
     VisitOut,
 )
+from app import config
 from app.config import ANTHROPIC_MODEL
 from app.db import repository
 from app.api import client_service
-from app.pipeline import avatar, facial_traits_analysis, growth_analysis, visagismo_ai_advisor
+from app.pipeline import (
+    avatar,
+    avatar3d,
+    facial_traits_analysis,
+    growth_analysis,
+    mesh_metrics,
+    visagismo_ai_advisor,
+)
 from app.pipeline.recommender import recommend_styles
 
 router = APIRouter()
+
+
+def _client_or_404(client_id: str):
+    client = repository.get_client(client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return client
 
 
 @router.post("/clients", response_model=ClientOut)
@@ -280,3 +298,118 @@ def get_recommendations(client_id: str):
     if client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return client_service.build_recommendations(client)
+
+
+@router.get("/clients/{client_id}/barber-sheet", response_model=BarberSheetOut)
+def barber_sheet(client_id: str, style_id: str | None = None):
+    """Ficha "cómo pedirlo" del corte recomendado (o del que se indique)."""
+    return client_service.barber_sheet_for(_client_or_404(client_id), style_id)
+
+
+# ---------- Gemelo digital 3D (app/pipeline/avatar3d.py) ----------
+def _avatar3d_file(client_id: str):
+    return config.CLIENT_PHOTOS_DIR / client_id / "avatar3d" / "model.glb"
+
+
+def _avatar3d_out(client) -> Avatar3DOut:
+    data = client.avatar3d_metrics or {}
+    return Avatar3DOut(
+        client_id=client.id,
+        disponible=avatar3d.available(),
+        tiene_modelo=bool(client.avatar3d_path),
+        creado=client.avatar3d_at,
+        consentimiento=client.consent_3d_scan,
+        medidas=data.get("medidas"),
+        rasgos=data.get("rasgos"),
+        avisos=data.get("avisos") or [],
+    )
+
+
+@router.get("/clients/{client_id}/avatar3d", response_model=Avatar3DOut)
+def get_avatar3d(client_id: str):
+    """Estado del gemelo 3D del cliente (si hay modelo, cuándo se hizo y
+    qué se midió). No genera nada."""
+    return _avatar3d_out(_client_or_404(client_id))
+
+
+@router.get("/clients/{client_id}/avatar3d/model.glb")
+def get_avatar3d_model(client_id: str):
+    client = _client_or_404(client_id)
+    path = _avatar3d_file(client_id)
+    if not client.avatar3d_path or not path.exists():
+        raise HTTPException(status_code=404, detail="Este cliente no tiene gemelo 3D")
+    return FileResponse(path, media_type="model/gltf-binary")
+
+
+@router.delete("/clients/{client_id}/avatar3d", response_model=Avatar3DOut)
+def delete_avatar3d(client_id: str):
+    """Borra el modelo 3D del cliente (y sus medidas). Los rasgos que ya
+    se hubieran copiado a la ficha se quedan: son parte del perfil, y el
+    peluquero puede corregirlos a mano."""
+    _client_or_404(client_id)
+    path = _avatar3d_file(client_id)
+    path.unlink(missing_ok=True)
+    return _avatar3d_out(repository.set_avatar3d(client_id, None, None))
+
+
+@router.post("/clients/{client_id}/avatar3d", response_model=Avatar3DOut)
+async def create_avatar3d(
+    client_id: str,
+    photo_frontal: UploadFile = File(...),
+    photo_perfil_izquierdo: UploadFile | None = File(None),
+    photo_perfil_derecho: UploadFile | None = File(None),
+):
+    """Crea el gemelo digital 3D del cliente con las fotos guiadas y mide
+    sus rasgos sobre la malla.
+
+    RGPD: las fotos se mandan a Tripo (tercero) y el modelo 3D de su cara
+    SE GUARDA, así que hace falta `consent_3d_scan` (aparte del resto). Las
+    fotos en sí no se guardan en ningún momento. Tarda entre medio minuto y
+    unos minutos; cada modelo cuesta ~0,25 $."""
+    client = _client_or_404(client_id)
+    if not avatar3d.available():
+        raise HTTPException(status_code=503, detail="Falta configurar TRIPO_API_KEY para crear el gemelo 3D.")
+    if not client.consent_3d_scan:
+        raise HTTPException(status_code=422,
+                            detail="El cliente no ha dado permiso para crear su modelo 3D.")
+
+    photos = {"frontal": await photo_frontal.read()}
+    if photo_perfil_izquierdo is not None:
+        photos["perfil_izquierdo"] = await photo_perfil_izquierdo.read()
+    if photo_perfil_derecho is not None:
+        photos["perfil_derecho"] = await photo_perfil_derecho.read()
+
+    try:
+        glb = avatar3d.generate_twin(photos)
+    except avatar3d.Avatar3DNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except avatar3d.Avatar3DError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    path = _avatar3d_file(client_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(glb)
+
+    avisos = []
+    try:
+        analysis = mesh_metrics.analyze(glb)
+    except Exception as exc:   # la malla puede venir con una forma inesperada
+        analysis, avisos = {"medidas": None, "rasgos": {}}, [f"No se pudieron medir los rasgos: {exc}"]
+    if len(photos) < 3:
+        avisos.append("Sin las dos fotos de perfil, la nuca y los laterales del modelo son aproximados.")
+
+    # Los rasgos medidos se copian a la ficha SIN pisar lo que el peluquero
+    # haya puesto a mano, igual que el análisis de las fotos 2D.
+    rasgos = dict(analysis.get("rasgos") or {})
+    profile = dict(client.visagismo_profile or {})
+    anat = dict(profile.get("anatomical_metrics") or {})
+    feats = dict(anat.get("facial_features_profile") or {})
+    if rasgos.get("facial_geometry") and not anat.get("facial_geometry"):
+        anat["facial_geometry"] = rasgos["facial_geometry"]
+    anat["facial_features_profile"] = facial_traits_analysis.merge_detected_features(
+        feats, {k: v for k, v in rasgos.items() if k in ("profile_type", "jawline_definition", "neck_proportions")})
+    profile["anatomical_metrics"] = anat
+    repository.update_visagismo_profile(client_id, profile)
+
+    metrics = {"medidas": analysis.get("medidas"), "rasgos": rasgos, "avisos": avisos}
+    return _avatar3d_out(repository.set_avatar3d(client_id, str(path), metrics))

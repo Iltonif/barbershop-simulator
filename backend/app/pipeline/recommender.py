@@ -63,6 +63,8 @@ class StyleRecommendation:
     reasons: list[Effect] = field(default_factory=list)
     warnings: list[Effect] = field(default_factory=list)
     maintenance_weeks: tuple[int, int] = maintenance.DEFAULT_WEEKS
+    # Suma de las puntuaciones de las reglas (negativo = encaja mejor).
+    score: float = 0.0
 
 
 def _efecto_forma_cara(style: HaircutStyle, face_shape: str | None) -> Effect | None:
@@ -168,7 +170,21 @@ def recommend_styles(
         note = " ".join(e.detail for e in warnings) or None
         score = sum(e.score for e in effects)
         recomendaciones.append(((score, _desempate(weeks)), StyleRecommendation(
-            style=style, note=note, reasons=reasons, warnings=warnings, maintenance_weeks=weeks)))
+            style=style, note=note, reasons=reasons, warnings=warnings, maintenance_weeks=weeks,
+            score=score)))
 
     recomendaciones.sort(key=lambda par: par[0])
     return [rec for _score, rec in recomendaciones]
+
+
+def match_percent(score: float) -> int:
+    """Puntuación -> "% de encaje" para enseñárselo al cliente (como en el
+    anuncio: "Textured Crop + Mid Fade 97%").
+
+    No es una probabilidad ni sale de ningún modelo: es la misma
+    puntuación de las reglas escrita de forma legible. Un corte sin
+    señales ni a favor ni en contra queda en 60 %; cada razón a favor sube
+    y cada aviso baja. Se mantiene entre 20 y 99 para no dar un 100 % (no
+    hay nada perfecto) ni un 0 % (el catálogo no descarta cortes, solo los
+    ordena; ver la decisión de diseño en visagismo_rules.py)."""
+    return int(max(20, min(99, round(60 - score * 10))))

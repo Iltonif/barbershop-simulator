@@ -246,6 +246,47 @@ class SessionFlowTest(unittest.TestCase):
         self.barber.patch(f"/api/clients/{cid}/visagismo-profile", json=vp)
         self.assertEqual(self.barber.get(f"/api/clients/{cid}/avatar").json()["length"]["source"], "cliente")
 
+    def test_avatar3d_needs_consent_and_a_key(self):
+        """Gemelo 3D: sin clave 503, sin consentimiento 422, y al retirarlo
+        se borra el modelo. La llamada a Tripo se sustituye."""
+        from pathlib import Path
+        from unittest import mock
+
+        from app import config as app_config
+        from app.pipeline import avatar3d
+
+        head = (Path(__file__).resolve().parents[2] / "frontend" / "assets" / "head.glb").read_bytes()
+        photos = {"photo_frontal": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_izquierdo": ("i.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_derecho": ("d.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+        cid = self._register().json()["id"]
+        self._barber_login()
+        self.assertEqual(self.barber.post(f"/api/clients/{cid}/avatar3d", files=photos).status_code, 503)
+
+        old_key = app_config.TRIPO_API_KEY
+        app_config.TRIPO_API_KEY = "test"
+        try:
+            r = self.barber.post(f"/api/clients/{cid}/avatar3d", files=photos)
+            self.assertEqual(r.status_code, 422)          # falta consent_3d_scan
+            self.barber.patch(f"/api/clients/{cid}/consents", json={"consent_3d_scan": True})
+            with mock.patch.object(avatar3d, "generate_twin", return_value=head):
+                r = self.barber.post(f"/api/clients/{cid}/avatar3d", files=photos)
+            self.assertEqual(r.status_code, 200, r.text)
+            body = r.json()
+            self.assertTrue(body["tiene_modelo"])
+            self.assertTrue(body["medidas"]["estimado"])
+            self.assertIn("facial_geometry", body["rasgos"])
+            # El modelo se sirve y los rasgos medidos llegan a la ficha.
+            self.assertEqual(self.barber.get(f"/api/clients/{cid}/avatar3d/model.glb").status_code, 200)
+            anat = self.barber.get(f"/api/clients/{cid}").json()["visagismo_profile"]["anatomical_metrics"]
+            self.assertEqual(anat["facial_geometry"], body["rasgos"]["facial_geometry"])
+            # Retirar el permiso borra el modelo de su cara.
+            self.barber.patch(f"/api/clients/{cid}/consents", json={"consent_3d_scan": False})
+            self.assertFalse(self.barber.get(f"/api/clients/{cid}/avatar3d").json()["tiene_modelo"])
+            self.assertEqual(self.barber.get(f"/api/clients/{cid}/avatar3d/model.glb").status_code, 404)
+        finally:
+            app_config.TRIPO_API_KEY = old_key
+
 
 if __name__ == "__main__":
     unittest.main()

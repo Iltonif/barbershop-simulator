@@ -44,6 +44,17 @@ class StyleRecommendationOut(BaseModel):
     note: str | None = None
     reasons: list[ReasonOut] = []
     warnings: list[ReasonOut] = []
+    # "% de encaje" legible (ver recommender.match_percent): no es una
+    # probabilidad, es la puntuación de las reglas en otra escala.
+    match_percent: int = 60
+
+
+class BarberSheetOut(BaseModel):
+    """La ficha "cómo pedirlo" de un corte (app/pipeline/barber_sheet.py)."""
+
+    style_id: str
+    style_name: str
+    rows: list[dict]
 
 
 class RecommendationsOut(BaseModel):
@@ -212,6 +223,7 @@ class ClientOut(BaseModel):
     notes: str | None = None
     phone: str | None = None
     consent_simulation: bool = False
+    consent_3d_scan: bool = False
     liked_styles: list[str] = []
     # La ruta en disco no sale nunca en la API, solo si hay foto.
     simulation_photo_path: str | None = Field(default=None, exclude=True)
@@ -352,6 +364,21 @@ class BarberLoginIn(BaseModel):
     pin: str
 
 
+class Avatar3DOut(BaseModel):
+    """Estado del gemelo digital 3D de un cliente (app/pipeline/avatar3d.py).
+    `medidas` y `rasgos` son ESTIMACIONES sobre una malla reconstruida, no
+    medidas de la persona -- ver app/pipeline/mesh_metrics.py."""
+
+    client_id: str
+    disponible: bool          # hay TRIPO_API_KEY configurada
+    tiene_modelo: bool
+    creado: str | None = None
+    consentimiento: bool = False
+    medidas: dict | None = None
+    rasgos: dict | None = None
+    avisos: list[str] = []
+
+
 class ClientRegisterIn(BaseModel):
     """Alta hecha por el propio cliente en la tablet o en su móvil. Da él
     mismo los consentimientos (antes los marcaba el peluquero)."""
@@ -361,6 +388,7 @@ class ClientRegisterIn(BaseModel):
     consent_history: bool
     consent_save_photo: bool = False
     consent_simulation: bool = False
+    consent_3d_scan: bool = False
 
 
 class ClientLoginIn(BaseModel):
@@ -370,6 +398,9 @@ class ClientLoginIn(BaseModel):
 class ConsentsIn(BaseModel):
     consent_save_photo: bool | None = None
     consent_simulation: bool | None = None
+    # Crear el gemelo 3D: la foto va a Tripo (tercero) y el modelo de su
+    # cara se guarda -- finalidad distinta, consentimiento aparte.
+    consent_3d_scan: bool | None = None
 
 
 class LikesIn(BaseModel):

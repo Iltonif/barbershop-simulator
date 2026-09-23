@@ -864,6 +864,82 @@ puede tapar entradas; más densidad, no tanta separación entre cabellos", y
 - Tests: `test_avatar.test_client_answer_vs_last_cut` y el final de
   `test_sessions.test_avatar_and_appearance`.
 
+## Gemelo digital 3D del cliente (Tripo AI, sept 2026)
+
+Pedro pasó un anuncio de ILTONIF ("Tu corte, calculado") y pidió integrar lo
+que sale en él: foto -> modelo 3D de su cara -> "tu gemelo, en 360°" ->
+medidas de cada rasgo -> corte recomendado con % -> "ficha para tu barbero".
+Eligió: todo el flujo del vídeo, usar el .glb de Tripo tal cual (no adaptar
+el maniquí de MakeHuman a la forma del cliente), generarlo con las 3 fotos
+guiadas de visajismo, y que lo lance el peluquero con un botón.
+
+- **Proveedor** (`app/pipeline/avatar3d.py`): Tripo AI
+  (`https://api.tripo3d.ai/v2/openapi`), tarea `multiview_to_model` con las
+  vistas en el orden [frontal, izquierda, atrás, derecha] (la de atrás va
+  vacía: no se le hace foto a la nuca). Se sube cada foto, se sondea la
+  tarea y se descarga el `.glb`. Coste ~20-30 créditos = ~0,20-0,30 $ por
+  modelo. Configurar `TRIPO_API_KEY` en Railway (cuenta de pago: en el plan
+  gratuito los modelos llevan CC BY y obligan a citar a Tripo).
+  **Sin probar contra la API real** (desde el entorno de desarrollo no hay
+  salida a esa red ni clave, igual que pasó con Gemini/FLUX): si el formato
+  de subida o de respuesta no coincide, lo que hay que tocar es
+  `_upload_photo`/`_output_url`. Los tests usan la red simulada.
+- **Límite honesto**: Tripo es un modelo GENERATIVO, no un escáner.
+  Reconstruye una cabeza plausible; la nuca, las orejas y el pelo son en
+  parte inventados y dos fotos de la misma persona no dan la misma malla.
+  Por eso todo lo medido sale marcado como estimación.
+- **Medidas** (`app/pipeline/mesh_metrics.py`, solo numpy, sin dependencias
+  nuevas): lee el `.glb` a mano (cabecera + JSON + búfer, con las
+  transformaciones de los nodos), orienta la cabeza buscando el plano de
+  simetría y de qué lado está la nariz (saliente estrecho) y mide sobre la
+  malla: proporción alto/ancho, simetría %, convexidad del perfil (los
+  mismos ángulos de `guia-visagismo.html`), anchos de frente/pómulos/
+  mandíbula/cuello y un índice de definición mandibular. `classify()` los
+  traduce a `facial_geometry`, `profile_type`, `jawline_definition` y
+  `neck_proportions`, que se copian a la ficha SIN pisar lo que el
+  peluquero haya puesto a mano (misma fusión que el análisis 2D).
+  A propósito NO se da un "ángulo mandibular" en grados como en el vídeo:
+  el gonion real no se puede localizar en esta malla y un número inventado
+  con decimales es peor que no darlo. Los umbrales están puestos a ojo y
+  solo validados contra el maniquí del repo -- hay que revisarlos con
+  clientes reales, como se hizo con los umbrales 2D.
+- **Endpoints** (peluquero): `POST /api/clients/{id}/avatar3d` (multipart,
+  frontal obligatoria y los dos perfiles opcionales), `GET .../avatar3d`
+  (estado + medidas), `GET .../avatar3d/model.glb`, `DELETE .../avatar3d`,
+  y `GET .../barber-sheet[?style_id=]` (también `/api/me/barber-sheet`).
+- **% de encaje** (`recommender.match_percent`): la puntuación de las
+  reglas escrita de forma legible (60 % sin señales, ±10 por razón o
+  aviso, límites 20-99). No es una probabilidad, y cortes con las mismas
+  señales salen con el mismo porcentaje.
+- **Ficha "cómo pedirlo"** (`app/pipeline/barber_sheet.py`): laterales
+  (degradado + mm), parte superior (largo + acabado según textura), nuca,
+  peinado (del mapa de crecimiento), producto y cada cuántas semanas
+  volver. Todo sale de datos que ya estaban en la ficha.
+- **Web**: `frontend/gemelo.html` (visor del `.glb` con vistas y giro,
+  chips de rasgos, top 3 con %, ficha para el barbero, y el bloque para
+  crearlo con las 3 fotos y el permiso). Enlace desde la ficha ("Gemelo
+  3D") y botón "Crear gemelo 3D" en Visajismo, que reutiliza las fotos ya
+  hechas con la cámara con marco.
+- **RGPD**: consentimiento propio `consent_3d_scan` (columnas
+  `consent_3d_scan`/`_at`), porque es una finalidad nueva: la foto va a un
+  tercero (Tripo) Y el modelo 3D de su cara se guarda
+  (`CLIENT_PHOTOS_DIR/<id>/avatar3d/model.glb`, dentro del Volume). Las
+  fotos no se guardan en ningún momento. Retirar el permiso (cliente o
+  peluquero) borra el modelo. Un modelo 3D de la cara es dato biométrico:
+  revisar el texto del consentimiento con alguien de RGPD antes de usarlo
+  con clientes reales.
+- Tests: `tests/test_avatar3d.py` (lectura del .glb, medidas sobre el
+  maniquí, invariancia a giro/escala, cliente de Tripo simulado),
+  `test_sessions.test_avatar3d_needs_consent_and_a_key` y
+  `test_growth.BarberSheetTest`. Probado con Playwright contra un servidor
+  con Tripo simulado: estado vacío, permiso, creación, visor, rasgos,
+  porcentajes y ficha.
+- Pendiente: el gemelo no sustituye todavía al maniquí de remolinos (el
+  `.glb` de Tripo trae su pelo pegado y no tiene cuero cabelludo marcado,
+  que es lo que necesita el sistema de pelo/flechas); la textura del pelo
+  y los remolinos siguen saliendo de la foto y de lo que marca el
+  peluquero, no de la malla.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

@@ -44,6 +44,14 @@ class ClientProfile:
     hair_color: str | None = None
     current_length: dict | None = None      # {"top", "sides", "back"} en mm, puesto a mano
     current_length_at: str | None = None
+    # Gemelo digital 3D del cliente (app/pipeline/avatar3d.py): su propio
+    # consentimiento (la foto sale a Tripo y el modelo de su cara se
+    # guarda), la ruta del .glb en el Volume y las medidas sacadas de la
+    # malla (app/pipeline/mesh_metrics.py).
+    consent_3d_scan: bool = False
+    avatar3d_path: str | None = None
+    avatar3d_at: str | None = None
+    avatar3d_metrics: dict | None = None
 
 
 @dataclass

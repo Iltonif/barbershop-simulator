@@ -165,6 +165,7 @@
     <div class="tools">
       <a class="tool" id="t-remolinos" href="#"><span data-icon="compass"></span>Remolinos<span class="state" id="s-remolinos"></span></a>
       <a class="tool" id="t-visajismo" href="#"><span data-icon="scan-face"></span>Visajismo<span class="state" id="s-visajismo"></span></a>
+      <a class="tool" id="t-gemelo" href="#"><span data-icon="box"></span>Gemelo 3D<span class="state" id="s-gemelo"></span></a>
       <a class="tool" id="t-recs" href="#"><span data-icon="sparkles"></span>Recomendaciones</a>
     </div>
     <div class="mani">
@@ -250,6 +251,7 @@
     ].filter(Boolean);
     q("answers").innerHTML = answers.join("") || chip("triangle-alert", "Todavía no ha respondido su perfil", "warn");
     q("quiz-link").href = with_id("cuestionario.html");
+    q("t-gemelo").href = with_id("gemelo.html");
 
     // Tipo de pelo (peluquero)
     q("pelo").innerHTML = TEXTURES.map(([v, l]) =>

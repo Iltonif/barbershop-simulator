@@ -49,6 +49,10 @@ def _row_to_client(row) -> ClientProfile:
         hair_color=row["hair_color"],
         current_length=json.loads(row["current_length"]) if row["current_length"] else None,
         current_length_at=row["current_length_at"],
+        consent_3d_scan=bool(row["consent_3d_scan"]),
+        avatar3d_path=row["avatar3d_path"],
+        avatar3d_at=row["avatar3d_at"],
+        avatar3d_metrics=json.loads(row["avatar3d_metrics"]) if row["avatar3d_metrics"] else None,
     )
 
 
@@ -261,7 +265,8 @@ def set_phone(client_id: str, phone: str | None) -> ClientProfile | None:
 
 
 def update_consents(client_id: str, consent_save_photo: bool | None = None,
-                    consent_simulation: bool | None = None) -> ClientProfile | None:
+                    consent_simulation: bool | None = None,
+                    consent_3d_scan: bool | None = None) -> ClientProfile | None:
     now = _now()
     with get_connection() as conn:
         if consent_save_photo is not None:
@@ -270,6 +275,17 @@ def update_consents(client_id: str, consent_save_photo: bool | None = None,
         if consent_simulation is not None:
             conn.execute("UPDATE clients SET consent_simulation = ?, consent_simulation_at = ? WHERE id = ?",
                          (1 if consent_simulation else 0, now if consent_simulation else None, client_id))
+        if consent_3d_scan is not None:
+            conn.execute("UPDATE clients SET consent_3d_scan = ?, consent_3d_scan_at = ? WHERE id = ?",
+                         (1 if consent_3d_scan else 0, now if consent_3d_scan else None, client_id))
+    return get_client(client_id)
+
+
+def set_avatar3d(client_id: str, path: str | None, metrics: dict | None = None) -> ClientProfile | None:
+    """Guarda (o borra, con path=None) el gemelo 3D del cliente y sus medidas."""
+    with get_connection() as conn:
+        conn.execute("UPDATE clients SET avatar3d_path = ?, avatar3d_at = ?, avatar3d_metrics = ? WHERE id = ?",
+                     (path, _now() if path else None, json.dumps(metrics) if metrics else None, client_id))
     return get_client(client_id)
 
 

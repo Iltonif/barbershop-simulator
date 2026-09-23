@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Gemelo digital</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  /* Gemelo digital 3D del cliente: el modelo que devuelve Tripo a partir
+     de las fotos guiadas (app/pipeline/avatar3d.py), lo que se mide sobre
+     esa malla (mesh_metrics.py) y cómo pedir el corte (barber_sheet.py). */
+  .page-shell { max-width: 900px; }
+  .sec { padding: 16px 18px 18px; margin-bottom: 14px; }
+  .sec-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; margin: 0 0 12px; }
+  .sec-title .ico { color: var(--accent-cyan); }
+  .sec-title .n { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--text-dim); }
+  #canvas-wrap { position: relative; }
+  #three-canvas { width: 100%; height: 56vh; min-height: 300px; border-radius: 16px; border: 1px solid var(--glass-border);
+                  background: radial-gradient(circle at 50% 30%, #0e1526, #05060f 70%); display: block; touch-action: none; }
+  #views { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 6px;
+           background: rgba(8, 10, 18, 0.78); padding: 5px; border-radius: 12px; }
+  #views button { margin: 0; min-height: 34px; padding: 6px 10px; font-size: 12.5px; background: transparent; border-color: transparent; }
+  #views button[aria-pressed="true"] { background: var(--glass-strong); }
+  .empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 34px 10px; color: var(--text-dim); text-align: center; }
+  .empty .ico { width: 40px; height: 40px; color: var(--accent-cyan); }
+  .traits { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .trait { padding: 10px 12px; border-radius: 14px; background: var(--glass); border: 1px solid var(--glass-border); }
+  .trait .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
+  .trait .v { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .match { display: grid; gap: 8px; }
+  .match a { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; text-decoration: none; color: inherit;
+             padding: 10px 12px; border-radius: 14px; background: var(--glass); border: 1px solid var(--glass-border); }
+  .match .name { font-weight: 700; font-size: 14.5px; }
+  .match .pct { font-weight: 800; font-size: 15px; color: var(--accent-cyan); }
+  .match .bar { grid-column: 1 / -1; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .match .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
+  table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.sheet td { padding: 9px 4px; border-bottom: 1px solid var(--glass-border); vertical-align: top; }
+  table.sheet td:first-child { color: var(--text-faint); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; width: 38%; }
+  .photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .photos label { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 14px;
+                  border: 1.5px dashed var(--glass-border); background: rgba(255,255,255,0.03); font-size: 12px; color: var(--text-dim); cursor: pointer; }
+  .photos label.ok { border-style: solid; color: var(--ok); }
+  .photos .ico { width: 24px; height: 24px; }
+  .photos input { display: none; }
+  #status { margin: 10px 0; min-height: 1px; }
+  .note { font-size: 12.5px; color: var(--text-faint); margin: 10px 0 0; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a href="#" id="nav-ficha" title="Ficha"><span data-icon="arrow-left"></span><span class="lbl">Ficha</span></a>
+    <a href="#" id="nav-visajismo" title="Visajismo"><span data-icon="scan-face"></span><span class="lbl">Visajismo</span></a>
+    <a href="#" id="nav-recs" title="Recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Cortes</span></a>
+  </nav>
+
+  <div class="head-row">
+    <h1 class="page-title">Gemelo <span class="accent">digital</span></h1>
+    <details class="info"><summary></summary><div class="info-body">
+      El modelo 3D se reconstruye a partir de sus fotos con un servicio externo (Tripo). Es una
+      reconstrucción, no un escáner: la nuca y el pelo son aproximados, y las medidas que salen de
+      la malla son estimaciones para orientar el corte, no medidas de la persona.
+    </div></details>
+  </div>
+  <div id="status" role="status"></div>
+
+  <section class="glass-card sec">
+    <div id="canvas-wrap">
+      <canvas id="three-canvas" hidden></canvas>
+      <div id="views" hidden>
+        <button type="button" data-view="front" aria-pressed="true">Frente</button>
+        <button type="button" data-view="left">Izq.</button>
+        <button type="button" data-view="right">Dcha.</button>
+        <button type="button" data-view="back">Atrás</button>
+        <button type="button" data-view="spin">Girar</button>
+      </div>
+      <div class="empty" id="empty">
+        <span class="ico" data-icon="scan-face"></span>
+        <div>Este cliente todavía no tiene gemelo digital.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="glass-card sec" id="traits-sec" hidden>
+    <h2 class="sec-title"><span data-icon="ruler"></span>Cada rasgo
+      <details class="info"><summary></summary><div class="info-body">
+        Medido sobre la malla 3D. Los anchos van en proporción al ancho de la cabeza (el modelo no
+        trae escala real). Si algo no cuadra con lo que ves, manda lo que marques tú en Visajismo.
+      </div></details>
+    </h2>
+    <div class="traits" id="traits"></div>
+  </section>
+
+  <section class="glass-card sec" id="match-sec" hidden>
+    <h2 class="sec-title"><span data-icon="sparkles"></span>Su corte
+      <details class="info"><summary></summary><div class="info-body">
+        El porcentaje es la puntuación de las reglas escrita de forma legible (rasgos, remolinos,
+        crecimiento y tipo de pelo), no una probabilidad.
+      </div></details>
+    </h2>
+    <div class="match" id="match"></div>
+  </section>
+
+  <section class="glass-card sec" id="sheet-sec" hidden>
+    <h2 class="sec-title"><span data-icon="clipboard-list"></span>Cómo pedirlo<span class="n" id="sheet-style"></span></h2>
+    <table class="sheet"><tbody id="sheet"></tbody></table>
+  </section>
+
+  <section class="glass-card sec" id="make-sec">
+    <h2 class="sec-title"><span data-icon="camera"></span>Crear el gemelo</h2>
+    <div class="photos">
+      <label id="lbl-frontal"><span class="ico" data-icon="user-round"></span>Frontal
+        <input type="file" accept="image/*" capture="user" data-view="frontal" /></label>
+      <label id="lbl-izq"><span class="ico" data-icon="user-round"></span>Perfil izq.
+        <input type="file" accept="image/*" capture="user" data-view="izq" /></label>
+      <label id="lbl-dcha"><span class="ico" data-icon="user-round"></span>Perfil dcha.
+        <input type="file" accept="image/*" capture="user" data-view="dcha" /></label>
+    </div>
+    <label class="checkbox-row"><input type="checkbox" id="c-scan" /><span>El cliente da permiso para crear su modelo 3D</span>
+      <details class="info"><summary></summary><div class="info-body">
+        Sus fotos se envían a Tripo (empresa externa) y el modelo 3D de su cara se guarda en su ficha.
+        Es un permiso aparte del de guardar la foto o simular cortes. Puede retirarlo cuando quiera:
+        al hacerlo se borra el modelo.
+      </div></details>
+    </label>
+    <button type="button" id="make-btn"><span data-icon="wand-sparkles"></span>Crear gemelo</button>
+    <button type="button" class="secondary" id="del-btn" hidden><span data-icon="trash-2"></span>Borrar modelo</button>
+    <p class="note">Tarda entre medio minuto y un par de minutos. Con la foto frontal basta, pero con los
+      dos perfiles el modelo sale mucho mejor. Para hacerlas con la guía en pantalla, usa Visajismo.</p>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/session.js"></script>
+<script>
+  const API_BASE = "/api";
+  const params = new URLSearchParams(location.search);
+  const clientId = params.get("client_id");
+  const q = (id) => document.getElementById(id);
+  const statusEl = q("status");
+  const say = (kind, text) => {
+    const icon = kind === "ok" ? "circle-check" : kind === "busy" ? "loader-circle" : "triangle-alert";
+    statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon)}<span>${text}</span></div>`;
+  };
+
+  const LABELS = {
+    facial_geometry: { oval: "Ovalada", round: "Redonda", square: "Cuadrada", rectangular_elongated: "Alargada",
+                       diamond: "Diamante", triangle: "Triangular", heart: "Corazón" },
+    profile_type: { straight: "Recto", convex_prominent_nose: "Convexo", concave: "Cóncavo" },
+    jawline_definition: { defined: "Definida", soft: "Suave" },
+    neck_proportions: { short_thick: "Corto y ancho", long_thin: "Largo y fino" },
+  };
+
+  for (const [id, page] of [["nav-ficha", "ficha.html"], ["nav-visajismo", "visagismo.html"], ["nav-recs", "recomendaciones.html"]]) {
+    q(id).href = clientId ? `${page}?client_id=${encodeURIComponent(clientId)}` : page;
+  }
+
+  async function api(url, opts = {}) {
+    const res = await fetch(url, opts);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    return data;
+  }
+
+  // ---- Escena 3D ----
+  let renderer, scene, camera, controls, model, spin = false;
+  function initScene() {
+    const canvas = q("three-canvas");
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+    controls = new THREE.OrbitControls(camera, canvas);
+    controls.enablePan = false;
+    scene.add(new THREE.HemisphereLight(0xfff3e6, 0x3a2f2a, 0.7));
+    const key = new THREE.DirectionalLight(0xfff1e0, 1.0); key.position.set(2, 3, 4); scene.add(key);
+    const fill = new THREE.DirectionalLight(0xdce8ff, 0.4); fill.position.set(-3, 1, 2); scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(0, 2, -4); scene.add(rim);
+    resize();
+    addEventListener("resize", resize);
+    (function loop() {
+      requestAnimationFrame(loop);
+      if (spin && model) model.rotation.y += 0.004;
+      controls.update();
+      renderer.render(scene, camera);
+    })();
+  }
+  function resize() {
+    const canvas = q("three-canvas");
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  function frame() {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+    model.position.sub(center);                       // centrado en el origen
+    const radius = Math.max(size.x, size.y, size.z) * 0.6;
+    const dist = radius / Math.sin((camera.fov * Math.PI) / 360);
+    camera.position.set(0, size.y * 0.12, dist);
+    controls.target.set(0, 0, 0);
+    camera.near = dist / 50; camera.far = dist * 8; camera.updateProjectionMatrix();
+    controls.update();
+  }
+  function setView(view) {
+    spin = view === "spin";
+    document.querySelectorAll("#views button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+    if (spin || !model) return;
+    const d = camera.position.length();
+    const pos = { front: [0, 0, d], back: [0, 0, -d], left: [d, 0, 0], right: [-d, 0, 0] }[view];
+    model.rotation.y = 0;
+    camera.position.set(...pos);
+    controls.update();
+  }
+  document.querySelectorAll("#views button").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+
+  function loadModel(url) {
+    if (!renderer) initScene();
+    new THREE.GLTFLoader().load(url, (gltf) => {
+      if (model) scene.remove(model);
+      model = gltf.scene;
+      scene.add(model);
+      frame();
+      q("three-canvas").hidden = false;
+      q("views").hidden = false;
+      q("empty").hidden = true;
+      resize();
+    }, undefined, () => say("warn", "No se pudo cargar el modelo 3D."));
+  }
+
+  // ---- Datos ----
+  const coma = (n) => String(n).replace(".", ",");   // decimales a la española
+
+  function renderTraits(data) {
+    const m = data.medidas || {}, r = data.rasgos || {};
+    const rows = [
+      ["Forma del rostro", LABELS.facial_geometry[r.facial_geometry]],
+      ["Proporción", m.proporcion ? `1 : ${coma(m.proporcion)}` : null],
+      ["Simetría", m.simetria_pct ? `${coma(m.simetria_pct)} %` : null],
+      ["Perfil", LABELS.profile_type[r.profile_type]],
+      ["Mandíbula", LABELS.jawline_definition[r.jawline_definition]],
+      ["Cuello", LABELS.neck_proportions[r.neck_proportions]],
+    ].filter(([, v]) => v);
+    q("traits").innerHTML = rows.map(([k, v]) => `<div class="trait"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+    q("traits-sec").hidden = !rows.length;
+    if ((data.avisos || []).length) say("warn", data.avisos[0]);
+  }
+
+  async function loadRecs() {
+    try {
+      const recs = await api(`${API_BASE}/clients/${clientId}/recommendations`);
+      const top = (recs.recommendations || []).slice(0, 3);
+      q("match").innerHTML = top.map((r) => `
+        <a href="catalogo.html?style=${encodeURIComponent(r.style.id)}">
+          <span class="name">${r.style.name}</span><span class="pct">${r.match_percent} %</span>
+          <span class="bar"><i style="width:${r.match_percent}%"></i></span>
+        </a>`).join("");
+      q("match-sec").hidden = !top.length;
+      const sheet = await api(`${API_BASE}/clients/${clientId}/barber-sheet`);
+      q("sheet-style").textContent = sheet.style_name;
+      q("sheet").innerHTML = sheet.rows.map((row) => `<tr><td>${row.campo}</td><td>${row.valor}</td></tr>`).join("");
+      q("sheet-sec").hidden = false;
+    } catch (e) { /* sin tipo de pelo todavía no hay recomendaciones: no es un error que enseñar */ }
+  }
+
+  async function load() {
+    if (!clientId) { say("warn", "Abre el gemelo desde la ficha de un cliente."); return; }
+    const data = await api(`${API_BASE}/clients/${clientId}/avatar3d`);
+    q("c-scan").checked = data.consentimiento;
+    q("del-btn").hidden = !data.tiene_modelo;
+    q("make-btn").innerHTML = UI.icon("wand-sparkles") + (data.tiene_modelo ? "Rehacer gemelo" : "Crear gemelo");
+    if (!data.disponible) say("warn", "Falta configurar la clave de Tripo (TRIPO_API_KEY) para crear gemelos.");
+    if (data.tiene_modelo) {
+      loadModel(`${API_BASE}/clients/${clientId}/avatar3d/model.glb?v=${encodeURIComponent(data.creado || "")}`);
+      renderTraits(data);
+      loadRecs();
+    }
+    return data;
+  }
+
+  // ---- Crear ----
+  const files = {};
+  document.querySelectorAll(".photos input").forEach((input) => input.addEventListener("change", () => {
+    const view = input.dataset.view;
+    files[view] = input.files[0] || null;
+    input.parentElement.classList.toggle("ok", Boolean(files[view]));
+  }));
+
+  q("c-scan").addEventListener("change", async (e) => {
+    try {
+      await api(`${API_BASE}/clients/${clientId}/consents`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consent_3d_scan: e.target.checked }),
+      });
+      say("ok", e.target.checked ? "Permiso guardado." : "Permiso retirado: se ha borrado el modelo.");
+      if (!e.target.checked) location.reload();
+    } catch (err) { say("warn", err.message); }
+  });
+
+  q("make-btn").addEventListener("click", async () => {
+    if (!files.frontal) { say("warn", "Falta la foto de frente."); return; }
+    if (!q("c-scan").checked) { say("warn", "Marca antes el permiso del cliente."); return; }
+    const body = new FormData();
+    body.append("photo_frontal", files.frontal);
+    if (files.izq) body.append("photo_perfil_izquierdo", files.izq);
+    if (files.dcha) body.append("photo_perfil_derecho", files.dcha);
+    say("busy", "Creando el gemelo… puede tardar un par de minutos.");
+    q("make-btn").disabled = true;
+    try {
+      const data = await api(`${API_BASE}/clients/${clientId}/avatar3d`, { method: "POST", body });
+      say("ok", "Gemelo creado.");
+      q("del-btn").hidden = false;
+      loadModel(`${API_BASE}/clients/${clientId}/avatar3d/model.glb?v=${encodeURIComponent(data.creado || "")}`);
+      renderTraits(data);
+      loadRecs();
+    } catch (e) { say("warn", e.message); }
+    q("make-btn").disabled = false;
+  });
+
+  q("del-btn").addEventListener("click", async () => {
+    try { await api(`${API_BASE}/clients/${clientId}/avatar3d`, { method: "DELETE" }); location.reload(); }
+    catch (e) { say("warn", e.message); }
+  });
+
+  UI.hydrate();
+  load().catch((e) => say("warn", e.message));
+</script>
+</body>
+</html>
