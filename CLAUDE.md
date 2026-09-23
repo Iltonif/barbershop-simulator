@@ -906,6 +906,40 @@ direcciones casi al azar) en vez de peinado. Causas encontradas en
   servidor local en las 4 texturas, tres largos (corto/medio/largo) y tres
   ángulos (frente/perfil/cenital), sin errores de consola.
 
+**v5.3: disimular entradas al peinar hacia un lado (sept 2026).** Pedro:
+"cuando tenga entradas, al poner el pelo hacia un lado, se disimulen, o que
+no parezca que tiene tantas entradas, porque si no no parece real".
+
+- El nacimiento del pelo con entradas (`hairlineShift("m_shaped_receding",
+  th)`, ver más arriba) YA hacía bien lo suyo: en la zona de las sienes no
+  nace ningún mechón (es lo correcto, ahí no hay pelo). El problema era que,
+  sin nada más, el pelo de al lado no llegaba a taparlo: cada mechón seguía
+  el peinado normal (irradia desde la coronilla + algo de ruido) sin "saber"
+  que un poco más allá la piel está calva, así que la entrada se veía como
+  un hueco limpio en vez de disimulada, que es lo que haría un peinado real.
+- **Cobertura de entradas** (`Avatar.buildHair`): cada mechón mira, una vez
+  al nacer (no en cada tramo: la piel no cambia mientras crece), si la piel
+  más adelante en la dirección en la que ya se peina (0,09 y 0,2 unidades
+  de escena, ~2 y ~5 cm: una entrada real es ancha, hay que mirar bastante
+  más lejos que un solo tramo) está calva. Si lo está, ESE mechón se peina
+  de forma más disciplinada hacia allí (menos ruido/desviación propia, más
+  apoyado en la piel) para llegar a cubrirla, en vez de dejar que el resto
+  del peinado lo desvíe. Nuevo parámetro opcional `ctx.maskAt(punto) ->
+  0-1` (cuánto pelo hay ahí "de por sí"): lo da `growth-map.html`
+  reutilizando la rejilla de `nearestVertex` que ya tenía para pegar
+  flechas y remolinos a la superficie; si no se pasa, se comporta como
+  antes (ningún otro llamador de `Avatar.buildHair` lo necesita).
+  Importante: esto NO inventa pelo donde no lo hay ni cambia el dato
+  guardado de la entrada -- sigue sin nacer ningún mechón ahí --, solo
+  peina mejor el pelo de alrededor para que la disimule, como en la vida
+  real.
+- Verificado comparando capturas con la cobertura activada/desactivada (se
+  puede anular pasando `ctx.maskAt: undefined`) en corto (2,6 cm) y medio
+  (6,5 cm) de largo, con y sin una "raya lateral" dibujada a mano: en los
+  dos casos la entrada se nota bastante menos; con pelo demasiado corto (el
+  mechón no llega a cruzar toda la anchura de la entrada) sigue notándose
+  algo, como pasaría de verdad.
+
 ## Gemelo digital 3D del cliente (Tripo AI, sept 2026)
 
 Pedro pasó un anuncio de ILTONIF ("Tu corte, calculado") y pidió integrar lo

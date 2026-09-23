@@ -565,13 +565,22 @@
         return t.lengthSq() > 1e-10 ? t.normalize() : null;
       };
     }
+    // Cuánto pelo hay ya "de por sí" en un punto cualquiera de la piel (no
+    // solo en la raíz): lo usa `Avatar.buildHair` para peinar el pelo de al
+    // lado de una entrada HACIA la propia entrada (disimularla), en vez de
+    // dejar que el ruido normal del peinado lo desvíe. `nearestVertex` ya
+    // busca el vértice más cercano con la rejilla de `buildGrid`.
+    function maskAt(p) {
+      const i = nearestVertex(p, false);
+      return i < 0 ? 1 : hairMask[i];
+    }
     function buildHair() {
       if (!skinMesh) return;
       if (hairObject) { scene.remove(hairObject); Avatar.disposeHair(hairObject); }
       if (!hairMask) hairMask = Avatar.hairMask(skinMesh, look.hairline);
       hairObject = Avatar.buildHair({
         grid, triIndex: skinMesh.geometry.index.array, snap, field: flowField(), headCenter,
-        mask: hairMask, params: look,
+        mask: hairMask, maskAt, params: look,
       });
       hairObject.visible = hairVisible;
       scene.add(hairObject);

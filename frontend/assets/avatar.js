@@ -228,6 +228,26 @@ window.Avatar = (function () {
       // de "púas"/erizo en vez de peinado). 0.5 -> 0.16.
       const jit = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5);
       jit.sub(r.n.clone().multiplyScalar(jit.dot(r.n))).multiplyScalar(0.16);
+      // "Cobertura de entradas": si justo por delante de la raíz -- siguiendo
+      // la dirección en la que ya se peina -- la piel está calva (entradas,
+      // sin remolino que la tape), esta hebra se peina hacia ahí de forma
+      // más disciplinada (menos ruido, más apoyada en la piel) para
+      // disimularla, en vez de dejar que el ruido normal del peinado la
+      // desvíe (Pedro: "que al poner el pelo hacia un lado, las entradas se
+      // disimulen"). Solo hace falta mirarlo una vez por mechón, no en cada
+      // tramo: la piel no cambia mientras crece un mechón de 2-7 cm.
+      // `ctx.maskAt` es opcional para no romper otros usos de `buildHair`.
+      // Una entrada de verdad es ancha (varios cm entre el nacimiento normal
+      // y el retrocedido), así que hay que mirar bastante más lejos que un
+      // solo tramo de mechón para encontrarla; se prueba a dos distancias.
+      let coverage = 0;
+      if (ctx.maskAt) {
+        const ahead0 = ctx.field(r.p, r.n) || DOWN.clone().sub(r.n.clone().multiplyScalar(r.n.y)).normalize();
+        for (const dist of [0.09, 0.2]) {
+          const m = ctx.maskAt(r.p.clone().add(ahead0.clone().multiplyScalar(dist)));
+          coverage = Math.max(coverage, Math.max(0, Math.min(1, 1 - m)));
+        }
+      }
       // 1) Línea central: sigue el crecimiento cerca de la raíz y luego cae
       //    por gravedad (o sale hacia fuera en rizado/afro), sin atravesar la
       //    cabeza. Cada tramo queda algo más separado de la piel que el
@@ -237,14 +257,15 @@ window.Avatar = (function () {
       let p = pts[0].clone(), n = r.n.clone(), s = 0;
       for (let i = 0; i < segs; i++) {
         const f = ctx.field(p, n) || DOWN.clone().sub(n.clone().multiplyScalar(n.y)).normalize();
-        f.add(jit.clone().multiplyScalar(1 - smooth(0, 0.05, s) * 0.8));
+        f.add(jit.clone().multiplyScalar((1 - smooth(0, 0.05, s) * 0.8) * (1 - 0.85 * coverage)));
         // Gravedad "peinada": sobre todo a lo largo de la piel (el pelo se
         // apoya en la cabeza y cae por los lados), y algo de caída libre.
         // Empieza a pesar un poco antes que antes (0.04 -> 0.02): así el
         // peinado estabiliza la dirección enseguida, en vez de dejar que el
         // primer tramo (el más visible, cerca de la raíz) dependa solo del
-        // campo de direcciones y del jitter.
-        const gw = tex.gravity * smooth(0.0, 0.02, s);
+        // campo de direcciones y del jitter. Con cobertura de entradas pesa
+        // aún un poco más: ese mechón tiene que llegar hasta tapar la calva.
+        const gw = tex.gravity * smooth(0.0, 0.02, s) * (1 + 0.5 * coverage);
         const tDown = DOWN.clone().sub(n.clone().multiplyScalar(n.y));
         const dir = f.clone().multiplyScalar(1 - 0.6 * gw).add(tDown.multiplyScalar(1.3 * gw)).add(DOWN.clone().multiplyScalar(0.35 * gw));
         dir.add(n.clone().multiplyScalar(stubble ? 0.5 + tex.outward : tex.outward));
