@@ -287,6 +287,52 @@ class SessionFlowTest(unittest.TestCase):
         finally:
             app_config.TRIPO_API_KEY = old_key
 
+    def test_avatar3d_also_runs_the_2d_facial_analysis(self):
+        """Crear el gemelo ya hace el análisis 2D de la foto frontal (antes
+        exigía pasar por visagismo.html aparte, ver clients_routes.py). Los
+        dos análisis (2D y malla 3D) se combinan sin pisarse; si el 2D falla
+        (p.ej. sin red para bajar los pesos de BiSeNet) se avisa y sigue."""
+        from pathlib import Path
+        from unittest import mock
+
+        from app import config as app_config
+        from app.pipeline import avatar3d, facial_traits_analysis
+
+        head = (Path(__file__).resolve().parents[2] / "frontend" / "assets" / "head.glb").read_bytes()
+        photos = {"photo_frontal": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_izquierdo": ("i.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_derecho": ("d.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+        cid = self._register().json()["id"]
+        self._barber_login()
+        self.barber.patch(f"/api/clients/{cid}/consents", json={"consent_3d_scan": True})
+
+        old_key = app_config.TRIPO_API_KEY
+        app_config.TRIPO_API_KEY = "test"
+        try:
+            detected = facial_traits_analysis.FacialTraitsResult(
+                facial_features_profile={"eye_symmetry": "simetricos", "eye_spacing": "normal", "has_glasses": False})
+            with mock.patch.object(avatar3d, "generate_twin", return_value=head), \
+                 mock.patch.object(facial_traits_analysis, "analyze_facial_traits", return_value=detected):
+                r = self.barber.post(f"/api/clients/{cid}/avatar3d", files=photos)
+            self.assertEqual(r.status_code, 200, r.text)
+            feats = self.barber.get(f"/api/clients/{cid}").json()["visagismo_profile"]["anatomical_metrics"]["facial_features_profile"]
+            self.assertEqual(feats["eye_symmetry"], "simetricos")   # del análisis 2D
+            self.assertEqual(feats["eye_spacing"], "normal")
+
+            # Si el análisis 2D falla, no rompe la creación del gemelo: solo
+            # queda como aviso y los rasgos de la malla siguen guardándose.
+            cid2 = self.barber.post("/api/clients", json={"display_name": "Otro", "consent_history": True}).json()["id"]
+            self.barber.patch(f"/api/clients/{cid2}/consents", json={"consent_3d_scan": True})
+            with mock.patch.object(avatar3d, "generate_twin", return_value=head), \
+                 mock.patch.object(facial_traits_analysis, "analyze_facial_traits",
+                                   side_effect=RuntimeError("sin red")):
+                r = self.barber.post(f"/api/clients/{cid2}/avatar3d", files=photos)
+            self.assertEqual(r.status_code, 200, r.text)
+            self.assertTrue(any("rasgos de la foto frontal" in a for a in r.json()["avisos"]))
+            self.assertIn("facial_geometry", r.json()["rasgos"])
+        finally:
+            app_config.TRIPO_API_KEY = old_key
+
     def test_avatar3d_simulate_reuses_the_photo_editor(self):
         """Simular un corte sobre el gemelo 3D (captura del visor, no la
         malla) reutiliza el mismo editor de fotos por IA que la simulación

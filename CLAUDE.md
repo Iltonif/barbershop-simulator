@@ -987,6 +987,91 @@ existía (`haircut_editor.py`) en vez de tocar Tripo para esto:
   captura, envío, resultado en pantalla, sin errores de consola, en
   escritorio y en móvil.
 
+**Un único paso de análisis: se quita Visajismo como paso manual aparte
+(sept 2026).** Pedro: "que tan solo con el gemelo digital el sistema
+analice todo... que tan solo el peluquero pueda editar resultados una vez
+extraídos por el sistema, de esa manera el peluquero no pierde tanto
+tiempo". Pedido en dos partes, resueltas cada una por su lado (se
+preguntó primero con AskUserQuestion qué paso manual quitar de los dos que
+había, y qué hacer con los remolinos si el gemelo no puede darlos):
+
+- **Visajismo (`facial_traits_analysis.py`) se fusiona en la creación del
+  gemelo.** `POST /clients/{id}/avatar3d` ahora, con la MISMA foto frontal
+  que ya sube a Tripo, llama también a `facial_traits_analysis.
+  analyze_facial_traits` (simetría/separación de ojos, gafas) y fusiona su
+  resultado con `merge_detected_features` -- lo mismo que ya hacía con los
+  rasgos de la malla 3D (`mesh_metrics.classify`), así que los dos
+  análisis (2D y malla) conviven en `facial_features_profile` sin pisarse
+  ni pisar lo que el peluquero haya puesto a mano. Ya no hace falta pasar
+  por `visagismo.html` para tener rasgos: se quitó del menú y de
+  `ficha.html` (el endpoint `POST .../visagismo-auto-analysis` se deja tal
+  cual por si hace falta repetir solo esa parte con otra foto). Si el
+  análisis 2D falla no rompe la creación del gemelo: se captura la
+  excepción y se añade a `avisos`, igual que el resto de avisos de este
+  endpoint.
+  **Aviso de sandbox, no de código**: en este entorno de desarrollo la
+  parte 2D falla siempre con `<urlopen error Tunnel connection failed: 403
+  Forbidden>`, porque `facial_traits_analysis` usa BiSeNet para segmentar
+  la cara (detectar gafas) y BiSeNet baja los pesos de ResNet-18 de
+  `download.pytorch.org` la primera vez que se construye -- y ese dominio
+  está bloqueado aquí (mismo tipo de restricción que Tripo/Gemini/FAL, ya
+  documentada). El código en sí está verificado: la ruta de fusión
+  funciona (test con `analyze_facial_traits` simulado, ver abajo) y el
+  fallo se captura sin tirar el resto de la petición (test con
+  `analyze_facial_traits` fallando). **Falta comprobar en Railway/el Mac
+  de Pedro** si esa descarga funciona ahí (debería, si hay salida a
+  internet normal, y una vez bajados los pesos quedan cacheados) -- no dar
+  por hecho que los rasgos 2D van a aparecer hasta probarlo con una clave
+  real.
+- **Remolinos: el gemelo NO puede darlos, se investigó y se descarta.**
+  Se miró si la malla o la textura de Tripo podían dar alguna pista sobre
+  hacia dónde crece el pelo o dónde hay remolinos, para no depender de que
+  el peluquero los dibuje a mano en `growth-map.html`. Conclusión: no, por
+  dos motivos independientes, no por falta de un algoritmo mejor:
+  1. **La nuca/coronilla, que es donde están casi todos los remolinos,
+     nunca se fotografía.** `avatar3d.py` manda la vista "atrás" VACÍA a
+     Tripo a propósito (no se le pide al cliente una foto de su nuca) --
+     así que esa parte de la cabeza no se reconstruye a partir de nada
+     real, se INVENTA con lo que Tripo considera plausible para una
+     cabeza genérica. Cualquier "remolino" que se viera ahí en la malla o
+     la textura sería una alucinación del modelo generativo, no una
+     medida del cliente -- justo el motivo por el que `mesh_metrics.py`
+     ya avisa de que todo lo suyo es una estimación, pero aquí es peor:
+     no hay ninguna foto real detrás de esa zona con la que contrastar.
+  2. **El pelo no existe como capa aparte.** El pelo de Tripo viene
+     "horneado" en la piel/textura del modelo (ver la nota de arriba
+     sobre por qué el retexturizado no sirve para simular cortes): no hay
+     cuero cabelludo separado ni ninguna estructura de mechones o campo
+     de direcciones que analizar. `growth_analysis.py` necesita un dato
+     que este `.glb` no representa en absoluto, no uno que esté ahí pero
+     sea difícil de leer.
+  Por eso `growth-map.html` (y el maniquí de pelo de `avatar.js` que lo
+  usa) se queda como estaba: un paso MANUAL del peluquero, no sustituible
+  por el gemelo. La diferencia con Visajismo es justo esta: los rasgos de
+  cara sí estaban en la foto (solo hacía falta juntar dos análisis en una
+  llamada), la dirección del pelo nunca lo estuvo. Como ya era opcional
+  antes de este cambio (`growth_rules.evaluate_growth` y
+  `barber_sheet._styling` ya funcionan con `growth=None`, sin tocar
+  código), no hizo falta nada más que dejarlo así explícitamente en vez de
+  quitarlo.
+- **El gemelo se ve y se guarda en la ficha del cliente.** `ficha.html`
+  incrusta `gemelo.html?embed=1` (mismo patrón `?embed=1` que ya usaba
+  `growth-map.html`: una clase `body.embed` que oculta todo menos el
+  visor y lo hace ocupar el hueco) en una sección nueva ("Gemelo 3D"),
+  con un botón "Crear gemelo 3D" cuando todavía no existe. El modelo en sí
+  ya se guardaba (`avatar3d_path`, ver más arriba); lo que cambia es que
+  ahora se ve directamente en la ficha en vez de solo detrás de un enlace.
+- Tests: `tests/test_sessions.
+  test_avatar3d_also_runs_the_2d_facial_analysis` (fusión 2D+malla sin
+  pisarse; y que un fallo del análisis 2D queda en `avisos` sin romper la
+  creación del gemelo). Probado además con Playwright extremo a extremo
+  contra un servidor con Tripo Y el análisis 2D simulados: sin la entrada
+  de Visajismo en el menú, "Crear gemelo 3D" visible antes de crearlo,
+  tras crearlo con una foto real aparecen rasgos de LOS DOS análisis en la
+  ficha (`eye_symmetry`/`eye_spacing` del 2D, `profile_type`/
+  `jawline_definition` de la malla) y el visor incrustado sustituye al
+  botón de crear.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

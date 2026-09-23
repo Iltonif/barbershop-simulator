@@ -94,6 +94,7 @@
   .mani { position: relative; margin-top: 14px; }
   .mani iframe { display: block; width: 100%; height: 320px; border: 1px solid var(--glass-border); border-radius: 14px; background: #0b0d18; }
   .mani-edit { position: absolute; right: 10px; bottom: 10px; background: rgba(8, 10, 18, 0.85); }
+  #gemelo-sec #t-gemelo-empty { margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -164,14 +165,29 @@
     <p class="hint" id="pelo-hint"></p>
     <div class="tools">
       <a class="tool" id="t-remolinos" href="#"><span data-icon="compass"></span>Remolinos<span class="state" id="s-remolinos"></span></a>
-      <a class="tool" id="t-visajismo" href="#"><span data-icon="scan-face"></span>Visajismo<span class="state" id="s-visajismo"></span></a>
-      <a class="tool" id="t-gemelo" href="#"><span data-icon="box"></span>Gemelo 3D<span class="state" id="s-gemelo"></span></a>
       <a class="tool" id="t-recs" href="#"><span data-icon="sparkles"></span>Recomendaciones</a>
     </div>
     <div class="mani">
       <iframe id="mani-frame" title="Maniquí del cliente" loading="lazy"></iframe>
       <a class="chip mani-edit" id="mani-edit" href="#"><span data-icon="pen-line"></span>Editar maniquí</a>
     </div>
+  </section>
+
+  <!-- Gemelo digital 3D (reconstrucción de Tripo a partir de sus fotos): se
+       ve aquí mismo, en vez de solo detrás de un enlace -- el análisis de
+       rasgos y medidas se hace al crearlo, sin pasar por Visajismo aparte. -->
+  <section class="glass-card sec" id="gemelo-sec">
+    <h2 class="sec-title"><span data-icon="box"></span>Gemelo 3D<span class="n" id="s-gemelo"></span>
+      <details class="info"><summary></summary><div class="info-body">
+        Se crea a partir de sus fotos y, al hacerlo, ya mide su cara y detecta rasgos (forma, perfil,
+        mandíbula, simetría de ojos...) para las recomendaciones -- no hace falta ningún paso aparte.
+      </div></details>
+    </h2>
+    <div class="mani" id="gemelo-embed" hidden>
+      <iframe id="gemelo-frame" title="Gemelo 3D del cliente" loading="lazy"></iframe>
+      <a class="chip mani-edit" id="gemelo-edit" href="#"><span data-icon="box"></span>Abrir</a>
+    </div>
+    <a class="tool" id="t-gemelo-empty" href="#"><span data-icon="wand-sparkles"></span>Crear gemelo 3D</a>
   </section>
 
   <section class="glass-card sec">
@@ -222,6 +238,7 @@
     beard: { clean_shaven: "Afeitado", stubble_short: "Barba de pocos días", full_long_volume: "Barba larga", sharp_lined: "Barba perfilada" },
   };
   const TEXTURES = [["liso", "Liso"], ["ondulado", "Ondulado"], ["rizado", "Rizado"], ["afro", "Afro"]];
+  const stateIcon = (ok) => `<span class="${ok ? "ok" : "warn"}">${UI.icon(ok ? "circle-check" : "triangle-alert")}</span>`;
   let client = null;
 
   async function api(url, opts = {}) {
@@ -235,7 +252,6 @@
     const c = client;
     const vp = c.visagismo_profile || {};
     const hair = vp.hair_physical_metrics || {}, life = vp.lifestyle_and_preferences || {};
-    const feats = (vp.anatomical_metrics || {}).facial_features_profile || {};
     q("avatar").textContent = (c.display_name || "?").charAt(0).toUpperCase();
     q("name").textContent = c.display_name || "Cliente";
     q("sub").textContent = [c.phone, `cliente desde ${new Date(c.created_at).toLocaleDateString("es-ES")}`].filter(Boolean).join(" · ");
@@ -251,7 +267,6 @@
     ].filter(Boolean);
     q("answers").innerHTML = answers.join("") || chip("triangle-alert", "Todavía no ha respondido su perfil", "warn");
     q("quiz-link").href = with_id("cuestionario.html");
-    q("t-gemelo").href = with_id("gemelo.html");
 
     // Tipo de pelo (peluquero)
     q("pelo").innerHTML = TEXTURES.map(([v, l]) =>
@@ -259,7 +274,6 @@
     q("pelo").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => setTexture(b.dataset.t)));
     q("pelo-hint").textContent = c.hair_texture_override ? "" : "Sin marcar: se usa lo que dijo el cliente, si lo dijo.";
 
-    const stateIcon = (ok) => `<span class="${ok ? "ok" : "warn"}">${UI.icon(ok ? "circle-check" : "triangle-alert")}</span>`;
     const whorls = ((c.custom_growth_map || {}).whorls || []).length;
     q("t-remolinos").href = with_id("growth-map.html");
     q("mani-edit").href = with_id("growth-map.html");
@@ -267,8 +281,6 @@
     const maniSrc = with_id("growth-map.html") + `&embed=1&v=${encodeURIComponent((c.hair_texture_override || "") + (c.hair_color || ""))}`;
     if (q("mani-frame").getAttribute("src") !== maniSrc) q("mani-frame").setAttribute("src", maniSrc);
     q("s-remolinos").innerHTML = stateIcon(!!c.custom_growth_map) + (whorls ? ` ${whorls}` : "");
-    q("t-visajismo").href = with_id("visagismo.html");
-    q("s-visajismo").innerHTML = stateIcon(Object.values(feats).some((v) => v !== null && v !== "" && v !== false));
     q("t-recs").href = with_id("recomendaciones.html");
     q("t-probar").href = with_id("probar.html");
 
@@ -300,6 +312,23 @@
     render();
     renderLikes();
     renderHistory();
+    loadGemelo();
+  }
+
+  // ---- Gemelo digital 3D (visor incrustado, ver gemelo.html?embed=1) ----
+  async function loadGemelo() {
+    q("t-gemelo-empty").href = with_id("gemelo.html");
+    q("gemelo-edit").href = with_id("gemelo.html");
+    try {
+      const g = await api(`/api/clients/${id}/avatar3d`);
+      q("s-gemelo").innerHTML = g.tiene_modelo ? stateIcon(true) : "";
+      q("gemelo-embed").hidden = !g.tiene_modelo;
+      q("t-gemelo-empty").hidden = g.tiene_modelo;
+      if (g.tiene_modelo) {
+        const src = with_id("gemelo.html") + `&embed=1&v=${encodeURIComponent(g.creado || "")}`;
+        if (q("gemelo-frame").getAttribute("src") !== src) q("gemelo-frame").setAttribute("src", src);
+      }
+    } catch (e) { q("gemelo-sec").hidden = true; /* p.ej. sin TRIPO_API_KEY configurada */ }
   }
 
   // ---- Historial de cortes ----

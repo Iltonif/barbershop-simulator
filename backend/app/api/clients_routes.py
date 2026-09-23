@@ -360,13 +360,21 @@ async def create_avatar3d(
     photo_perfil_izquierdo: UploadFile | None = File(None),
     photo_perfil_derecho: UploadFile | None = File(None),
 ):
-    """Crea el gemelo digital 3D del cliente con las fotos guiadas y mide
-    sus rasgos sobre la malla.
+    """Crea el gemelo digital 3D del cliente con las fotos guiadas, mide
+    sus rasgos sobre la malla Y analiza la foto frontal en 2D (asimetría/
+    separación de ojos, gafas) -- todo en la misma llamada, con las mismas
+    fotos, para que este sea el ÚNICO paso de análisis (sept 2026, petición
+    de Pedro: "que el peluquero no pierda tanto tiempo" en pasos manuales
+    separados). Antes había que pasar además por `visagismo.html`
+    (`POST .../visagismo-auto-analysis`, que sigue existiendo por API por
+    si hace falta repetir solo esa parte, pero ya no es un paso obligatorio
+    del alta -- ver CLAUDE.md).
 
     RGPD: las fotos se mandan a Tripo (tercero) y el modelo 3D de su cara
     SE GUARDA, así que hace falta `consent_3d_scan` (aparte del resto). Las
-    fotos en sí no se guardan en ningún momento. Tarda entre medio minuto y
-    unos minutos; cada modelo cuesta ~0,25 $."""
+    fotos en sí no se guardan en ningún momento (ni para Tripo ni para el
+    análisis 2D, que las descarta igual que hacía `visagismo-auto-analysis`).
+    Tarda entre medio minuto y unos minutos; cada modelo cuesta ~0,25 $."""
     client = _client_or_404(client_id)
     if not avatar3d.available():
         raise HTTPException(status_code=503, detail="Falta configurar TRIPO_API_KEY para crear el gemelo 3D.")
@@ -399,12 +407,29 @@ async def create_avatar3d(
     if len(photos) < 3:
         avisos.append("Sin las dos fotos de perfil, la nuca y los laterales del modelo son aproximados.")
 
-    # Los rasgos medidos se copian a la ficha SIN pisar lo que el peluquero
-    # haya puesto a mano, igual que el análisis de las fotos 2D.
-    rasgos = dict(analysis.get("rasgos") or {})
     profile = dict(client.visagismo_profile or {})
     anat = dict(profile.get("anatomical_metrics") or {})
     feats = dict(anat.get("facial_features_profile") or {})
+
+    # 2D sobre la misma foto frontal (antes exigía el paso aparte de
+    # visagismo.html): simetría/separación de ojos, gafas.
+    frontal_bgr = cv2.imdecode(np.frombuffer(photos["frontal"], dtype=np.uint8), cv2.IMREAD_COLOR)
+    if frontal_bgr is not None:
+        try:
+            traits2d = facial_traits_analysis.analyze_facial_traits(frontal_bgr)
+            feats = facial_traits_analysis.merge_detected_features(feats, traits2d.facial_features_profile)
+            avisos.extend(traits2d.warnings)
+            if traits2d.detected_anomalies_notes:
+                avisos.append(traits2d.detected_anomalies_notes)
+        except Exception as exc:
+            avisos.append(f"No se pudieron analizar los rasgos de la foto frontal: {exc}")
+    else:
+        avisos.append("No se pudo leer la foto frontal para el análisis 2D (sí se usó para el gemelo).")
+
+    # Los rasgos de la malla 3D se copian ENCIMA (sin pisar lo que el
+    # peluquero ya hubiera puesto a mano en ningún caso, ver
+    # `merge_detected_features`).
+    rasgos = dict(analysis.get("rasgos") or {})
     if rasgos.get("facial_geometry") and not anat.get("facial_geometry"):
         anat["facial_geometry"] = rasgos["facial_geometry"]
     anat["facial_features_profile"] = facial_traits_analysis.merge_detected_features(
