@@ -159,7 +159,11 @@ window.Avatar = (function () {
         p.x += pos[i * 3] * w; p.y += pos[i * 3 + 1] * w; p.z += pos[i * 3 + 2] * w;
         n.x += nrm[i * 3] * w; n.y += nrm[i * 3 + 1] * w; n.z += nrm[i * 3 + 2] * w;
       }
-      roots.push({ p, n: n.normalize(), shade: 0.8 + rnd() * 0.4, phase: rnd() * Math.PI * 2, width: 0.75 + rnd() * 0.5, layer: rnd(), lenVar: 0.82 + rnd() * 0.3 });
+      // lenVar: variación de largo entre mechones ("puntas desiguales", para
+      // que no parezca un casco de una sola pieza). Con pelo corto un ±15 %
+      // ya se notaba demasiado (parecía un peinado de púas); se deja más
+      // discreto (antes 0,82-1,12, un ±15 % de spread).
+      roots.push({ p, n: n.normalize(), shade: 0.8 + rnd() * 0.4, phase: rnd() * Math.PI * 2, width: 0.75 + rnd() * 0.5, layer: rnd(), lenVar: 0.91 + rnd() * 0.14 });
     }
     return roots;
   }
@@ -175,8 +179,10 @@ window.Avatar = (function () {
   }
 
   // Ruido suave 1D (suma de senos con fases por mechón): textura natural.
-  // Ancho a lo largo del mechón: lleno casi hasta el final y punta afilada.
-  const taper = (fr) => 1 - 0.25 * fr - 0.65 * Math.pow(fr, 3);
+  // Ancho a lo largo del mechón: lleno casi hasta el final y punta redondeada
+  // (no una aguja -- una punta demasiado afilada es lo que hacía que el pelo
+  // liso se leyera como púas, ver la nota de `buildHair`).
+  const taper = (fr) => 1 - 0.22 * fr - 0.45 * Math.pow(fr, 3);
   const wobble = (s, ph, len) => Math.sin((2 * Math.PI * s) / len + ph) + 0.45 * Math.sin((2 * Math.PI * s) / (len * 0.43) + ph * 1.7);
 
   // El pelo son MECHONES: cada raíz es una cinta ancha (tapa el cuero
@@ -212,9 +218,16 @@ window.Avatar = (function () {
       const stubble = mm < 12;
       const segs = Math.max(2, Math.min(28, Math.ceil(Lw / 0.015)));
       const ds = Lw / segs;
-      // Cada mechón sale un poco desviado del peinado (no todos paralelos).
+      // Cada mechón sale un poco desviado del peinado (no todos paralelos),
+      // pero POCO: el campo de direcciones ya es un vector unitario (ver
+      // `flowField` en growth-map.html), así que una desviación del mismo
+      // orden de magnitud competía con él y, sobre todo cerca de la
+      // coronilla -- donde el campo "irradia desde un punto" y por tanto
+      // cambia muy rápido de una raíz a la vecina --, el resultado era que
+      // cada mechón salía disparado en una dirección casi al azar (aspecto
+      // de "púas"/erizo en vez de peinado). 0.5 -> 0.16.
       const jit = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5);
-      jit.sub(r.n.clone().multiplyScalar(jit.dot(r.n))).multiplyScalar(0.5);
+      jit.sub(r.n.clone().multiplyScalar(jit.dot(r.n))).multiplyScalar(0.16);
       // 1) Línea central: sigue el crecimiento cerca de la raíz y luego cae
       //    por gravedad (o sale hacia fuera en rizado/afro), sin atravesar la
       //    cabeza. Cada tramo queda algo más separado de la piel que el
@@ -224,10 +237,14 @@ window.Avatar = (function () {
       let p = pts[0].clone(), n = r.n.clone(), s = 0;
       for (let i = 0; i < segs; i++) {
         const f = ctx.field(p, n) || DOWN.clone().sub(n.clone().multiplyScalar(n.y)).normalize();
-        f.add(jit.clone().multiplyScalar(1 - smooth(0, 0.08, s) * 0.6));
+        f.add(jit.clone().multiplyScalar(1 - smooth(0, 0.05, s) * 0.8));
         // Gravedad "peinada": sobre todo a lo largo de la piel (el pelo se
         // apoya en la cabeza y cae por los lados), y algo de caída libre.
-        const gw = tex.gravity * smooth(0.0, 0.04, s);
+        // Empieza a pesar un poco antes que antes (0.04 -> 0.02): así el
+        // peinado estabiliza la dirección enseguida, en vez de dejar que el
+        // primer tramo (el más visible, cerca de la raíz) dependa solo del
+        // campo de direcciones y del jitter.
+        const gw = tex.gravity * smooth(0.0, 0.02, s);
         const tDown = DOWN.clone().sub(n.clone().multiplyScalar(n.y));
         const dir = f.clone().multiplyScalar(1 - 0.6 * gw).add(tDown.multiplyScalar(1.3 * gw)).add(DOWN.clone().multiplyScalar(0.35 * gw));
         dir.add(n.clone().multiplyScalar(stubble ? 0.5 + tex.outward : tex.outward));

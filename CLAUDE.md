@@ -864,6 +864,48 @@ puede tapar entradas; más densidad, no tanta separación entre cabellos", y
 - Tests: `test_avatar.test_client_answer_vs_last_cut` y el final de
   `test_sessions.test_avatar_and_appearance`.
 
+**v5.2: menos aspecto de "púas" (sept 2026).** Pedro, viendo el maniquí:
+"mejora el tipo de pelo... que se vea mejor/más realista". Comparando
+capturas de las 4 texturas en varios largos (frente, perfil y cenital), el
+problema estaba sobre todo en liso/ondulado: cerca de la coronilla y en la
+raya del flequillo salía "de púas" (mechones cortos apuntando en
+direcciones casi al azar) en vez de peinado. Causas encontradas en
+`Avatar.buildHair` (`assets/avatar.js`):
+1. El campo de direcciones (`flowField` en `growth-map.html`, "irradia
+   desde la coronilla" cuando no hay flechas dibujadas) ya devuelve un
+   vector UNITARIO, así que el jitter por mechón (para que no salgan todos
+   paralelos) competía con él en la misma magnitud -- y justo cerca de la
+   coronilla el campo cambia muy rápido de una raíz a la vecina (es una
+   singularidad, irradia desde un punto), así que el jitter dominaba y cada
+   mechón salía disparado en una dirección casi al azar. Se bajó su peso
+   (0,5 -> 0,16 al multiplicar el vector, y su influencia decae algo más
+   rápido con la distancia a la raíz).
+2. La gravedad/peinado tardaba en pesar (rampa hasta el 4 % del largo del
+   mechón): el primer tramo, el más visible cerca de la raíz, dependía solo
+   del campo + jitter sin nada que lo estabilizara. Ahora pesa antes (2 %).
+3. La punta del mechón se afinaba casi hasta una aguja (10 % del ancho de
+   la raíz); con mechones finos eso se lee como pincho. Se dejó una punta
+   más redondeada (33 % del ancho).
+4. La variación de largo entre mechones ("puntas desiguales", para que no
+   parezca un casco) era de hasta ±15 %; con pelo corto (2-3 cm) ese ±15 %
+   ya se notaba como si fueran mechones sueltos de largos muy distintos.
+   Se dejó más discreta (±7 %).
+- Resultado, comparado con capturas antes/después: mejora clara en pelo
+  medio/largo (perfil, cae en un flujo continuo en vez de disparado) y en
+  ondulado/rizado/afro (se ven las ondas/rizos, no ruido); el pelo liso muy
+  corto visto de frente (flequillo/coronilla en cámara) TODAVÍA se ve algo
+  puntiagudo -- es en parte una limitación de la técnica (cada mechón es
+  una cinta plana; visto casi de canto, cerca de donde apunta, se ve su
+  punta en vez de su lado ancho, más notorio cuanto más corto y más recto
+  es el pelo). Arreglarlo del todo pediría agrupar mechones en "mechones
+  visuales" más anchos o suavizar el campo de direcciones cerca de la
+  coronilla en vez de solo bajar el ruido -- no se ha hecho por no
+  sobre-ajustar sin que Pedro vea antes el resultado actual.
+- Sin tests automáticos (es ajuste visual de Three.js, sin lógica de
+  backend de por medio); verificado con capturas de Playwright contra un
+  servidor local en las 4 texturas, tres largos (corto/medio/largo) y tres
+  ángulos (frente/perfil/cenital), sin errores de consola.
+
 ## Gemelo digital 3D del cliente (Tripo AI, sept 2026)
 
 Pedro pasó un anuncio de ILTONIF ("Tu corte, calculado") y pidió integrar lo
