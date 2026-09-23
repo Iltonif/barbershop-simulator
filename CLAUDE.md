@@ -940,6 +940,28 @@ no parezca que tiene tantas entradas, porque si no no parece real".
   mechón no llega a cruzar toda la anchura de la entrada) sigue notándose
   algo, como pasaría de verdad.
 
+**v5.3.1: que quede repeinado, no solo tapado (sept 2026).** Pedro: "si el
+flequillo es hacia abajo (liso/ondulado) y con entradas, al peinarlo hacia
+un lado quede repeinado". La cobertura de arriba ya llevaba el mechón hasta
+tapar la entrada, pero seguía con su ondulación/textura suelta de siempre
+-- se notaba que era pelo normal que por casualidad pasaba por ahí, no un
+peinado hecho a propósito para disimular.
+
+- Mismo mechón "en cobertura" de la v5.3 (variable `coverage`), pero solo
+  para liso/ondulado (`slick = coverage` en esos dos; en rizado/afro no se
+  toca -- no se alisan para tapar una entrada, no tendría sentido). En esos
+  mechones: menos capas/separación de la piel (más pegado, `minH` crece
+  hasta un 55 % menos con el largo), menos variación de altura entre
+  mechones (`r.layer` a la mitad), la onda de `ondulado` hasta un 75 %
+  más suave y el punteado/ruido natural de la textura hasta un 60 % menos.
+  El resto del pelo (el que no está tapando nada) sigue con su textura
+  normal -- solo el mechón "de peluquería" queda liso y pegado.
+- Sin tests automáticos, igual que el resto de ajustes visuales de
+  `Avatar.buildHair`; verificado con capturas en liso y ondulado, largo
+  medio, con entradas y con/sin raya lateral dibujada, sin regresión en el
+  resto de combinaciones (texturas/largos sin entradas se quedan igual,
+  `slick` sale 0).
+
 ## Gemelo digital 3D del cliente (Tripo AI, sept 2026)
 
 Pedro pasó un anuncio de ILTONIF ("Tu corte, calculado") y pidió integrar lo

@@ -248,6 +248,13 @@ window.Avatar = (function () {
           coverage = Math.max(coverage, Math.max(0, Math.min(1, 1 - m)));
         }
       }
+      // "Repeinado": Pedro -- si el pelo es liso/ondulado (con rizado/afro
+      // no se pide, y tampoco tendría sentido: no se alisan para tapar una
+      // entrada) y ese mechón concreto está tapando una entrada, que quede
+      // repeinado de verdad (pegado, sin la textura/ondulación suelta de
+      // siempre), como un peinado de peluquería y no como pelo suelto que
+      // por casualidad cae por ahí.
+      const slick = (texName === "liso" || texName === "ondulado") ? coverage : 0;
       // 1) Línea central: sigue el crecimiento cerca de la raíz y luego cae
       //    por gravedad (o sale hacia fuera en rizado/afro), sin atravesar la
       //    cabeza. Cada tramo queda algo más separado de la piel que el
@@ -281,7 +288,10 @@ window.Avatar = (function () {
         dir.normalize();
         const q = p.clone().add(dir.multiplyScalar(ds));
         const sn = ctx.snap(q, 0, false);
-        const minH = 0.0025 + (0.018 + 0.06 * tex.outward) * Math.min(s, 0.25) + 0.004 * r.layer;
+        // Repeinado: capas más pegadas a la piel (menos "esponjado") y
+        // menos variación entre mechones -- el efecto peinado/con producto.
+        const minH = 0.0025 + (0.018 + 0.06 * tex.outward) * (1 - 0.55 * slick) * Math.min(s, 0.25)
+          + 0.004 * r.layer * (1 - 0.5 * slick);
         const hgt = tmp.copy(q).sub(sn.p).dot(sn.n);
         if (hgt < minH) q.add(sn.n.clone().multiplyScalar(minH - hgt));
         s += ds; p = q; n = sn.n;
@@ -305,10 +315,10 @@ window.Avatar = (function () {
             const ph = (2 * Math.PI * sc) / tex.pitch + r.phase;
             c.add(Bv.clone().multiplyScalar(Math.cos(ph) * tex.coil * ramp)).add(N2.clone().multiplyScalar(Math.sin(ph) * tex.coil * ramp));
           } else if (tex.wave) {
-            c.add(Bv.clone().multiplyScalar(Math.sin((2 * Math.PI * sc) / tex.waveLen + r.phase) * tex.wave * ramp));
+            c.add(Bv.clone().multiplyScalar(Math.sin((2 * Math.PI * sc) / tex.waveLen + r.phase) * tex.wave * (1 - 0.75 * slick) * ramp));
           }
-          // Textura natural: el liso no es una línea perfecta.
-          const amp = (texName === "liso" ? 0.0024 : 0.0016) * ramp * Math.min(1, sc / 0.05);
+          // Textura natural: el liso no es una línea perfecta (repeinado: menos).
+          const amp = (texName === "liso" ? 0.0024 : 0.0016) * (1 - 0.6 * slick) * ramp * Math.min(1, sc / 0.05);
           c.add(Bv.clone().multiplyScalar(amp * wobble(sc, r.phase, 0.11)))
            .add(N2.clone().multiplyScalar(0.5 * amp * wobble(sc, r.phase * 2.3, 0.07)));
           line.push(c); lnrm.push(nrms[i].clone().lerp(nrms[i + 1], t).normalize()); lss.push(sc); side.push(Bv);
