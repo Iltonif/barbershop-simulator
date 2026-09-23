@@ -962,6 +962,47 @@ peinado hecho a propósito para disimular.
   resto de combinaciones (texturas/largos sin entradas se quedan igual,
   `slick` sale 0).
 
+**v5.4: dejar dibujar flechas sobre la frente para el flequillo largo (sept
+2026).** Pedro: "el problema es que para el flequillo aunque dibuje las
+líneas al ser tan bajo y no poder pintar flechas tan abajo se queda igual".
+Con capturas se vio el problema exacto: en `growth-map.html`,
+`pointerdown`/`pointermove` solo dejaban empezar o seguir una flecha donde
+`_scalp` (atributo horneado en `head.glb`, 0-1 según la distancia a la
+línea del pelo "de fábrica") fuera >= 0,35 / >= 0,2. Esa máscara es casi 0
+en cuanto se baja un poco de la línea del pelo -- es decir, en TODA la
+frente por debajo del nacimiento, que es justo donde cae visualmente un
+flequillo largo (puede llegar hasta cerca de las cejas). El barbero podía
+dibujar la flecha por encima del nacimiento, pero nunca lo bastante abajo
+como para redirigir el propio flequillo; de ahí que "se quede igual" por
+mucho que dibujara.
+
+- No hacía falta tocar el campo de direcciones (`flowField()` ya actúa por
+  distancia en el espacio, no le importa si el punto es "cuero cabelludo"
+  o no) ni el crecimiento del pelo (`Avatar.buildHair`): el único cuello de
+  botella era la propia herramienta de dibujo.
+- Arreglo: además de `_scalp`, `growth-map.html` ahora también lee del
+  `.glb` los atributos `_hairh`/`_hairth` (los mismos que usa
+  `Avatar.hairMask` para dibujar entradas/pico/frente alta) y, con la
+  misma tabla `HAIRLINE` de `tools/construir_cabeza_masculina.py` portada
+  a JS (`HAIRLINE_BASE`/`hairlineBase()`), reconstruye la altura real del
+  punto tocado (0 = altura de los ojos, 1 = arriba de la cabeza). Un punto
+  se acepta también como "sobre el pelo" a efectos de dibujar flecha
+  (`hit.onForehead`) si esa altura es >= 0,10 (justo por encima de las
+  cejas) y está en la mitad frontal de la cara (`_hairth < 70`, el mismo
+  corte que ya separa cara de sienes/orejas en otras máscaras). Por fuera
+  de esa zona (sienes, nuca, o ya en cejas/ojos/nariz/boca) sigue mandando
+  el umbral de `_scalp` de siempre -- no cambia nada ahí.
+- Los remolinos (`whorl-cw`/`whorl-ccw`) no se tocan: siguen exigiendo
+  `_scalp` real, porque un remolino sí representa un punto de nacimiento
+  del pelo, no un peinado por encima de piel sin pelo.
+- Verificado sin red (Playwright + servidor local, ver
+  `scratchpad/hair_flequillo_*.py` de esta sesión): con el arreglo
+  desactivado a mano (`hit.onForehead = false`), el mismo gesto de arrastre
+  desde el nacimiento hasta encima de las cejas no llega a crear ninguna
+  flecha (exactamente el bug de Pedro); con el arreglo, la misma flecha se
+  crea completa, con puntos que llegan hasta un `y` a la altura de las
+  cejas.
+
 ## Gemelo digital 3D del cliente (Tripo AI, sept 2026)
 
 Pedro pasó un anuncio de ILTONIF ("Tu corte, calculado") y pidió integrar lo

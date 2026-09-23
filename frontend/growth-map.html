@@ -286,6 +286,31 @@
     const HEAD_Y = -0.3;
     const ARROW_LIFT = 0.035;   // la flecha flota sobre los mechones
     const MIN_ARROW_LEN = 0.12;
+    // Misma tabla que tools/construir_cabeza_masculina.py (HAIRLINE): la
+    // línea del pelo "de fábrica" (recta), en función del ángulo desde el
+    // centro de la cara (_hairth). Sirve para reconstruir, a partir de
+    // _hairh (guardado respecto a ESA línea), la altura real del punto
+    // (0 = ojos, 1 = arriba de la cabeza) y así saber si un punto de la
+    // frente está por encima de las cejas aunque ya no sea "cuero
+    // cabelludo" (ver FOREHEAD_MIN_H más abajo).
+    const HAIRLINE_BASE = [[0, .56], [22, .57], [36, .62], [50, .44], [64, .24], [74, -.05], [80, -.28],
+                            [86, -.20], [92, .22], [102, .20], [112, .02], [124, -.42], [145, -.60], [180, -.64]];
+    function hairlineBase(th) {
+      if (th <= HAIRLINE_BASE[0][0]) return HAIRLINE_BASE[0][1];
+      for (let i = 1; i < HAIRLINE_BASE.length; i++) {
+        if (th <= HAIRLINE_BASE[i][0]) {
+          const [x0, y0] = HAIRLINE_BASE[i - 1], [x1, y1] = HAIRLINE_BASE[i];
+          return y0 + (y1 - y0) * (th - x0) / (x1 - x0);
+        }
+      }
+      return HAIRLINE_BASE[HAIRLINE_BASE.length - 1][1];
+    }
+    // Altura mínima (mismas unidades que arriba) para poder dibujar una
+    // flecha: un poco por encima de las cejas, así el flequillo largo que
+    // cae sobre la frente (por debajo de donde nace el pelo) se puede
+    // peinar igual, sin dejar que se dibuje sobre ojos/nariz/boca.
+    const FOREHEAD_MIN_H = 0.10;
+    const FOREHEAD_MAX_TH = 70; // frente/centro; a partir de ahí ya son sienes/orejas
 
     // --- Escena ---
     const scene = new THREE.Scene();
@@ -319,6 +344,8 @@
     let skinMesh = null;
     let eyeMesh = null;
     let scalpAttr = null;         // atributo _scalp (0-1) del .glb
+    let hairHAttr = null;         // atributo _hairh (altura resp. a la línea del pelo recta)
+    let hairThAttr = null;        // atributo _hairth (ángulo desde el centro de la cara)
     let crownDefault = null;      // coronilla por defecto (mundo)
     let headCenter = new THREE.Vector3(0, HEAD_Y + 0.14 * HEAD_SCALE, -0.04);
 
@@ -388,6 +415,8 @@
             if (child.name === "skin") {
               skinMesh = child;
               scalpAttr = child.geometry.attributes._scalp || null;
+              hairHAttr = child.geometry.attributes._hairh || null;
+              hairThAttr = child.geometry.attributes._hairth || null;
             }
             if (child.name === "eyes") eyeMesh = child;
           });
@@ -412,15 +441,25 @@
       const hits = raycaster.intersectObject(skinMesh, false);
       if (!hits.length) return null;
       const h = hits[0];
-      let scalp = 1;
-      if (scalpAttr && h.face) {
+      let scalp = 1, onForehead = false;
+      if (h.face) {
         const P = skinMesh.geometry.attributes.position;
         _a.fromBufferAttribute(P, h.face.a); _b.fromBufferAttribute(P, h.face.b); _c.fromBufferAttribute(P, h.face.c);
         _tri.set(_a, _b, _c).getBarycoord(skinMesh.worldToLocal(h.point.clone()), _bary);
-        scalp = scalpAttr.getX(h.face.a) * _bary.x + scalpAttr.getX(h.face.b) * _bary.y + scalpAttr.getX(h.face.c) * _bary.z;
+        if (scalpAttr) scalp = scalpAttr.getX(h.face.a) * _bary.x + scalpAttr.getX(h.face.b) * _bary.y + scalpAttr.getX(h.face.c) * _bary.z;
+        // Un punto de la frente (por debajo de donde nace el pelo, pero por
+        // encima de las cejas) no cuenta como "cuero cabelludo" (scalp≈0),
+        // pero ahí es justo donde cae el flequillo largo: hace falta poder
+        // dibujar flechas también ahí para poder peinarlo hacia un lado.
+        if (hairHAttr && hairThAttr) {
+          const hairH = hairHAttr.getX(h.face.a) * _bary.x + hairHAttr.getX(h.face.b) * _bary.y + hairHAttr.getX(h.face.c) * _bary.z;
+          const hairTh = hairThAttr.getX(h.face.a) * _bary.x + hairThAttr.getX(h.face.b) * _bary.y + hairThAttr.getX(h.face.c) * _bary.z;
+          const eyeToTop = hairH + hairlineBase(hairTh); // 0 = ojos, 1 = arriba de la cabeza
+          onForehead = eyeToTop >= FOREHEAD_MIN_H && hairTh < FOREHEAD_MAX_TH;
+        }
       }
       const n = h.face ? h.face.normal.clone().transformDirection(skinMesh.matrixWorld).normalize() : h.point.clone().sub(headCenter).normalize();
-      return { point: h.point.clone(), normal: n, scalp };
+      return { point: h.point.clone(), normal: n, scalp, onForehead };
     }
 
     // --- Flechas ---
@@ -657,7 +696,7 @@
       const hit = hitHead(event);
       if (!hit) return;
       if (mode === "arrow") {
-        if (hit.scalp < 0.35) { hintEl.innerHTML = `${UI.icon("triangle-alert")}<span>Empieza la flecha sobre el pelo</span>`; return; }
+        if (hit.scalp < 0.35 && !hit.onForehead) { hintEl.innerHTML = `${UI.icon("triangle-alert")}<span>Empieza la flecha sobre el pelo</span>`; return; }
         stopOrbit();
         event.preventDefault(); event.stopPropagation();
         try { canvas.setPointerCapture(event.pointerId); } catch (e) { /* no crítico */ }
@@ -685,7 +724,7 @@
     canvas.addEventListener("pointermove", (event) => {
       if (!drawing) return;
       const hit = hitHead(event);
-      if (!hit || hit.scalp < 0.2) return;
+      if (!hit || (hit.scalp < 0.2 && !hit.onForehead)) return;
       const p = hit.point.clone().add(hit.normal.clone().multiplyScalar(ARROW_LIFT));
       if (p.distanceTo(drawing.points[drawing.points.length - 1]) < 0.02) return;
       drawing.points.push(p);
