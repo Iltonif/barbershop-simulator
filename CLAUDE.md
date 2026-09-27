@@ -738,6 +738,39 @@ cliente.
   remolino o crecimiento de lado: línea recta/cuadrada en contra, largo o
   degradado a favor. Fuentes en el docstring (Book of Barbering, Cadmen
   Academy, Fellow Barber). La forma de cara sigue igual y se suma.
+- **`app/pipeline/combined_rules.py` (sept 2026, cruces crecimiento +
+  visajismo/forma de cara).** Pedro, tras terminar de dejar el maniquí
+  como herramienta de dibujo pura: "olvida las entradas ahora mismo para
+  el modelo estándar de maniquí... ahora lo que debemos hacer es que la
+  dirección del pelo sirva para recomendar peinados y cortes de pelo que
+  encajen con esa dirección y además que encajen con su perfil de
+  visajismo". Esto último (cruzar crecimiento + visajismo en la misma
+  puntuación) ya estaba conectado de punta a punta desde la v4
+  (`recommend_styles` ya suma `growth_rules` + `visagismo_rules`/
+  `trait_rules` + forma de cara sobre el mismo corte); lo que pidió
+  después, al elegir entre las opciones que le planteé, fue añadir reglas
+  NUEVAS que reconozcan cuándo dos señales de esos módulos van a la vez
+  a favor o en contra, en vez de dejar solo notas sueltas. Tres reglas,
+  todas opcionales (piden `face_shape_override` y/o `visagismo_profile`
+  y/o el mapa de crecimiento — lo que falte, simplemente no se activa):
+  cara redonda + raya natural (por remolino o por hacia dónde va el pelo
+  de la frente) + corte de raya lateral, a favor (asimetría que además
+  aguanta sin producto); cara alargada + remolino en la coronilla en el
+  rango de largo donde ya "gana el remolino" (2,5-7,5 cm) + volumen arriba
+  sin textura, aviso reforzado (dos motivos independientes empujan a lo
+  mismo: no dar más altura); entradas en M + remolino en la frente + tupé
+  largo hacia atrás, aviso explicando que aquí las dos reglas sueltas
+  tiran en direcciones CONTRARIAS (`growth_rules` anima a aprovechar el
+  remolino, `visagismo_rules` avisa de que expone las entradas) y por qué
+  gana taparlas. Ninguna es un hecho nuevo sin base: la de raya
+  lateral+redonda es la misma recomendación de asimetría que ya usan
+  varias guías generalistas de barbería (la misma familia de motivo por
+  la que aquí ya se prioriza raya lateral en cara alargada, solo que por
+  anchura en vez de por asimetría); las otras dos son composiciones
+  directas de reglas que ya existían por separado, no fuentes nuevas. Ver
+  el docstring de `combined_rules.py` para el porqué de no cubrir más
+  combinaciones (solo las que no estén ya cubiertas por una regla
+  individual, para no puntuar dos veces lo mismo).
 - **Frecuencia de retoque** (`app/pipeline/maintenance.py`): semanas por
   corte (degradado alto/a piel 2-3, bajo/medio 3-4, corto 3-4, medio 4-6,
   largo 6-8; guías de barbería citadas en el docstring), en
@@ -759,8 +792,9 @@ cliente.
   (intervalo por defecto 3-5), acortada si el cliente dijo que viene más a
   menudo (`repository.last_visits`).
 - Tests: `tests/test_growth.py` (zonas, direcciones, raya, reglas,
-  semanas, desempate) y dos nuevos en `tests/test_sessions.py` (lista de
-  vuelta y próxima visita, endpoint de resumen). Probado con Playwright:
+  semanas, desempate, y las reglas cruzadas de `combined_rules.py`) y dos
+  nuevos en `tests/test_sessions.py` (lista de vuelta y próxima visita,
+  endpoint de resumen). Probado con Playwright:
   dibujo con ratón y con toques reales (CDP), remolinos, vistas, borrar,
   guardar y recargar, mapa antiguo, sala, espacio del cliente y
   recomendaciones.

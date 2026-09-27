@@ -8,6 +8,7 @@ import numpy as np
 
 from app.pipeline import growth_analysis as ga
 from app.pipeline import maintenance
+from app.pipeline.combined_rules import evaluate_combined
 from app.pipeline.growth_rules import evaluate_growth
 from app.pipeline.recommender import recommend_styles
 from app.pipeline.style_catalog import HaircutStyle
@@ -113,6 +114,55 @@ class GrowthRulesTest(unittest.TestCase):
         self.assertEqual(self.labels(style(length_back_mm=20), m), [(False, "Se nota en la nuca")])
         self.assertEqual(self.labels(style(length_back_mm=5, fade_type="bajo"), m), [(True, "Nuca degradada")])
         self.assertEqual(self.labels(style(length_back_mm=80), m), [(True, "El largo tapa la nuca")])
+
+
+class CombinedRulesTest(unittest.TestCase):
+    """Reglas que cruzan el mapa de crecimiento con la forma de cara/
+    visagismo (combined_rules.py), pedidas por Pedro para no dejar sueltas
+    dos notas que en realidad están relacionadas."""
+
+    def labels(self, st, growth_map=None, face_shape=None, profile=None):
+        growth = ga.summarize(growth_map) if growth_map else None
+        return [(e.score < 0, e.label) for e in evaluate_combined(st, growth, face_shape, profile)]
+
+    def test_redonda_raya_lateral_a_favor_del_crecimiento(self):
+        st = style(name="Corte clásico con raya lateral", length_top_mm=40)
+        m = {"whorls": [whorl(CROWN, "horario")]}  # remolino horario -> raya natural a la izquierda
+        self.assertIn((True, "Asimetría a favor del crecimiento"), self.labels(st, m, face_shape="redonda"))
+        # Sin cara redonda, sin mapa de crecimiento o sin raya lateral: no se activa.
+        self.assertEqual(self.labels(st, m, face_shape=None), [])
+        self.assertEqual(self.labels(st, None, face_shape="redonda"), [])
+        self.assertEqual(self.labels(style(length_top_mm=40), m, face_shape="redonda"), [])
+
+    def test_alargada_remolino_corona_doble_motivo(self):
+        m = {"whorls": [whorl(CROWN)]}
+        st = style(name="Tupé", length_top_mm=50)
+        self.assertIn((False, "Doble motivo para no dar más altura"), self.labels(st, m, face_shape="alargada"))
+        # Con textura ya se disimula (growth_rules lo boostea aparte): no hace falta este aviso extra.
+        self.assertEqual(self.labels(style(name="Tupé con textura", length_top_mm=50), m, face_shape="alargada"), [])
+        # Fuera del rango de largo donde "gana el remolino", o sin remolino, o sin cara alargada: no se activa.
+        self.assertEqual(self.labels(style(name="Tupé", length_top_mm=90), m, face_shape="alargada"), [])
+        self.assertEqual(self.labels(st, None, face_shape="alargada"), [])
+        self.assertEqual(self.labels(st, m, face_shape="redonda"), [])
+
+    def test_entradas_remolino_frente_pesa_mas_taparlas(self):
+        m = {"whorls": [whorl(FRONT_TOP)]}
+        st = style(name="Tupé", style_family="tupe_pompadour_clasico", length_top_mm=80)
+        profile = {"hair_physical_metrics": {"frontal_hairline_shape": "m_shaped_receding"}}
+        self.assertIn((False, "El impulso del remolino expone las entradas"), self.labels(st, m, profile=profile))
+        # Sin remolino en la frente, sin entradas registradas, o con un corte que no sea ese: no se activa.
+        self.assertEqual(self.labels(st, None, profile=profile), [])
+        self.assertEqual(self.labels(st, m, profile=None), [])
+        self.assertEqual(self.labels(style(name="Buzz", length_top_mm=6), m, profile=profile), [])
+
+    def test_combined_effects_reach_recommend_styles(self):
+        recs = recommend_styles(
+            "liso",
+            face_shape="redonda",
+            growth_map={"whorls": [whorl(CROWN, "horario")], "strokes": []},
+        )
+        raya = next(r for r in recs if "raya lateral" in r.style.name.lower())
+        self.assertTrue(any(e.label == "Asimetría a favor del crecimiento" for e in raya.reasons))
 
 
 class MaintenanceTest(unittest.TestCase):

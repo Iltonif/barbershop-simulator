@@ -22,6 +22,10 @@ adicionales del perfil, todas opcionales:
   nacimiento del pelo y estilo de vida (mantenimiento diario). Igual que las dos señales anteriores, es un matiz sobre el
   orden, no un filtro — ver el docstring de `visagismo_rules.py` para el
   porqué y para el mapeo concreto de cada regla sobre este catálogo.
+- Cruces entre el mapa de crecimiento y la forma de cara/visagismo (p.ej.
+  cara redonda + raya natural, o entradas + remolino en la frente): ver
+  `combined_rules.py` para el porqué de un módulo aparte y qué combinaciones
+  concretas cubre.
 
 Ninguna señal descarta cortes: todas los avisan/priorizan y los mueven
 arriba o abajo en la lista, con una nota explicando el motivo, para que
@@ -39,7 +43,7 @@ ahí todas las fuentes consultadas coinciden en la misma dirección.
 
 from dataclasses import dataclass, field
 
-from app.pipeline import growth_analysis, growth_rules, maintenance, trait_rules, visagismo_rules
+from app.pipeline import combined_rules, growth_analysis, growth_rules, maintenance, trait_rules, visagismo_rules
 from app.pipeline.rule_effects import AVISO_SUAVE, BOOST_SUAVE, Effect
 from app.pipeline.style_catalog import HaircutStyle, load_catalog
 
@@ -164,6 +168,7 @@ def recommend_styles(
         effects += growth_rules.evaluate_growth(style, growth)
         effects += trait_rules.evaluate_traits(style, visagismo_profile)
         effects += visagismo_rules.evaluate_profile(style, visagismo_profile).effects
+        effects += combined_rules.evaluate_combined(style, growth, face_shape, visagismo_profile)
 
         reasons = [e for e in effects if e.is_reason]
         warnings = [e for e in effects if not e.is_reason]
