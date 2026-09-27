@@ -329,6 +329,55 @@ modelo en una máquina sin esa caché, aunque luego `79999_iter.pth` los
 sobrescribe por completo. En un servidor sin acceso a ese dominio la
 segmentación (pelo, gafas) fallaría al arrancar. No se ha tocado.
 
+**Mentón, mandíbula y cuello, probados con el mismo método (sept 2026).**
+Pedro pidió detectar también `jawline_definition` (mandíbula), `chin_projection`
+(mentón) y `neck_proportions` (cuello) de forma automática. Se repitió
+exactamente la misma prueba de arriba (mismas 61 fotos de
+`serengil/deepface`, comparando la diferencia entre dos fotos de la MISMA
+persona contra la diferencia entre fotos de personas DISTINTAS, usando los
+pares de `master.csv`), reutilizando solo `face_analysis.py` y
+`hair_segmentation.py` ya existentes -- sin modelo ni dependencia nueva.
+Resultado: ninguno de los tres es fiable hoy.
+
+- **Mandíbula** (`jawline_definition`): como proxy de "mandíbula marcada"
+  se probó el ángulo de giro en el gonion (puntos 2-4-6 y 10-12-14 del
+  contorno de mandíbula de los 68 landmarks, donde la línea pasa de
+  vertical bajo la oreja a horizontal hacia la barbilla -- más agudo,
+  mandíbula más marcada). Hay algo de señal (misma persona: 2,9° de
+  diferencia media entre fotos, mediana 2,6°; personas distintas: 4,8° de
+  media, mediana 4,2°, sobre un rango total de solo 18°), pero la mezcla
+  es demasiado alta para fiarse: usando esa sola medida para adivinar si
+  dos fotos son la misma persona acertaría solo 2 de cada 3 veces (AUC
+  0,66 sobre 1,0 perfecto), muy lejos de lo que hace falta para
+  clasificar a un cliente real sin que el barbero lo revise. Campo
+  manual.
+- **Cuello** (`neck_proportions`): con la clase `neck` de BiSeNet se
+  probaron dos medidas (anchura de cuello / ancho de cara, y proporción
+  de píxeles de cuello en la imagen). En ambas la diferencia entre dos
+  fotos de la MISMA persona fue igual o mayor que entre personas
+  distintas (0,38 vs 0,32 de media en la relación de anchura; 0,034 vs
+  0,031 en la proporción de píxeles -- acertar por azar sería 0,5 de AUC,
+  y salió 0,45 y 0,52 respectivamente), y en 2 de las 61 fotos no se
+  detectó ni un solo píxel de cuello. La causa es el encuadre de la foto
+  (cuánto cuello entra en el plano, el ángulo de la barbilla), no la
+  persona: es ruido de cómo se hace la foto, no un rasgo suyo. Campo
+  manual.
+- **Mentón** (`chin_projection`): no se ha llegado a medir nada, por el
+  mismo motivo de fondo que ya descartó el perfil de nariz -- cuánto
+  sobresale el mentón hacia delante es información de profundidad
+  (sagital), y una foto frontal 2D no la contiene; haría falta la foto de
+  perfil, que ya se demostró arriba que ni siquiera detecta cara con los
+  modelos actuales. Campo manual.
+
+Con esto, los seis rasgos que Pedro pidió automatizar sin que el barbero
+los rellene a mano (mentón, orejas, mandíbula, cuello, cejas, perfil)
+siguen siendo campos manuales del formulario de visagismo: los tres de
+esta prueba (mentón, mandíbula, cuello) y los tres ya descartados antes
+(orejas, cejas, perfil de nariz). No es un límite de umbrales que se
+pueda recalibrar -- haría falta un modelo distinto (landmarks/segmentación
+que funcionen de perfil, o un método que capture profundidad) para
+retomarlo.
+
 Pendiente / no cubierto a propósito en `frontend/visagismo.html`: la
 página nueva solo cubre `facial_features_profile` (los campos de esta
 sección) -- `hair_physical_metrics`, `lifestyle_and_preferences`,
