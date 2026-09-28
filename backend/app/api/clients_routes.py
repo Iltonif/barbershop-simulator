@@ -49,6 +49,7 @@ from app.pipeline import (
     growth_analysis,
     mesh_metrics,
     visagismo_ai_advisor,
+    visagismo_vision_analysis,
 )
 from app.pipeline.recommender import recommend_styles
 
@@ -195,37 +196,46 @@ def override_visagismo_auto_analysis(
 ):
     """Recibe 3 fotos guiadas del cliente (frontal, perfil izquierdo y
     perfil derecho) y rellena parte de `facial_features_profile` dentro de
-    `visagismo_profile`. Hoy solo se analiza la frontal (simetría ocular,
-    separación de ojos, gafas); nariz, orejas y cejas son campos manuales
-    -- ver `app/pipeline/facial_traits_analysis.py` para el porqué.
+    `visagismo_profile`.
+
+    La foto frontal siempre se analiza localmente (simetría ocular,
+    separación de ojos, gafas -- ver `facial_traits_analysis.py`): eso es
+    gratis, 100% local, y no depende de ningún consentimiento adicional.
+
+    Perfil, cejas, orejas, mentón, mandíbula y cuello NO se pueden medir
+    con geometría clásica de forma fiable (probado con fotos reales, ver
+    `facial_traits_analysis.py` y CLAUDE.md). Si el cliente tiene
+    `consent_ai_analysis=true` y hay `ANTHROPIC_API_KEY` configurada, las 3
+    fotos se envían también a la API de Claude para que las juzgue como lo
+    haría un peluquero (ver `visagismo_vision_analysis.py`) -- ESTO SÍ
+    implica enviar las fotos a un tercero, a diferencia del resto de este
+    endpoint. Sin ese consentimiento, o sin esa clave configurada, esos 6
+    campos se quedan sin rellenar (con un aviso explicando por qué) y el
+    resto del análisis (la parte local) sigue funcionando igual: no es un
+    422 que bloquee todo el endpoint, porque hay trabajo útil que hacer
+    tanto si se puede como si no se puede analizar por IA.
 
     RGPD: las 3 fotos se procesan en memoria y NUNCA se guardan en disco
     ni en la base de datos -- solo se guarda el resultado ya resumido en
     categorías (igual que `POST /api/simulate`). Como el dato final que se
     persiste es el mismo `visagismo_profile` que ya cubre `consent_history`
     (misma finalidad de tratamiento que rellenarlo a mano vía `PATCH
-    .../visagismo-profile`), no hace falta ningún consentimiento adicional
-    a los que ya exige `create_client` -- a diferencia de `consent_save_photo`
-    (que sería para guardar la foto en sí, cosa que este endpoint no hace)
-    o `consent_ai_analysis` (que es solo para el informe que llama a la
-    API externa de Claude en `visagismo_ai_advisor.py`, no para este
-    análisis, que es 100% local).
+    .../visagismo-profile`), la parte local no exige ningún consentimiento
+    adicional -- a diferencia de `consent_save_photo` (que sería para
+    guardar la foto en sí, cosa que este endpoint nunca hace) o
+    `consent_ai_analysis` (que si está dado, hace que las fotos de perfil
+    SÍ se decodifiquen y se envíen a la API de Claude, ver arriba).
 
     Fusiona el resultado con lo que ya hubiera guardado el barbero (no lo
     sustituye por completo, a diferencia de `PATCH .../visagismo-profile`):
-    un campo detectado automáticamente solo se escribe si el barbero no lo
-    había rellenado ya a mano, para no pisar una corrección manual previa
-    con una detección automática peor."""
+    un campo detectado automáticamente (local o por IA) solo se escribe si
+    el barbero no lo había rellenado ya a mano, para no pisar una
+    corrección manual previa con una detección automática peor."""
     client = repository.get_client(client_id)
     if client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
     frontal_bgr = _read_upload_as_bgr(photo_frontal, "frontal")
-    # Las fotos de perfil se siguen pidiendo (decisión de producto, para
-    # no cambiar el flujo si más adelante se incorpora un modelo que
-    # funcione de perfil) pero hoy no se analizan -- ver
-    # `facial_traits_analysis.py`. Ni siquiera se decodifican: no se
-    # procesa ningún dato biométrico que no se vaya a usar.
     result = facial_traits_analysis.analyze_facial_traits(frontal_bgr)
 
     existing_profile = dict(client.visagismo_profile or {})
@@ -234,16 +244,45 @@ def override_visagismo_auto_analysis(
 
     # Solo se auto-rellenan los campos que el barbero no hubiera rellenado
     # ya a mano (ver docstring de arriba y `merge_detected_features`).
-    existing_anatomical["facial_features_profile"] = facial_traits_analysis.merge_detected_features(
+    merged_features = facial_traits_analysis.merge_detected_features(
         existing_features, result.facial_features_profile
     )
+
+    vision_warnings: list[str] = []
+    if client.consent_ai_analysis:
+        # Solo se decodifican las fotos de perfil si hace falta enviarlas
+        # -- no se procesa ningún dato biométrico que no se vaya a usar
+        # (mismo criterio que antes, cuando estas fotos no se analizaban
+        # nunca y por eso ni siquiera se decodificaban).
+        left_bgr = _read_upload_as_bgr(photo_perfil_izquierdo, "perfil izquierdo")
+        right_bgr = _read_upload_as_bgr(photo_perfil_derecho, "perfil derecho")
+        try:
+            vision_result = visagismo_vision_analysis.analyze_facial_traits_with_vision(
+                frontal_bgr, left_bgr, right_bgr
+            )
+            merged_features = facial_traits_analysis.merge_detected_features(
+                merged_features, vision_result.facial_features_profile
+            )
+            vision_warnings = vision_result.warnings
+        except visagismo_vision_analysis.VisionAnalysisNotConfigured as exc:
+            vision_warnings = [str(exc)]
+        except visagismo_vision_analysis.VisionAnalysisError as exc:
+            vision_warnings = [str(exc)]
+    else:
+        vision_warnings = [
+            "Perfil, cejas, orejas, mentón, mandíbula y cuello no se han "
+            "analizado por IA: este cliente no tiene el permiso de IA "
+            "marcado en su ficha."
+        ]
+
+    existing_anatomical["facial_features_profile"] = merged_features
     existing_profile["anatomical_metrics"] = existing_anatomical
 
     updated_client = repository.update_visagismo_profile(client_id, existing_profile)
 
     return VisagismoAutoAnalysisOut(
         client=ClientOut(**updated_client.__dict__),
-        warnings=result.warnings,
+        warnings=result.warnings + vision_warnings,
         detected_anomalies_notes=result.detected_anomalies_notes,
     )
 

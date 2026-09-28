@@ -449,6 +449,14 @@ class ConsentsIn(BaseModel):
     # Crear el gemelo 3D: la foto va a Tripo (tercero) y el modelo de su
     # cara se guarda -- finalidad distinta, consentimiento aparte.
     consent_3d_scan: bool | None = None
+    # Enviar datos a la API de Claude (informe de texto en
+    # `visagismo_ai_advisor.py`, y desde sept 2026 también las 3 fotos
+    # guiadas para juzgar perfil/cejas/orejas/mentón/mandíbula/cuello en
+    # `visagismo_vision_analysis.py`) -- ya existía en `create_client`
+    # pero antes no se podía cambiar después sin tocar la base de datos a
+    # mano; ahora también se puede dar/retirar desde la ficha, igual que
+    # el resto de consentimientos.
+    consent_ai_analysis: bool | None = None
 
 
 class LikesIn(BaseModel):

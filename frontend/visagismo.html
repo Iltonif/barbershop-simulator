@@ -75,10 +75,10 @@
   .field-grid > div { min-width: 0; }
   .field-grid label { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
   .tag-auto { color: var(--accent-cyan); }
+  .tag-ai { color: var(--accent-blue); }
   .guide-link { display: inline-flex; color: var(--text-faint); margin-left: 2px; }
   .guide-link .ico { width: 14px; height: 14px; }
-  .tag-manual { color: var(--text-faint); }
-  .tag-auto .ico, .tag-manual .ico { width: 14px; height: 14px; }
+  .tag-auto .ico, .tag-ai .ico { width: 14px; height: 14px; }
   @media (max-width: 480px) { .field-grid { grid-template-columns: 1fr; } }
   .glasses-row { margin: 14px 0 10px; }
   .glasses-row .checkbox-row { margin: 0; }
@@ -139,7 +139,7 @@
     <h1 class="page-title">Visajismo</h1>
     <details class="info"><summary></summary><div class="info-body">
       <p>Rasgos de la cara del cliente para afinar las recomendaciones de corte.</p>
-      <p>Con las fotos se detectan solos la simetría y separación de los ojos y las gafas (<span data-icon="sparkles"></span>); el resto se marca a mano. Todo se puede corregir.</p>
+      <p>Con las fotos se detectan solas la simetría y separación de los ojos y las gafas (<span data-icon="sparkles"></span>). Perfil, cejas, orejas, mentón, mandíbula y cuello (<span data-icon="wand-sparkles"></span>) los juzga una IA con visión si el cliente dio su permiso (en su ficha); si no, se marcan a mano. Todo se puede corregir.</p>
     </div></details>
   </div>
 
@@ -169,7 +169,7 @@
       <h2 class="step-title"><span class="step-num" id="step-num-2">2</span>Fotos</h2>
       <details class="info"><summary></summary><div class="info-body">
         <p><span data-icon="camera"></span> abre la cámara con un marco donde encajar la cara, y avisa si el móvil no está recto. <span data-icon="image"></span> usa una foto ya hecha.</p>
-        <p>Lo importante es la frontal: mirando a la cámara, sin girar la cabeza. Los perfiles aún no se analizan solos, pero conviene hacerlos bien.</p>
+        <p>Lo importante es la frontal: mirando a la cámara, sin girar la cabeza. Las de perfil, además de para juzgar el corte a simple vista, se usan para el análisis por IA (perfil, cejas, orejas, mentón, mandíbula, cuello) si el cliente dio su permiso -- en cualquier caso, conviene hacerlas bien.</p>
         <p>Las fotos se analizan al momento y no se guardan.</p>
       </div></details>
       <a class="help-link small" href="guia-visagismo.html#fotos" aria-label="Cómo hacer las fotos"><span data-icon="circle-help"></span>Cómo hacerlas</a>
@@ -232,7 +232,8 @@
     <div class="head-row step-head">
       <h2 class="step-title"><span class="step-num" id="step-num-3">3</span>Rasgos</h2>
       <details class="info"><summary></summary><div class="info-body">
-        <p><span data-icon="sparkles"></span> = lo rellena el análisis de las fotos.</p>
+        <p><span data-icon="sparkles"></span> = lo rellena el análisis local de las fotos (gratis, siempre).</p>
+        <p><span data-icon="wand-sparkles"></span> = lo juzga una IA con visión a partir de las 3 fotos, solo si el cliente dio su permiso de IA (marca la casilla en su ficha). Puedes corregirlo igual que el resto.</p>
         <p><span data-icon="hand"></span> = se marca a mano mirando al cliente: las fotos no permiten detectarlo con fiabilidad.</p>
       </div></details>
     </div>
@@ -257,7 +258,7 @@
         <p class="hint" id="eye-symmetry-percent-hint"></p>
       </div>
       <div>
-        <label for="profile-type"><span data-icon="hand" class="tag-manual"></span>Perfil <a class="guide-link" href="guia-visagismo.html#perfil" aria-label="Cómo valorar el perfil"><span data-icon="circle-help"></span></a></label>
+        <label for="profile-type"><span data-icon="wand-sparkles" class="tag-ai"></span>Perfil <a class="guide-link" href="guia-visagismo.html#perfil" aria-label="Cómo valorar el perfil"><span data-icon="circle-help"></span></a></label>
         <select id="profile-type">
           <option value="">—</option>
           <option value="straight">Recto</option>
@@ -266,7 +267,7 @@
         </select>
       </div>
       <div>
-        <label for="eyebrow-type"><span data-icon="hand" class="tag-manual"></span>Cejas</label>
+        <label for="eyebrow-type"><span data-icon="wand-sparkles" class="tag-ai"></span>Cejas</label>
         <select id="eyebrow-type">
           <option value="">—</option>
           <option value="straight_low">Recta / baja</option>
@@ -275,7 +276,7 @@
         </select>
       </div>
       <div>
-        <label for="ears-projection"><span data-icon="hand" class="tag-manual"></span>Orejas</label>
+        <label for="ears-projection"><span data-icon="wand-sparkles" class="tag-ai"></span>Orejas</label>
         <select id="ears-projection">
           <option value="">—</option>
           <option value="flat">Pegadas</option>
@@ -283,7 +284,7 @@
         </select>
       </div>
       <div>
-        <label for="chin-projection"><span data-icon="hand" class="tag-manual"></span>Mentón <a class="guide-link" href="guia-visagismo.html#menton" aria-label="Cómo valorar el mentón"><span data-icon="circle-help"></span></a></label>
+        <label for="chin-projection"><span data-icon="wand-sparkles" class="tag-ai"></span>Mentón <a class="guide-link" href="guia-visagismo.html#menton" aria-label="Cómo valorar el mentón"><span data-icon="circle-help"></span></a></label>
         <select id="chin-projection">
           <option value="">—</option>
           <option value="retruded">Retraído</option>
@@ -292,7 +293,7 @@
         </select>
       </div>
       <div>
-        <label for="jawline-definition"><span data-icon="hand" class="tag-manual"></span>Mandíbula <a class="guide-link" href="guia-visagismo.html#mandibula" aria-label="Cómo valorar la mandíbula"><span data-icon="circle-help"></span></a></label>
+        <label for="jawline-definition"><span data-icon="wand-sparkles" class="tag-ai"></span>Mandíbula <a class="guide-link" href="guia-visagismo.html#mandibula" aria-label="Cómo valorar la mandíbula"><span data-icon="circle-help"></span></a></label>
         <select id="jawline-definition">
           <option value="">—</option>
           <option value="defined">Definida</option>
@@ -300,7 +301,7 @@
         </select>
       </div>
       <div>
-        <label for="neck-proportions"><span data-icon="hand" class="tag-manual"></span>Cuello</label>
+        <label for="neck-proportions"><span data-icon="wand-sparkles" class="tag-ai"></span>Cuello</label>
         <select id="neck-proportions">
           <option value="">—</option>
           <option value="short_thick">Corto y grueso</option>

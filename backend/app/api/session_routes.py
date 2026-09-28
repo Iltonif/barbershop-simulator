@@ -158,7 +158,7 @@ def barber_set_consents(client_id: str, payload: ConsentsIn):
     el de guardar fotos, se borran todas las suyas."""
     _get_client_or_404(client_id)
     updated = repository.update_consents(client_id, payload.consent_save_photo, payload.consent_simulation,
-                                         payload.consent_3d_scan)
+                                         payload.consent_3d_scan, payload.consent_ai_analysis)
     if payload.consent_save_photo is False:
         _delete_all_photos(updated)
     if payload.consent_3d_scan is False:

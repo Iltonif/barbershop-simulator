@@ -11,8 +11,12 @@ opencv-contrib-python>=4.9
 
 # Informe de visagismo por IA (app/pipeline/visagismo_ai_advisor.py,
 # Fase opcional): llama a la API de Claude con el perfil de visagismo del
-# cliente. Requiere ANTHROPIC_API_KEY configurada -- sin ella, el
-# endpoint devuelve un error claro en vez de fallar el arranque.
+# cliente. Desde sept 2026 también usada por
+# app/pipeline/visagismo_vision_analysis.py, que envía las 3 fotos
+# guiadas a la API para juzgar perfil/cejas/orejas/mentón/mandíbula/
+# cuello (ver CLAUDE.md). Requiere ANTHROPIC_API_KEY configurada -- sin
+# ella, ambos endpoints devuelven un error claro en vez de fallar el
+# arranque.
 anthropic>=1.0
 numpy>=1.26
 pillow>=10.2

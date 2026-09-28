@@ -7,12 +7,24 @@ detectar automáticamente rasgos como separación de ojos, asimetrías (p.
 ej. "un ojo más abierto que el otro") y uso de gafas -- en vez de
 depender solo de que el barbero los rellene a mano en
 `FacialFeaturesProfileIn` (`app/api/schemas.py`). También se intentó con
-perfil de nariz, proyección de orejas y forma de cejas; se descartaron
-tras probarlos con fotos reales (ver comentarios más abajo y CLAUDE.md).
+perfil de nariz, proyección de orejas, forma de cejas, mentón, mandíbula
+y cuello con GEOMETRÍA CLÁSICA (landmarks/contorno); se descartaron tras
+probarlos con fotos reales (ver comentarios más abajo y CLAUDE.md) -- no
+por falta de umbrales mejores, sino porque la señal no está ahí (nariz y
+mentón necesitan profundidad que una foto 2D no tiene, cuello es ruido de
+encuadre, cejas y orejas dan resultados que van al revés de lo que ve una
+persona). Esos 6 campos SÍ se pueden rellenar automáticamente por otra vía
+-- un modelo de IA con visión que los JUZGUE en vez de medirlos, ver
+`app/pipeline/visagismo_vision_analysis.py` -- pero eso ya no es
+geometría local: implica enviar las fotos a un tercero (API de Claude) y
+requiere el consentimiento `consent_ai_analysis` del cliente.
 
 Entrada: 3 fotos guiadas del cliente -- frontal, perfil izquierdo y
-perfil derecho (decisión de producto: sin vídeo, ver CLAUDE.md) --,
-aunque hoy solo se analiza la frontal. Salida: un
+perfil derecho (decisión de producto: sin vídeo, ver CLAUDE.md). Este
+módulo, 100% local, solo analiza la frontal -- las de perfil se aceptan
+en el endpoint (`clients_routes.override_visagismo_auto_analysis`) pero
+solo se decodifican y se usan si hace falta enviarlas a
+`visagismo_vision_analysis.py` (con consentimiento). Salida: un
 `FacialFeaturesProfileIn`-compatible (dict) con los campos que se han
 podido detectar, más una lista de avisos (p.ej. "la foto frontal tiene
 la cabeza algo girada") y un resumen en texto de las asimetrías
@@ -225,8 +237,10 @@ def _analyze_frontal(image_bgr: np.ndarray, result: FacialTraitsResult) -> None:
         )
 
 
-# Nariz y orejas: deliberadamente NO se detectan automáticamente. Se
-# probaron con fotos reales (ver CLAUDE.md, "Calibración de umbrales"):
+# Nariz y orejas: deliberadamente NO se detectan por GEOMETRÍA aquí (sí
+# se pueden juzgar por IA con visión, ver `visagismo_vision_analysis.py`
+# y el módulo de arriba). Se probaron con fotos reales (ver CLAUDE.md,
+# "Calibración de umbrales"):
 # - Perfil de nariz: el detector de caras (Haar frontal + landmarks LBF)
 #   no encuentra la cara en una foto de perfil, así que nunca se llegaba a
 #   medir. En una foto de 3/4 sí podría encontrarla, pero el propio giro
@@ -236,7 +250,9 @@ def _analyze_frontal(image_bgr: np.ndarray, result: FacialTraitsResult) -> None:
 #   segmenta bien las orejas, pero la medida resultante es ruido: las dos
 #   orejas de una misma cara, que son casi iguales, daban valores sin
 #   ninguna relación entre sí (correlación -0,05).
-# Ambos campos quedan como manuales del barbero.
+# Ambos campos quedan como manuales EN ESTE MÓDULO (geometría); el
+# endpoint los puede rellenar igualmente por IA con visión si hay
+# consentimiento, ver `visagismo_vision_analysis.py`.
 
 
 def merge_detected_features(existing: dict, detected: dict) -> dict:
@@ -286,11 +302,13 @@ def analyze_facial_traits(
     esos casos se acumulan como avisos para que el barbero rellene esos
     campos a mano.
 
-    Las fotos de perfil se aceptan (el flujo sigue pidiendo 3 fotos, por
-    decisión de producto) pero hoy no se analizan: ver el comentario
-    justo encima. Se dejan en la firma para no tener que cambiar el
-    endpoint ni la página si más adelante se incorpora un modelo que sí
-    funcione de perfil."""
+    Las fotos de perfil siguen sin analizarse AQUÍ por geometría (ver el
+    comentario justo encima); se dejan en la firma sin usar por eso mismo,
+    para no tener que cambiar esta función si algún día apareciera un
+    modelo geométrico que sí funcionara de perfil. El endpoint
+    (`clients_routes.py`) sí las usa, pero por otra vía: las pasa a
+    `visagismo_vision_analysis.analyze_facial_traits_with_vision` (IA con
+    visión) cuando el cliente dio `consent_ai_analysis`."""
     result = FacialTraitsResult()
     _analyze_frontal(frontal_bgr, result)
     return result

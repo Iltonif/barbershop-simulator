@@ -177,6 +177,10 @@
       <a class="tool" id="t-remolinos" href="#"><span data-icon="compass"></span>Remolinos<span class="state" id="s-remolinos"></span></a>
       <a class="tool" id="t-recs" href="#"><span data-icon="sparkles"></span>Recomendaciones</a>
     </div>
+    <div class="consent-line">
+      <label class="checkbox-row"><input type="checkbox" id="c-ai" /><span>Permiso para juzgar perfil/cejas/orejas/mentón/mandíbula/cuello con IA</span></label>
+      <details class="info"><summary></summary><div class="info-body">Márcalo solo si el cliente te lo dice ahora. Con este permiso, al pulsar "Analizar" en Visajismo, sus 3 fotos guiadas se envían también a la API de Claude para que juzgue esos 6 rasgos como lo harías tú a simple vista (las fotos no se guardan, solo el resultado). Sin él, esos 6 campos se siguen rellenando a mano como hasta ahora.</div></details>
+    </div>
     <div class="mani">
       <iframe id="mani-frame" title="Maniquí del cliente" loading="lazy"></iframe>
       <a class="chip mani-edit" id="mani-edit" href="#"><span data-icon="pen-line"></span>Editar maniquí</a>
@@ -303,6 +307,7 @@
     q("s-remolinos").innerHTML = stateIcon(!!c.custom_growth_map) + (whorls ? ` ${whorls}` : "");
     q("t-recs").href = with_id("recomendaciones.html");
     q("t-probar").href = with_id("probar.html");
+    q("c-ai").checked = c.consent_ai_analysis;
 
     // Foto
     q("c-photo").checked = c.consent_save_photo;
@@ -480,6 +485,7 @@
   }
   q("c-photo").addEventListener("change", (e) => setConsent("consent_save_photo", e.target.checked));
   q("c-sim").addEventListener("change", (e) => setConsent("consent_simulation", e.target.checked));
+  q("c-ai").addEventListener("change", (e) => setConsent("consent_ai_analysis", e.target.checked));
 
   q("photo-btn").addEventListener("click", (e) => {
     if (!client.consent_save_photo) { e.preventDefault(); say("warn", "Primero marca el permiso para guardar su foto"); }

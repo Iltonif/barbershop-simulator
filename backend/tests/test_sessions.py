@@ -6,7 +6,7 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import cv2
 import numpy as np
@@ -439,6 +439,83 @@ class SessionFlowTest(unittest.TestCase):
                 self.assertEqual(edited.call_count, 1)
         finally:
             app_config.TRIPO_API_KEY = old_key
+
+    def test_visagismo_auto_analysis_gated_by_ai_consent_and_key(self):
+        """El análisis local (frontal) funciona siempre. Los 6 rasgos por
+        IA con visión (perfil/cejas/orejas/mentón/mandíbula/cuello) solo se
+        intentan si el cliente tiene consent_ai_analysis -- y si además
+        falta ANTHROPIC_API_KEY o la llamada falla, el endpoint sigue
+        devolviendo 200 con un aviso, nunca rompe el resto del análisis."""
+        from app import config as app_config
+        from app.pipeline import visagismo_vision_analysis as vision
+
+        photos = {"photo_frontal": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_izquierdo": ("i.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_derecho": ("d.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+        cid = self._register(consent_history=True).json()["id"]
+        self._barber_login()
+
+        # Sin consent_ai_analysis (por defecto al registrarse): 200, con
+        # aviso, sin tocar nada de perfil/cejas/orejas/mentón/mandíbula/cuello.
+        r = self.barber.post(f"/api/clients/{cid}/visagismo-auto-analysis", files=photos)
+        self.assertEqual(r.status_code, 200, r.text)
+        body = r.json()
+        self.assertTrue(any("no tiene el permiso de IA" in w for w in body["warnings"]))
+        features = self.barber.get(f"/api/clients/{cid}").json()["visagismo_profile"]["anatomical_metrics"]["facial_features_profile"]
+        self.assertNotIn("profile_type", features)
+
+        # Con consentimiento pero sin ANTHROPIC_API_KEY: sigue en 200, con aviso.
+        self.barber.patch(f"/api/clients/{cid}/consents", json={"consent_ai_analysis": True})
+        photos = {"photo_frontal": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_izquierdo": ("i.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_derecho": ("d.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+        with patch.object(app_config, "ANTHROPIC_API_KEY", None), \
+             patch.object(vision, "ANTHROPIC_API_KEY", None):
+            r = self.barber.post(f"/api/clients/{cid}/visagismo-auto-analysis", files=photos)
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertTrue(any("ANTHROPIC_API_KEY" in w for w in r.json()["warnings"]))
+
+        # Con consentimiento y clave, y la API respondiendo: se rellenan
+        # los 6 campos, fusionados con lo que ya hubiera (no pisa nada).
+        fake_block = Mock()
+        fake_block.type = "tool_use"
+        fake_block.input = {
+            "profile_type": "straight", "ears_projection": "flat",
+            "neck_proportions": "proportional", "eyebrow_type": "arched",
+            "chin_projection": "balanced", "jawline_definition": "defined",
+            "confidence_notes": "",
+        }
+        fake_response = Mock()
+        fake_response.content = [fake_block]
+        fake_anthropic_client = Mock()
+        fake_anthropic_client.messages.create.return_value = fake_response
+
+        photos = {"photo_frontal": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_izquierdo": ("i.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_derecho": ("d.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+        with patch.object(app_config, "ANTHROPIC_API_KEY", "sk-fake"), \
+             patch.object(vision, "ANTHROPIC_API_KEY", "sk-fake"), \
+             patch("anthropic.Anthropic", return_value=fake_anthropic_client):
+            r = self.barber.post(f"/api/clients/{cid}/visagismo-auto-analysis", files=photos)
+        self.assertEqual(r.status_code, 200, r.text)
+        features = r.json()["client"]["visagismo_profile"]["anatomical_metrics"]["facial_features_profile"]
+        self.assertEqual(features["profile_type"], "straight")
+        self.assertEqual(features["jawline_definition"], "defined")
+
+        # Corrección manual previa: no se pisa con un segundo análisis.
+        vp = self.barber.get(f"/api/clients/{cid}").json()["visagismo_profile"]
+        vp["anatomical_metrics"]["facial_features_profile"]["profile_type"] = "concave"
+        self.barber.patch(f"/api/clients/{cid}/visagismo-profile", json=vp)
+        fake_block.input = dict(fake_block.input, profile_type="convex_prominent_nose")
+        photos = {"photo_frontal": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_izquierdo": ("i.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
+                  "photo_perfil_derecho": ("d.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
+        with patch.object(app_config, "ANTHROPIC_API_KEY", "sk-fake"), \
+             patch.object(vision, "ANTHROPIC_API_KEY", "sk-fake"), \
+             patch("anthropic.Anthropic", return_value=fake_anthropic_client):
+            r = self.barber.post(f"/api/clients/{cid}/visagismo-auto-analysis", files=photos)
+        features = r.json()["client"]["visagismo_profile"]["anatomical_metrics"]["facial_features_profile"]
+        self.assertEqual(features["profile_type"], "concave")
 
 
 if __name__ == "__main__":

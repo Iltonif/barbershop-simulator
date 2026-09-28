@@ -29,10 +29,18 @@ a un tercero (Anthropic). Por eso:
   tratamiento distinta a guardar el perfil localmente (RGPD: cada
   finalidad, su propio consentimiento), y encima implica transferir
   datos a un proveedor externo, no solo guardarlos en el propio servidor.
-- NUNCA se envía la foto del cliente ni ningún dato identificable
-  (nombre, notas libres) -- solo los campos categóricos ya recogidos en
-  `visagismo_profile` / `hair_texture_override` / `face_shape_override` /
-  remolinos, igual que ya hace `visagismo_rules.py` con esos mismos datos.
+- Esta llamada en concreto NUNCA envía la foto del cliente ni ningún dato
+  identificable (nombre, notas libres) -- solo los campos categóricos ya
+  recogidos en `visagismo_profile` / `hair_texture_override` /
+  `face_shape_override` / remolinos, igual que ya hace `visagismo_rules.py`
+  con esos mismos datos. Desde sept 2026, este mismo `consent_ai_analysis`
+  también da permiso para una llamada DISTINTA que sí envía fotos --
+  `app/pipeline/visagismo_vision_analysis.py`, que juzga por IA perfil,
+  cejas, orejas, mentón, mandíbula y cuello a partir de las 3 fotos
+  guiadas. Se reutiliza el mismo consentimiento porque es la misma
+  finalidad (análisis de visajismo por la API de Claude), pero conviene
+  tenerlo en cuenta al redactar el texto real que vea el cliente: ya no es
+  "solo texto categórico", también puede implicar enviar sus fotos.
 - El texto que devuelve el modelo es una interpretación cualitativa de
   estética/peluquería, NO un diagnóstico médico real, a pesar del tono
   "clínico" del prompt original (términos como "evaluación de rasgos

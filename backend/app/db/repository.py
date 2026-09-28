@@ -267,7 +267,8 @@ def set_phone(client_id: str, phone: str | None) -> ClientProfile | None:
 
 def update_consents(client_id: str, consent_save_photo: bool | None = None,
                     consent_simulation: bool | None = None,
-                    consent_3d_scan: bool | None = None) -> ClientProfile | None:
+                    consent_3d_scan: bool | None = None,
+                    consent_ai_analysis: bool | None = None) -> ClientProfile | None:
     now = _now()
     with get_connection() as conn:
         if consent_save_photo is not None:
@@ -279,6 +280,12 @@ def update_consents(client_id: str, consent_save_photo: bool | None = None,
         if consent_3d_scan is not None:
             conn.execute("UPDATE clients SET consent_3d_scan = ?, consent_3d_scan_at = ? WHERE id = ?",
                          (1 if consent_3d_scan else 0, now if consent_3d_scan else None, client_id))
+        # Antes solo se podía fijar al crear el cliente (`create_client`);
+        # se añade aquí para poder darlo/retirarlo más tarde desde la
+        # ficha, igual que el resto de consentimientos (ver ConsentsIn).
+        if consent_ai_analysis is not None:
+            conn.execute("UPDATE clients SET consent_ai_analysis = ?, consent_ai_analysis_at = ? WHERE id = ?",
+                         (1 if consent_ai_analysis else 0, now if consent_ai_analysis else None, client_id))
     return get_client(client_id)
 
 

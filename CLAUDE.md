@@ -201,13 +201,19 @@ pipeline (cero dependencias/modelos nuevos)**:
   `eye_g` (gafas). Es solo informativo: se guarda y se muestra en el
   informe de IA (ver siguiente sección) pero **no** se usa en
   `visagismo_rules.py`, tal como pidió Pedro.
-- **Campos manuales** (se probaron y se descartaron, ver calibración más
+- **Campos manuales por geometría, pero automáticos por IA con consentimiento**
+  (se probaron por geometría clásica y se descartaron, ver calibración más
   abajo; la página lo indica junto a cada campo): `eyebrow_type` (forma
-  de cejas), `profile_type` (perfil de nariz) y `ears_projection`
-  (proyección de orejas). Para las orejas Pedro había elegido un
-  "detector dedicado"; se usó la segmentación de orejas de BiSeNet en vez
-  de un modelo nuevo (no se encontró ninguno maduro con licencia de uso
-  comercial), y al probarla con fotos reales resultó no ser fiable.
+  de cejas), `profile_type` (perfil de nariz), `ears_projection`
+  (proyección de orejas), `chin_projection` (mentón), `jawline_definition`
+  (mandíbula) y `neck_proportions` (cuello). Para las orejas Pedro había
+  elegido un "detector dedicado"; se usó la segmentación de orejas de
+  BiSeNet en vez de un modelo nuevo (no se encontró ninguno maduro con
+  licencia de uso comercial), y al probarla con fotos reales resultó no
+  ser fiable. Ver la sección dedicada más abajo, "Rasgos de perfil
+  juzgados por IA con visión (sept 2026)", para cómo se rellenan estos 6
+  campos hoy sin geometría: un modelo de IA con visión los juzga
+  directamente, si el cliente dio su consentimiento.
 
 **Fusión, no sustitución** (`merge_detected_features` en
 `facial_traits_analysis.py`): el endpoint solo rellena los campos que el
@@ -369,14 +375,103 @@ Resultado: ninguno de los tres es fiable hoy.
   perfil, que ya se demostró arriba que ni siquiera detecta cara con los
   modelos actuales. Campo manual.
 
-Con esto, los seis rasgos que Pedro pidió automatizar sin que el barbero
-los rellene a mano (mentón, orejas, mandíbula, cuello, cejas, perfil)
-siguen siendo campos manuales del formulario de visagismo: los tres de
-esta prueba (mentón, mandíbula, cuello) y los tres ya descartados antes
-(orejas, cejas, perfil de nariz). No es un límite de umbrales que se
-pueda recalibrar -- haría falta un modelo distinto (landmarks/segmentación
-que funcionen de perfil, o un método que capture profundidad) para
-retomarlo.
+Con esto, los seis rasgos que Pedro pidió automatizar (mentón, orejas,
+mandíbula, cuello, cejas, perfil) no se pueden rellenar con GEOMETRÍA
+clásica: los tres de esta prueba (mentón, mandíbula, cuello) y los tres ya
+descartados antes (orejas, cejas, perfil de nariz). No es un límite de
+umbrales que se pueda recalibrar -- haría falta un modelo distinto
+(landmarks/segmentación que funcionen de perfil, o un método que capture
+profundidad) para retomarlo por esta vía. Sí se automatizaron por OTRA vía
+-- IA con visión en vez de geometría -- ver la sección siguiente.
+
+## Rasgos de perfil juzgados por IA con visión (sept 2026)
+
+Pedro, tras ver que perfil/cejas/orejas/mentón/mandíbula/cuello seguían
+pidiéndole rellenarlos a mano en producción: "pon la opción de que el
+peluquero los edite, pero es el sistema el que debe responder a esas
+preguntas de manera automática analizando el rostro en las 3 fotos".
+Se le explicó lo de arriba (geometría clásica ya probada y descartada a
+fondo, incluida una rama sin fusionar que lo intentó por contorno de
+silueta y tampoco funcionó con fotos reales) y se le preguntó cómo seguir;
+eligió usar la API de Claude (ya integrada para el informe de texto) para
+que un modelo de IA con VISIÓN juzgue estos 6 rasgos directamente sobre
+las 3 fotos, en vez de medir ángulos.
+
+- **`app/pipeline/visagismo_vision_analysis.py`** (nuevo): envía las 3
+  fotos (redimensionadas a 1536px de lado mayor, JPEG calidad 92 -- mismo
+  criterio que `haircut_editor._to_jpeg`) a la API de Claude con
+  `tool_choice` forzado a una única herramienta (`record_facial_traits`)
+  cuyo `input_schema` solo admite los valores válidos de cada campo (o
+  `null` si el modelo no tiene confianza) -- así no hace falta parsear
+  texto libre ni fiarse de que el modelo no invente un valor fuera de la
+  lista. El system prompt le pide explícitamente que actúe como lo haría
+  un peluquero mirando a un cliente real (juicio visual, no medición de
+  precisión clínica) y que devuelva `null` antes que adivinar si una foto
+  no se lo permite.
+- **Consentimiento**: se reutiliza `consent_ai_analysis` (el mismo que ya
+  exigía el informe de texto de IA) en vez de crear uno nuevo, porque es
+  la misma finalidad -- enviar datos a la API de Claude para análisis de
+  visajismo -- ahora ampliada a incluir también las fotos. Antes este
+  consentimiento solo se podía fijar al crear el cliente (`POST
+  /api/clients`) y no tenía ninguna casilla en la interfaz -- ni siquiera
+  el informe de texto era alcanzable desde la web, solo por API. Se
+  añadió: `ConsentsIn.consent_ai_analysis` (antes solo tenía
+  `consent_save_photo`/`consent_simulation`/`consent_3d_scan`),
+  `repository.update_consents` acepta el cuarto parámetro, y
+  `frontend/ficha.html` tiene ahora una casilla "Permiso para juzgar
+  perfil/cejas/orejas/mentón/mandíbula/cuello con IA" junto a las
+  herramientas de visajismo (mismo patrón que el resto de permisos de la
+  ficha). Esto también destapa y resuelve, de paso, el informe de texto
+  de IA, que hasta ahora era inalcanzable desde la interfaz.
+- **`clients_routes.override_visagismo_auto_analysis`**: la foto frontal
+  se sigue analizando siempre en local (gratis, sin consentimiento
+  adicional). Las 2 fotos de perfil solo se decodifican y se envían a
+  `visagismo_vision_analysis` si `client.consent_ai_analysis` es `true` --
+  sin ese permiso, ni siquiera se procesan (no se toca ningún dato
+  biométrico que no se vaya a usar, mismo criterio que antes cuando estas
+  fotos no se analizaban nunca). Si falta el consentimiento, o falta
+  `ANTHROPIC_API_KEY`, o la llamada a la API falla: el endpoint NO
+  devuelve error -- sigue devolviendo 200 con el resultado local de la
+  frontal, y añade un aviso explicando por qué esos 6 campos se quedaron
+  sin rellenar. Deliberado: a diferencia de `.../visagismo-ai-report`
+  (que es un endpoint 100% dependiente de la IA y por eso sí da 422 sin
+  consentimiento), aquí hay trabajo útil que hacer tanto si se puede
+  analizar por IA como si no, y bloquear todo el endpoint habría sido una
+  regresión para cualquier cliente sin ese permiso.
+- **Fusión**: se reutiliza `merge_detected_features` (misma función que
+  ya fusionaba lo detectado por geometría) para no pisar lo que el
+  barbero ya hubiera rellenado a mano -- se llama dos veces en cadena
+  (geometría primero, IA después), cada una solo rellena huecos.
+- **RGPD**: a diferencia de TODO el resto de este endpoint (que es 100%
+  local), cuando hay consentimiento las 2 fotos de perfil SÍ salen del
+  servidor hacia la API de Claude. Se procesan en memoria y se descartan
+  justo después de la llamada, igual que el resto -- nunca se guardan en
+  disco ni en la base de datos.
+- Tests: `backend/tests/test_visagismo_vision_analysis.py`, mismo patrón
+  que `test_visagismo_ai_advisor.py` (mockeando `anthropic.Anthropic`,
+  sin llamada real ni fotos reales): valores válidos se guardan, valores
+  fuera de lista se descartan con aviso, campos `null` del modelo generan
+  aviso de "revísalo a mano", sin `ANTHROPIC_API_KEY` lanza
+  `VisionAnalysisNotConfigured`, fallo de la API lanza `VisionAnalysisError`.
+- Pendiente honesto: esto no se ha probado todavía con fotos reales de un
+  cliente (a diferencia de la calibración geométrica de arriba, que sí se
+  probó con 61 fotos reales + las de Pedro). Un modelo de IA con visión
+  juzgando como un peluquero es cualitativamente distinto de medir
+  ángulos, así que los fallos esperables también son distintos (más
+  parecido a que un peluquero nuevo se equivoque clasificando un rasgo
+  ambiguo, que a un bug de medición) -- conviene revisar los primeros
+  resultados reales con ojo crítico antes de confiar en ellos a ciegas.
+- **`frontend/visagismo.html`**: la leyenda de la sección "Rasgos" (icono
+  ⓘ) distinguía solo dos casos -- ✨ "lo rellena el análisis de las fotos"
+  y ✋ "se marca a mano: las fotos no permiten detectarlo con fiabilidad".
+  Como ahora hay un tercer caso, se añadió un tercer icono
+  (`wand-sparkles`, mismo que "Simular corte") para perfil/cejas/orejas/
+  mentón/mandíbula/cuello, con su propia línea en la leyenda explicando
+  que depende del consentimiento de IA del cliente. El resto de la
+  página no cambia: `applyClientToPage` ya repinta los selects con
+  cualquier valor que llegue en `visagismo_profile`, así que estos 6
+  campos se rellenan solos en cuanto el backend los devuelve, sin tocar
+  el JS de renderizado.
 
 Pendiente / no cubierto a propósito en `frontend/visagismo.html`: la
 página nueva solo cubre `facial_features_profile` (los campos de esta
