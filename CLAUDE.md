@@ -1329,6 +1329,69 @@ sin tocar backend ni borrar nada:
   de ojos, gafas) vía `facial_traits_analysis.py`, que no depende del
   gemelo.
 
+## El maniquí deja de representar las entradas (sept 2026)
+
+Pedro: "vamos a eliminar que el maniquí tenga entradas. Si el cliente dice
+que tiene entradas que se utilice para la recomendación pero para el
+maniquí tan solo longitud de pelo y dirección de las diferentes zonas."
+Petición clara de separar dos usos que hasta ahora compartían el mismo
+dato (`hair_physical_metrics.frontal_hairline_shape`): dejarlo tal cual
+para las recomendaciones (`visagismo_rules.py`, `combined_rules.py`,
+`visagismo_ai_advisor.py`, la ficha) y quitarlo del maniquí 3D, que a
+partir de ahora solo se mueve por largo por zona (arriba/laterales/nuca) y
+dirección de crecimiento (mapa de remolinos) -- lo que ya pedía el título
+de esta misma sección antes de la v5 ("olvida las entradas ahora mismo
+para el modelo estándar de maniquí", ver más arriba en "combined_rules.py
+(sept 2026, cruces crecimiento + visajismo/forma de cara)"): aquello
+dejó la recomendación aparte pero el maniquí de la v5 sí que había vuelto
+a representarlas (`hairlineShift`, "Cobertura de entradas" de v5.3/v5.3.1)
+para que el peinado se viera más realista. Esta vez la petición es
+explícita y va sobre el propio maniquí, así que se retira del todo ahí:
+
+- **`backend/app/pipeline/avatar.py`** (`avatar_params()`): ya no incluye
+  la clave `"hairline"` en el diccionario que consume el frontend. El dato
+  sigue existiendo tal cual en `visagismo_profile` y lo siguen leyendo
+  exactamente igual `visagismo_rules.py`/`combined_rules.py` -- no se ha
+  tocado nada de la parte de recomendación.
+- **`frontend/assets/avatar.js`**: se quita `hairlineShift(type, th)`
+  (desplazaba el borde del cuero cabelludo según `m_shaped_receding` /
+  `high_forehead` / `widows_peak`) y `hairMask(skin)` pierde su parámetro
+  `hairline` -- ahora pinta siempre el nacimiento "de fábrica" del propio
+  `.glb` (atributo `_hairh`), igual para todos los clientes. También se
+  quita entera la lógica de "Cobertura de entradas" de `buildHair()`
+  (v5.3: `coverage` vía `ctx.maskAt`, peinaba el pelo de al lado para
+  disimular el hueco calvo; v5.3.1: `slick`, alisaba ese mismo mechón para
+  que pareciera repeinado a propósito) y sus cuatro usos aguas abajo
+  (jitter, peso de la gravedad, altura mínima sobre el cuero cabelludo,
+  amplitud de onda/textura) -- sin `hairlineShift` ya no hay ningún hueco
+  calvo que disimular, así que esa lógica quedaba sin sentido, no solo sin
+  uso.
+- **`frontend/growth-map.html`**: se quita `hairline` del objeto `look`
+  por defecto, se quita la función `maskAt()` (el único llamador de
+  `Avatar.buildHair` que la pasaba) y las dos llamadas a
+  `Avatar.hairMask(skinMesh, look.hairline)` pasan a
+  `Avatar.hairMask(skinMesh)`. **Ojo, para quien lea el código**: esto NO
+  es lo mismo que `hairlineBase()`/`HAIRLINE_BASE` (la tabla ángulo→altura
+  del nacimiento "de fábrica" del propio modelo, usada para decidir dónde
+  se puede dibujar una flecha de flequillo, v5.4 más arriba) ni que
+  `_estimate_hairline`/`hairline_points` de `face_analysis.py` (una
+  aproximación 2D del nacimiento del pelo por landmarks, para el mapa de
+  crecimiento por defecto en `head_mesh.py`, sin relación con el maniquí
+  de cliente) -- ninguna de esas dos se ha tocado, siguen haciendo lo que
+  ya hacían.
+- `backend/tests/test_avatar.py`: `test_params` comprueba ahora
+  explícitamente que `"hairline"` NO está en lo que devuelve
+  `avatar_params()` aunque el cliente tenga marcadas las entradas.
+- Verificado con Playwright (servidor local + un cliente con
+  `frontal_hairline_shape: "m_shaped_receding"`): el maniquí sale con el
+  nacimiento del pelo normal, sin hueco ni mechón "repeinado" de más, en
+  frontal y de perfil (que es donde más se notaba antes); al mismo tiempo,
+  `GET /api/clients/{id}/recommendations` sigue devolviendo la razón
+  "Disimula las entradas" en los cortes recomendados -- confirma que la
+  separación pedida (maniquí vs. recomendación) quedó como se pidió, no
+  solo a nivel de código sino de comportamiento real.
+- Suite completa: 108/108 (`python -m unittest discover -s tests -q`).
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de

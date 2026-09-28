@@ -99,8 +99,12 @@ class LengthTest(unittest.TestCase):
         c = client(hair_color="rubio", visagismo_profile={"hair_physical_metrics": {
             "hair_pattern_shape": "coily", "frontal_hairline_shape": "m_shaped_receding", "hair_density": "low_thinning"}})
         p = avatar.avatar_params(c, None, None)
-        self.assertEqual((p["hair_texture"], p["hair_color"], p["hairline"], p["hair_density"]),
-                         ("afro", "rubio", "m_shaped_receding", "low_thinning"))
+        self.assertEqual((p["hair_texture"], p["hair_color"], p["hair_density"]),
+                         ("afro", "rubio", "low_thinning"))
+        # El maniquí ya no representa las entradas (sept 2026, decisión de
+        # Pedro): aunque el cliente las tenga marcadas, no sale en los
+        # parámetros del maniquí -- solo se sigue usando para recomendar.
+        self.assertNotIn("hairline", p)
         self.assertEqual(avatar.avatar_params(c, None, "liso")["hair_texture"], "liso")   # manda el peluquero
 
 

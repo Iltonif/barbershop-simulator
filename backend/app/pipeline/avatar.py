@@ -1,12 +1,19 @@
 """
 Parámetros del maniquí personalizado de cada cliente (growth-map.html y
-la vista de la ficha): tipo, largo, color y densidad del pelo, línea del
-pelo, y qué rasgos de la cara se aplican y cuánto.
+la vista de la ficha): tipo, largo, color y densidad del pelo, y qué
+rasgos de la cara se aplican y cuánto.
 
 Pedro: "que el maniquí vaya cambiando en función de las características
 del cliente: si tiene el pelo afro, que tenga pelo afro y sus físicas, así
 con todos los tipos de cabello, la longitud y las características de
-visajismo (mandíbula, ojos, simetría, orejas, entradas...)".
+visajismo (mandíbula, ojos, simetría, orejas, entradas...)". Petición
+posterior (sept 2026): quitar las entradas de aquí -- el maniquí ya NO
+representa la línea de nacimiento del pelo del cliente (`frontal_
+hairline_shape`), solo largo por zona y dirección de crecimiento (mapa de
+remolinos); ese dato de entradas sigue alimentando las recomendaciones
+igual que antes, solo se ha quitado del maniquí. El resto de rasgos de
+visagismo (mandíbula, ojos, simetría, orejas...) siguen aplicándose igual
+que siempre vía `morph_weights`.
 
 Aquí solo se traduce la ficha a números; la forma de cada rasgo son
 "morph targets" de MakeHuman (CC0) ya calculados sobre el maniquí
@@ -149,6 +156,12 @@ def current_length(client: ClientProfile, last_cut: dict | None, now: datetime |
 
 
 def avatar_params(client: ClientProfile, last_cut: dict | None, hair_texture: str | None) -> dict:
+    """No incluye la línea de nacimiento del pelo (`frontal_hairline_shape`,
+    p.ej. entradas): a propósito, desde sept 2026 (decisión de Pedro) el
+    maniquí ya no la representa -- ver la nota en `frontend/assets/avatar.js`
+    (`hairMask`). Ese dato sigue existiendo y se sigue usando tal cual para
+    las recomendaciones (`visagismo_rules.py`, `combined_rules.py`), solo se
+    ha quitado de aquí."""
     hp = _get(client.visagismo_profile, "hair_physical_metrics") or {}
     texture = hair_texture or _PATTERN_TO_TEXTURE.get(hp.get("hair_pattern_shape") or "") or "liso"
     return {
@@ -157,7 +170,6 @@ def avatar_params(client: ClientProfile, last_cut: dict | None, hair_texture: st
         "hair_color": client.hair_color if client.hair_color in HAIR_COLORS else None,
         "hair_density": hp.get("hair_density") or "medium",
         "hair_thickness": hp.get("hair_texture_thickness"),
-        "hairline": hp.get("frontal_hairline_shape") or "linear_straight",
         "length": current_length(client, last_cut),
         "morphs": morph_weights(client),
     }

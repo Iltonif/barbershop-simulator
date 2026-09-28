@@ -565,7 +565,7 @@
     let hairVisible = true;
     // Aspecto del maniquí: lo manda el backend (GET /clients/{id}/avatar) y
     // lo cambian los controles de la ficha (tipo, color, largo).
-    let look = { hair_texture: "liso", hair_color: null, hair_density: "medium", hairline: "linear_straight",
+    let look = { hair_texture: "liso", hair_color: null, hair_density: "medium",
                  length: { top: 35, sides: 14, back: 14, fade: "ninguno", fade_mm: 0, source: "defecto" }, morphs: {} };
     let hairMask = null;
     const sway = Avatar.createSway();
@@ -604,22 +604,13 @@
         return t.lengthSq() > 1e-10 ? t.normalize() : null;
       };
     }
-    // Cuánto pelo hay ya "de por sí" en un punto cualquiera de la piel (no
-    // solo en la raíz): lo usa `Avatar.buildHair` para peinar el pelo de al
-    // lado de una entrada HACIA la propia entrada (disimularla), en vez de
-    // dejar que el ruido normal del peinado lo desvíe. `nearestVertex` ya
-    // busca el vértice más cercano con la rejilla de `buildGrid`.
-    function maskAt(p) {
-      const i = nearestVertex(p, false);
-      return i < 0 ? 1 : hairMask[i];
-    }
     function buildHair() {
       if (!skinMesh) return;
       if (hairObject) { scene.remove(hairObject); Avatar.disposeHair(hairObject); }
-      if (!hairMask) hairMask = Avatar.hairMask(skinMesh, look.hairline);
+      if (!hairMask) hairMask = Avatar.hairMask(skinMesh);
       hairObject = Avatar.buildHair({
         grid, triIndex: skinMesh.geometry.index.array, snap, field: flowField(), headCenter,
-        mask: hairMask, maskAt, params: look,
+        mask: hairMask, params: look,
       });
       hairObject.visible = hairVisible;
       scene.add(hairObject);
@@ -636,7 +627,7 @@
           else { it.point = snap(it.point, 0.03, false).p; it.object.position.copy(it.point); }
         }
       }
-      hairMask = Avatar.hairMask(skinMesh, look.hairline);
+      hairMask = Avatar.hairMask(skinMesh);
       Avatar.paintScalp(skinMesh, hairMask, look.hair_color, look.hair_density);
       buildHair();
     }

@@ -4,8 +4,9 @@
 //   assets/rasgos/*.bin (MakeHuman, CC0; los genera
 //   tools/construir_cabeza_masculina.py) con los pesos que manda el backend
 //   (GET /api/clients/{id}/avatar, ver backend/app/pipeline/avatar.py).
-// - Línea del pelo (recta, entradas, pico, frente alta) y color: se pintan
-//   en la piel con los atributos _hairh / _hairth / _ears del .glb.
+// - Línea del pelo (siempre la de fábrica del modelo, no varía según si el
+//   cliente tiene entradas o no -- ver nota en hairMask) y color: se pintan
+//   en la piel con los atributos _hairh / _ears del .glb.
 // - Pelo: miles de mechones con forma según el tipo (liso cae por
 //   gravedad, ondulado hace ondas, rizado tirabuzones, afro sale hacia fuera
 //   en espiral apretada), largo por zona (arriba / laterales / nuca, con el
@@ -85,23 +86,19 @@ window.Avatar = (function () {
   }
 
   // ---------- Línea del pelo y color de la zona del pelo ----------
-  // Desplazamiento de la línea del pelo según su forma (en la misma escala
-  // que _hairh: 0 = ojos, 1 = parte más alta de la cabeza).
-  function hairlineShift(type, th) {
-    const g = (c, w) => Math.exp(-(((th - c) / w) ** 2));
-    if (type === "m_shaped_receding") return 0.24 * g(36, 12);
-    if (type === "high_forehead") return 0.13 * (1 - smooth(40, 60, th));
-    if (type === "widows_peak") return -0.07 * g(0, 7) + 0.05 * g(24, 10);
-    return 0;
-  }
-  function hairMask(skin, hairline) {
+  // El maniquí usa siempre el nacimiento del pelo "de fábrica" del propio
+  // modelo (atributo _hairh del .glb, ver tools/construir_cabeza_masculina.py)
+  // -- no varía según si el cliente dice tener entradas o no (sept 2026,
+  // decisión de Pedro: eso queda solo para las recomendaciones, ver
+  // visagismo_rules.py/combined_rules.py; el maniquí solo refleja largo de
+  // pelo y dirección por zona).
+  function hairMask(skin) {
     const a = skin.geometry.attributes;
-    const H = a._hairh, TH = a._hairth, EAR = a._ears, S = a._scalp;
+    const H = a._hairh, EAR = a._ears, S = a._scalp;
     const n = a.position.count, mask = new Float32Array(n);
     for (let i = 0; i < n; i++) {
       if (!H) { mask[i] = S ? S.getX(i) : 0; continue; }
-      const h = H.getX(i) - hairlineShift(hairline, TH.getX(i));
-      mask[i] = smooth(-0.035, 0.035, h) * (1 - EAR.getX(i));
+      mask[i] = smooth(-0.035, 0.035, H.getX(i)) * (1 - EAR.getX(i));
     }
     return mask;
   }
@@ -228,51 +225,22 @@ window.Avatar = (function () {
       // de "púas"/erizo en vez de peinado). 0.5 -> 0.16.
       const jit = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5);
       jit.sub(r.n.clone().multiplyScalar(jit.dot(r.n))).multiplyScalar(0.16);
-      // "Cobertura de entradas": si justo por delante de la raíz -- siguiendo
-      // la dirección en la que ya se peina -- la piel está calva (entradas,
-      // sin remolino que la tape), esta hebra se peina hacia ahí de forma
-      // más disciplinada (menos ruido, más apoyada en la piel) para
-      // disimularla, en vez de dejar que el ruido normal del peinado la
-      // desvíe (Pedro: "que al poner el pelo hacia un lado, las entradas se
-      // disimulen"). Solo hace falta mirarlo una vez por mechón, no en cada
-      // tramo: la piel no cambia mientras crece un mechón de 2-7 cm.
-      // `ctx.maskAt` es opcional para no romper otros usos de `buildHair`.
-      // Una entrada de verdad es ancha (varios cm entre el nacimiento normal
-      // y el retrocedido), así que hay que mirar bastante más lejos que un
-      // solo tramo de mechón para encontrarla; se prueba a dos distancias.
-      let coverage = 0;
-      if (ctx.maskAt) {
-        const ahead0 = ctx.field(r.p, r.n) || DOWN.clone().sub(r.n.clone().multiplyScalar(r.n.y)).normalize();
-        for (const dist of [0.09, 0.2]) {
-          const m = ctx.maskAt(r.p.clone().add(ahead0.clone().multiplyScalar(dist)));
-          coverage = Math.max(coverage, Math.max(0, Math.min(1, 1 - m)));
-        }
-      }
-      // "Repeinado": Pedro -- si el pelo es liso/ondulado (con rizado/afro
-      // no se pide, y tampoco tendría sentido: no se alisan para tapar una
-      // entrada) y ese mechón concreto está tapando una entrada, que quede
-      // repeinado de verdad (pegado, sin la textura/ondulación suelta de
-      // siempre), como un peinado de peluquería y no como pelo suelto que
-      // por casualidad cae por ahí.
-      const slick = (texName === "liso" || texName === "ondulado") ? coverage : 0;
       // 1) Línea central: sigue el crecimiento cerca de la raíz y luego cae
       //    por gravedad (o sale hacia fuera en rizado/afro), sin atravesar la
       //    cabeza. Cada tramo queda algo más separado de la piel que el
-      //    anterior, así el pelo se superpone en capas y el de arriba tapa
-      //    zonas sin pelo (entradas, coronilla clara) si es lo bastante largo.
+      //    anterior, así el pelo se superpone en capas.
       const pts = [r.p.clone().add(r.n.clone().multiplyScalar(0.002))], nrms = [r.n.clone()], ss = [0];
       let p = pts[0].clone(), n = r.n.clone(), s = 0;
       for (let i = 0; i < segs; i++) {
         const f = ctx.field(p, n) || DOWN.clone().sub(n.clone().multiplyScalar(n.y)).normalize();
-        f.add(jit.clone().multiplyScalar((1 - smooth(0, 0.05, s) * 0.8) * (1 - 0.85 * coverage)));
+        f.add(jit.clone().multiplyScalar(1 - smooth(0, 0.05, s) * 0.8));
         // Gravedad "peinada": sobre todo a lo largo de la piel (el pelo se
         // apoya en la cabeza y cae por los lados), y algo de caída libre.
         // Empieza a pesar un poco antes que antes (0.04 -> 0.02): así el
         // peinado estabiliza la dirección enseguida, en vez de dejar que el
         // primer tramo (el más visible, cerca de la raíz) dependa solo del
-        // campo de direcciones y del jitter. Con cobertura de entradas pesa
-        // aún un poco más: ese mechón tiene que llegar hasta tapar la calva.
-        const gw = tex.gravity * smooth(0.0, 0.02, s) * (1 + 0.5 * coverage);
+        // campo de direcciones y del jitter.
+        const gw = tex.gravity * smooth(0.0, 0.02, s);
         const tDown = DOWN.clone().sub(n.clone().multiplyScalar(n.y));
         const dir = f.clone().multiplyScalar(1 - 0.6 * gw).add(tDown.multiplyScalar(1.3 * gw)).add(DOWN.clone().multiplyScalar(0.35 * gw));
         dir.add(n.clone().multiplyScalar(stubble ? 0.5 + tex.outward : tex.outward));
@@ -288,10 +256,7 @@ window.Avatar = (function () {
         dir.normalize();
         const q = p.clone().add(dir.multiplyScalar(ds));
         const sn = ctx.snap(q, 0, false);
-        // Repeinado: capas más pegadas a la piel (menos "esponjado") y
-        // menos variación entre mechones -- el efecto peinado/con producto.
-        const minH = 0.0025 + (0.018 + 0.06 * tex.outward) * (1 - 0.55 * slick) * Math.min(s, 0.25)
-          + 0.004 * r.layer * (1 - 0.5 * slick);
+        const minH = 0.0025 + (0.018 + 0.06 * tex.outward) * Math.min(s, 0.25) + 0.004 * r.layer;
         const hgt = tmp.copy(q).sub(sn.p).dot(sn.n);
         if (hgt < minH) q.add(sn.n.clone().multiplyScalar(minH - hgt));
         s += ds; p = q; n = sn.n;
@@ -315,10 +280,10 @@ window.Avatar = (function () {
             const ph = (2 * Math.PI * sc) / tex.pitch + r.phase;
             c.add(Bv.clone().multiplyScalar(Math.cos(ph) * tex.coil * ramp)).add(N2.clone().multiplyScalar(Math.sin(ph) * tex.coil * ramp));
           } else if (tex.wave) {
-            c.add(Bv.clone().multiplyScalar(Math.sin((2 * Math.PI * sc) / tex.waveLen + r.phase) * tex.wave * (1 - 0.75 * slick) * ramp));
+            c.add(Bv.clone().multiplyScalar(Math.sin((2 * Math.PI * sc) / tex.waveLen + r.phase) * tex.wave * ramp));
           }
-          // Textura natural: el liso no es una línea perfecta (repeinado: menos).
-          const amp = (texName === "liso" ? 0.0024 : 0.0016) * (1 - 0.6 * slick) * ramp * Math.min(1, sc / 0.05);
+          // Textura natural: el liso no es una línea perfecta.
+          const amp = (texName === "liso" ? 0.0024 : 0.0016) * ramp * Math.min(1, sc / 0.05);
           c.add(Bv.clone().multiplyScalar(amp * wobble(sc, r.phase, 0.11)))
            .add(N2.clone().multiplyScalar(0.5 * amp * wobble(sc, r.phase * 2.3, 0.07)));
           line.push(c); lnrm.push(nrms[i].clone().lerp(nrms[i + 1], t).normalize()); lss.push(sc); side.push(Bv);
