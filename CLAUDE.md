@@ -1958,6 +1958,40 @@ Pedro: "que en la sección de recomendación aparezca una opción de simular cor
   primera tarjeta generando el enlace correcto
   (`probar.html?client_id=<id>&style=undercut-flequillo`).
 
+## Visajismo: enlace directo desde la ficha (no solo vía mapa de remolinos) (sept 2026)
+
+Pedro: "no aparece el apartado en el que tomar las 3 fotos para que te haga
+el análisis de visajismo" -- `visagismo.html` existía y funcionaba
+(guía de las 3 fotos, análisis automático de la frontal, etc.) pero se
+había quedado sin ningún enlace directo desde `ficha.html`: el único
+camino era abrir "Remolinos" (`growth-map.html`) y desde ahí, si el
+peluquero sabía que el icono de la esquina llevaba a visajismo, pulsarlo
+-- y aun así ese enlace estaba fijo a `visagismo.html` sin `client_id`,
+así que al llegar ahí tocaba buscar al cliente otra vez a mano. Dos
+arreglos, sin tocar backend:
+
+- **`frontend/ficha.html`**: nuevo botón "Visajismo" en la fila de
+  herramientas (`.tools`), junto a "Remolinos" y "Recomendaciones", usando
+  el mismo patrón que ya tenían esos dos (`with_id("visagismo.html")`, el
+  helper que añade el `client_id` de la ficha abierta a la URL). Verificado
+  con Playwright: al pulsarlo se llega a `visagismo.html?client_id=<id>`
+  con el cliente ya cargado (el formulario de análisis visible, sin el
+  aviso de "abre la ficha").
+- **`frontend/growth-map.html`**: el enlace `#visagismo-link` de su propia
+  barra de navegación era estático (`href="visagismo.html"`, sin
+  `client_id`). Se añadió una línea dentro de `applyClientToScene(client)`
+  para fijarlo dinámicamente en cuanto se carga el cliente
+  (`visagismo-link.href = "visagismo.html?client_id=" + client.id`), igual
+  que ya hacía el botón de Recomendaciones un poco más abajo en el mismo
+  archivo. Comprobado con `node --check` sobre el script embebido (sintaxis
+  válida); no se pudo verificar en caliente con Playwright en este entorno
+  porque `growth-map.html` carga Three.js desde un CDN bloqueado en el
+  sandbox (limitación ya conocida y documentada, no relacionada con este
+  cambio) -- el cambio replica exactamente el patrón ya usado y probado en
+  `recommendationsBtn` unas líneas más arriba del mismo fichero.
+- Sin tests de backend que tocar (cambio 100% de frontend, ningún endpoint
+  ni dato nuevo).
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

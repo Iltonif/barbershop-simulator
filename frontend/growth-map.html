@@ -846,6 +846,10 @@
 
     function applyClientToScene(client) {
       currentClient = client;
+      // El enlace de arriba llevaba a visagismo.html a secas (sin
+      // client_id): al llegar ahí tocaba volver a buscar al cliente a
+      // mano. Con la ficha ya abierta aquí, se lleva directo a su análisis.
+      document.getElementById("visagismo-link").href = `visagismo.html?client_id=${encodeURIComponent(client.id)}`;
       for (const it of items) scene.remove(it.object);
       items = [];
       const map = client.custom_growth_map;

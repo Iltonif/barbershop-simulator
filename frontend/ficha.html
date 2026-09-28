@@ -173,6 +173,7 @@
     <div class="pelo-row" id="pelo"></div>
     <p class="hint" id="pelo-hint"></p>
     <div class="tools">
+      <a class="tool" id="t-visajismo" href="#"><span data-icon="scan-face"></span>Visajismo</a>
       <a class="tool" id="t-remolinos" href="#"><span data-icon="compass"></span>Remolinos<span class="state" id="s-remolinos"></span></a>
       <a class="tool" id="t-recs" href="#"><span data-icon="sparkles"></span>Recomendaciones</a>
     </div>
@@ -293,6 +294,7 @@
     q("pelo-hint").textContent = c.hair_texture_override ? "" : "Sin marcar: se usa lo que dijo el cliente, si lo dijo.";
 
     const whorls = ((c.custom_growth_map || {}).whorls || []).length;
+    q("t-visajismo").href = with_id("visagismo.html");
     q("t-remolinos").href = with_id("growth-map.html");
     q("mani-edit").href = with_id("growth-map.html");
     // Maniquí con su pelo y sus rasgos; se recarga si cambian (p.ej. el tipo de pelo).
