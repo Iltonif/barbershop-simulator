@@ -173,14 +173,19 @@
     </div>
   </section>
 
-  <!-- Gemelo digital 3D (reconstrucción de Tripo a partir de sus fotos): se
-       ve aquí mismo, en vez de solo detrás de un enlace -- el análisis de
-       rasgos y medidas se hace al crearlo, sin pasar por Visajismo aparte. -->
+  <!-- Gemelo digital 3D: OCULTO A PROPÓSITO (sept 2026, decisión de Pedro)
+       hasta pulir los servicios de los que depende (Tripo sin probar contra
+       la API real, umbrales de mesh_metrics.py sin validar con clientes
+       reales; ver "Gemelo digital 3D del cliente" en CLAUDE.md). Se deja el
+       bloque comentado en vez de borrarlo porque se piensa reintegrar más
+       adelante; el backend (avatar3d.py, mesh_metrics.py) y gemelo.html no
+       se han tocado.
+
   <section class="glass-card sec" id="gemelo-sec">
     <h2 class="sec-title"><span data-icon="box"></span>Gemelo 3D<span class="n" id="s-gemelo"></span>
       <details class="info"><summary></summary><div class="info-body">
         Se crea a partir de sus fotos y, al hacerlo, ya mide su cara y detecta rasgos (forma, perfil,
-        mandíbula, simetría de ojos...) para las recomendaciones -- no hace falta ningún paso aparte.
+        mandíbula, simetría de ojos...) para las recomendaciones; no hace falta ningún paso aparte.
       </div></details>
     </h2>
     <div class="mani" id="gemelo-embed" hidden>
@@ -189,6 +194,9 @@
     </div>
     <a class="tool" id="t-gemelo-empty" href="#"><span data-icon="wand-sparkles"></span>Crear gemelo 3D</a>
   </section>
+
+  -->
+
 
   <section class="glass-card sec">
     <h2 class="sec-title"><span data-icon="camera"></span>Foto para simular
@@ -312,10 +320,14 @@
     render();
     renderLikes();
     renderHistory();
-    loadGemelo();
+    // loadGemelo(); -- gemelo 3D oculto a propósito, ver la sección
+    // comentada de arriba (#gemelo-sec) y CLAUDE.md.
   }
 
   // ---- Gemelo digital 3D (visor incrustado, ver gemelo.html?embed=1) ----
+  // Oculto a propósito (sept 2026, decisión de Pedro) junto con #gemelo-sec
+  // de arriba; ya no se llama a loadGemelo() desde reload(). Se deja la
+  // función sin borrar para no tener que reescribirla al reintegrarlo.
   async function loadGemelo() {
     q("t-gemelo-empty").href = with_id("gemelo.html");
     q("gemelo-edit").href = with_id("gemelo.html");

@@ -1294,6 +1294,41 @@ había, y qué hacer con los remolinos si el gemelo no puede darlos):
   `jawline_definition` de la malla) y el visor incrustado sustituye al
   botón de crear.
 
+**Opción ocultada temporalmente (sept 2026).** Pedro pidió quitar la
+opción de "Gemelo 3D" del flujo del peluquero por ahora, para reintegrarla
+más adelante cuando estén pulidos los servicios de los que depende
+(recuérdese lo ya documentado como pendiente arriba: Tripo nunca se ha
+probado contra la API real desde este entorno, y los umbrales de
+`mesh_metrics.py` solo están validados contra el maniquí de MakeHuman del
+repo, no con clientes reales). Cambio puramente de interfaz, reversible,
+sin tocar backend ni borrar nada:
+
+- `frontend/ficha.html`: la sección `#gemelo-sec` (visor incrustado + "Crear
+  gemelo 3D") y la llamada a `loadGemelo()` en `reload()` quedan
+  comentadas, con nota. La función `loadGemelo()` se deja definida (sin
+  llamarla) para no tener que reescribirla al reactivarlo.
+- `frontend/visagismo.html`: el botón `#twin-btn` ("Crear gemelo 3D") y su
+  `addEventListener` quedan comentados. **Importante para quien lo
+  reactive**: si solo se descomenta el botón sin descomentar también el
+  `addEventListener`, o al revés, `document.getElementById("twin-btn")`
+  devuelve `null` y `.addEventListener` sobre `null` rompe el script
+  entero de la página (ningún botón de la página funcionaría, incluido
+  "Analizar") -- los dos bloques se comentan y se descomentan juntos.
+- Nada más cambia: `avatar3d.py`, `mesh_metrics.py`, `gemelo.html`, los
+  endpoints `/avatar3d*` y los tests de este apartado siguen intactos y en
+  verde (108/108 en `test_growth.py`+`test_avatar3d.py`+`test_sessions.py`,
+  no se ha tocado ni un test). `gemelo.html` sigue funcionando si se abre
+  por URL directa; solo se han quitado los DOS enlaces que llevaban hasta
+  ahí.
+- **Efecto secundario para el peluquero, para que no sorprenda**: como el
+  botón "Crear gemelo 3D" era el único camino hasta `mesh_metrics.classify`
+  (forma de cara, perfil, mandíbula y cuello desde la malla 3D), mientras
+  esté oculto esos cuatro campos vuelven a depender solo de lo que rellene
+  el peluquero a mano en Visajismo. El botón "Analizar" de esa misma
+  página sigue funcionando y sigue rellenando lo suyo (simetría/separación
+  de ojos, gafas) vía `facial_traits_analysis.py`, que no depende del
+  gemelo.
+
 ## Informe de visagismo por IA (`app/pipeline/visagismo_ai_advisor.py`)
 
 Segunda capa opcional sobre el perfil de visagismo (además del motor de
