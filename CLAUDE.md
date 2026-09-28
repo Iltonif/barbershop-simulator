@@ -556,6 +556,63 @@ consentimiento nuevo específico.
   primero con las claves: comparar los dos con fotos reales, revisar que
   no cambian la cara, y afinar la instrucción.
 
+### Puesta en marcha real + qué tan "hiperrealista" se puede pedir (sept 2026)
+
+Pedro pidió activar esto de verdad y que sea "lo más hiperrealista posible".
+Sigue sin haber clave configurada ni salida de red desde este entorno de
+desarrollo, así que esto sigue siendo research + guía de configuración, NO
+un cambio de código verificado contra las APIs reales (mismo criterio que
+el resto del proyecto: no se toca el modelo por defecto sin poder probarlo).
+
+- **Por qué Gemini es el punto de partida recomendado para "no tocar la
+  cara"**: comparativas de 2026 (no solo la documentación oficial) coinciden
+  en que la familia Gemini de edición de imagen ("Nano Banana") conserva
+  mejor la identidad facial y el detalle real (pelo, piel) que FLUX Kontext,
+  que tiende a re-tocar la cara "a lo IA de belleza" aunque se le pida no
+  tocarla. Encaja con la prioridad número uno del prompt de este proyecto
+  (`build_edit_prompt`: "Keep everything else exactly the same... same
+  person and identity"). Además Gemini ya recibe SIEMPRE la foto de
+  referencia del corte (`edit_haircut` solo se la quita a FLUX si no está
+  `FAL_USE_REFERENCE=1`), así que ya está configurado en su modo más fiel.
+- **Dos calidades de Gemini, ambas ya soportadas sin tocar código** (solo
+  cambiando la variable `GEMINI_IMAGE_MODEL` en Railway):
+  - `gemini-3.1-flash-image` (el valor por defecto actual): más barato,
+    ~0,067 $/imagen a 1K de resolución.
+  - `gemini-3-pro-image-preview` ("Nano Banana Pro"): calidad/realismo
+    superior según las mismas comparativas, ~0,134 $/imagen (el doble) a
+    1K/2K. Es un modelo "preview": no hay forma de confirmar desde aquí que
+    responda exactamente igual a la llamada actual (`generate_content` con
+    `response_modalities=["IMAGE"]`) sin probarlo con una clave real — si al
+    activarlo diera error, quitar la variable vuelve a `flash` sin más.
+  No se ha cambiado el valor por defecto en `app/config.py` a propósito: es
+  una decisión de coste/calidad de Pedro, no algo que deba decidir el
+  código, y cambiarlo a ciegas sin poder probarlo iría contra el criterio
+  de este proyecto de no dar por buena una función sin verificarla.
+- **FLUX.1 Kontext (lo que ya está integrado) ya no es la versión más
+  reciente de Black Forest Labs** — existe FLUX.2 (Pro/Max/Flex/Klein, en
+  fal.ai como `fal-ai/flux-2-pro` y similares) con mejor consistencia de
+  identidad que FLUX.1 Kontext. NO se ha integrado: cambiar de familia de
+  modelo (no solo de variante) implica una llamada distinta a fal.ai que
+  habría que verificar con una clave real, y hoy solo hay una de FLUX
+  documentada (`fal-ai/flux-pro/kontext`, sept 2026, ver arriba). Pendiente
+  honesto si en algún momento se quiere seguir comparando con FLUX en vez
+  de solo con Gemini.
+- **Para arrancarlo de verdad** (pasos para Pedro, no algo que se pueda
+  hacer desde este entorno): crear una clave en Google AI Studio
+  (https://aistudio.google.com/apikey) con un proyecto de Google Cloud que
+  tenga facturación activada (imprescindible: en el nivel gratuito Google
+  puede usar las fotos para mejorar sus productos, ver RGPD arriba), y
+  añadirla como `GEMINI_API_KEY` en Railway → Variables del servicio. Sin
+  tocar `GEMINI_IMAGE_MODEL` usa `flash` (más barato); añadiendo
+  `GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview` prueba la versión más
+  realista. Ninguna clave debe pegarse nunca en el chat de Claude ni
+  guardarse en el repo -- solo en las Variables de Railway (o en un `.env`
+  local con gitignore para probar en el Mac de Pedro primero).
+- Precios/nombres de modelo de esta nota son un apunte de investigación de
+  sept 2026, no una garantía: esta parte del mercado cambia cada pocos
+  meses -- conviene revisar precio y disponibilidad en la documentación
+  oficial de cada proveedor antes de activarlo con clientes reales.
+
 ## Recomendaciones explicadas: rasgos, cuestionario y "por qué" (sept 2026)
 
 Pedro pidió tres cosas a la vez: que los rasgos de la ficha cuenten en las
