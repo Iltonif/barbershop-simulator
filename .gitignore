@@ -14,3 +14,7 @@ backend/debug_output/
 # Perfil de cliente + historial (datos biométricos reales si se usa con clientes)
 backend/data/clients.db
 backend/data/client_photos/
+
+# Clave para firmar cookies de sesión, generada sola en el primer arranque
+# si no hay APP_SECRET en el entorno (ver app/api/auth.py). Nunca a git.
+backend/data/.app_secret
