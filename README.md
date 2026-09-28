@@ -22,6 +22,20 @@ abrir la web también desde un móvil o tablet en la misma red WiFi, no solo
 desde este ordenador — la web está pensada para usarse en pantalla táctil
 (ver más abajo).
 
+Las próximas veces (una vez ya hecho el `pip install` y descargados los
+pesos), en vez de repetir a mano `cd backend`, `source .venv/bin/activate`
+y el `uvicorn ...`, se puede lanzar todo con:
+
+```bash
+./start-dev.sh
+```
+
+(ejecútalo desde la raíz del repo; si `.venv` no existe todavía, el script
+avisa en vez de fallar a medias). Solo hace falta arrancarlo una vez por
+sesión de trabajo -- mientras el servidor siga corriendo, `--reload` ya
+detecta solo los cambios en los archivos, sin tener que reiniciarlo cada
+vez que se edita algo.
+
 Luego abre http://localhost:8000/ en el navegador de este ordenador — te
 lleva a la portada (`frontend/inicio.html`), donde eliges "Soy peluquero/a"
 o "Soy cliente" y desde ahí accedes a todas las páginas (simulador, mapa de
