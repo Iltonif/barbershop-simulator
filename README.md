@@ -36,6 +36,12 @@ sesión de trabajo -- mientras el servidor siga corriendo, `--reload` ya
 detecta solo los cambios en los archivos, sin tener que reiniciarlo cada
 vez que se edita algo.
 
+`start-dev.sh` también configura `BARBER_PIN` (obligatorio para entrar en
+la parte del peluquero, ver `backend/app/config.py`): copia `.env.example`
+a `.env` (nunca se sube a git) y pon ahí tu PIN real y cualquier otra clave
+(`TRIPO_API_KEY`, etc.); sin `.env`, usa `1234` como PIN de conveniencia
+para desarrollo local.
+
 Luego abre http://localhost:8000/ en el navegador de este ordenador — te
 lleva a la portada (`frontend/inicio.html`), donde eliges "Soy peluquero/a"
 o "Soy cliente" y desde ahí accedes a todas las páginas (simulador, mapa de
