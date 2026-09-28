@@ -62,6 +62,15 @@
   .request img { width: 84px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 10px; }
   .request .t { font-weight: 800; color: #ff9fee; display: flex; align-items: center; gap: 6px; }
   .request .d { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+  /* .glass-card usa backdrop-filter, que crea su propio contexto de
+     apilamiento aunque no tenga z-index: sin esto, el desplegable del
+     selector de cortes (position:absolute, ver .sp-menu en theme.css)
+     queda por DEBAJO de la siguiente tarjeta (Historial de cortes), que
+     al ir después en el HTML se pinta encima entera, aunque su z-index
+     interno sea mayor -- el z-index solo compite dentro del mismo
+     contexto. position:relative + z-index aquí saca la tarjeta entera
+     (con su desplegable abierto) por encima de las que la siguen. */
+  #log-sec { position: relative; z-index: 5; }
   .log-grid { display: flex; gap: 14px; flex-wrap: wrap; }
   .log-photo { width: 140px; aspect-ratio: 3 / 4; border-radius: 14px; border: 1.5px dashed var(--glass-border); overflow: hidden;
                display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0;
@@ -124,8 +133,8 @@
       <label class="log-photo" for="log-photo-input" id="log-photo-box"><span data-icon="camera"></span><span>Foto del resultado</span></label>
       <input type="file" id="log-photo-input" accept="image/*" capture="environment" class="visually-hidden" />
       <div class="log-fields">
-        <label for="log-style">Corte</label>
-        <select id="log-style"></select>
+        <label for="log-style-picker">Corte</label>
+        <div id="log-style-picker"></div>
         <input type="text" id="log-free" placeholder="¿Cuál? (si no está en el catálogo)" hidden />
         <label for="log-notes">Notas</label>
         <textarea id="log-notes" rows="3" maxlength="500" placeholder="Máquina, números, largos, producto…"></textarea>
@@ -223,6 +232,7 @@
 
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
+<script src="assets/style-picker.js"></script>
 <script>
   const params = new URLSearchParams(location.search);
   const id = params.get("client_id");
@@ -382,18 +392,31 @@
   // Formulario "Corte de hoy"
   let logPhoto = null;
   let finishAfterSave = false;
+  // Selector con búsqueda (assets/style-picker.js): se remonta cada vez que
+  // se abre el formulario (no solo una vez, a diferencia del simulador en
+  // index.html) porque el orden de favoritos/pedido cambia según el
+  // cliente, y porque puede haberse añadido un corte nuevo al catálogo
+  // desde que se abrió la ficha.
+  let logStylePicker = null;
   async function openLog(finishing) {
     finishAfterSave = finishing;
     const styles = await api("/api/styles");
     const liked = new Set(client.liked_styles || []);
     const req = history.find((h) => h.id === requestedId);
     const first = [req && req.style_id, ...liked].filter(Boolean);
-    const ordered = [...styles.filter((s) => first.includes(s.id)), ...styles.filter((s) => !first.includes(s.id))];
-    q("log-style").innerHTML = `<option value="">— Elige el corte —</option>` +
-      ordered.map((s) => `<option value="${s.id}">${liked.has(s.id) ? "♥ " : ""}${esc(s.name)}</option>`).join("") +
-      `<option value="__otro">Otro (escribirlo)</option>`;
-    if (req && req.style_id) q("log-style").value = req.style_id;
+    const ordered = [...styles.filter((s) => first.includes(s.id)), ...styles.filter((s) => !first.includes(s.id))]
+      .map((s) => (liked.has(s.id) ? { ...s, name: `♥ ${s.name}` } : s));
+    logStylePicker = StylePicker.mount(q("log-style-picker"), {
+      styles: ordered,
+      allowCreate: true,
+      placeholder: "Busca un corte…",
+      extraActions: [{ id: "__otro", label: "Otro (uso puntual, no se guarda en el catálogo)", icon: "pen-line" }],
+      onChange: () => { q("log-free").hidden = true; },
+      onExtraAction: () => { q("log-free").hidden = false; q("log-free").focus(); },
+    });
+    if (req && req.style_id) logStylePicker.selectById(req.style_id);
     q("log-free").hidden = true;
+    q("log-free").value = "";
     q("log-notes").value = req && req.notes ? req.notes : "";
     logPhoto = null;
     q("log-photo-box").className = "log-photo";
@@ -407,7 +430,6 @@
   }
   q("log-open").addEventListener("click", () => openLog(false));
   q("log-cancel").addEventListener("click", () => { q("log-sec").hidden = true; });
-  q("log-style").addEventListener("change", (e) => { q("log-free").hidden = e.target.value !== "__otro"; });
   q("log-photo-input").addEventListener("change", (e) => {
     logPhoto = e.target.files[0] || null;
     if (logPhoto) {
@@ -423,11 +445,13 @@
   }
   q("log-skip").addEventListener("click", finishWaiting);
   q("log-save").addEventListener("click", async () => {
-    const styleSel = q("log-style").value;
+    const isOtro = logStylePicker && logStylePicker.getExtra() === "__otro";
+    const styleId = logStylePicker ? logStylePicker.getValue() : null;
     const free = q("log-free").value.trim();
-    if (!styleSel || (styleSel === "__otro" && !free)) { say("warn", "Elige el corte o escribe cuál ha sido"); return; }
+    if (!isOtro && !styleId) { say("warn", "Elige el corte o escribe cuál ha sido"); return; }
+    if (isOtro && !free) { say("warn", "Elige el corte o escribe cuál ha sido"); return; }
     const fd = new FormData();
-    if (styleSel === "__otro") fd.append("style_name", free); else fd.append("style_id", styleSel);
+    if (isOtro) fd.append("style_name", free); else fd.append("style_id", styleId);
     if (q("log-notes").value.trim()) fd.append("notes", q("log-notes").value.trim());
     if (logPhoto) fd.append("photo", logPhoto);
     say("busy", "Guardando…");

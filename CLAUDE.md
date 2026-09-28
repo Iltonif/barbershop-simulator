@@ -1712,6 +1712,106 @@ catálogo un poco cutre". Se hicieron las dos cosas que pidió:
     compartidos con el resto de la web), así que el resto de páginas no
     se ven afectadas por este cambio.
 
+## Selector de cortes con búsqueda + alta de cortes nuevos desde ahí (sept 2026)
+
+Pedro: "a la hora de seleccionar cortes o de registrar cortes ya realizados
+para añadirlos a la base de datos, en el seleccionador de cortes, deja la
+posibilidad de poder hacer una búsqueda del corte, escribiendo letras, o
+registrar un nuevo corte que no aparece en las opciones." Con el catálogo ya
+en 104 entradas, el `<select>` plano obligaba a desplazarse a ciegas. Se
+preguntó dónde aplicarlo y qué hacer con un corte nuevo; Pedro eligió los dos
+sitios donde se elige un corte (el simulador y "Corte de hoy" en la ficha) y
+que un corte nuevo **se añada también al catálogo general** (no solo quede
+en el historial de ese cliente), aceptando que eso implica pedir algo más
+que un nombre (largo por zona, degradado, para qué tipos de pelo vale).
+
+- **Dónde vive un corte añadido por el peluquero**: en la base de datos
+  (tabla `custom_styles`), NO en `app/pipeline/catalog_data/styles.json`. El
+  JSON vive fuera del Volume de Railway a propósito (ver el incidente
+  documentado en "Despliegue en la nube" más abajo: cualquier fichero ahí se
+  actualiza con cada `git push`, así que NO puede persistir algo añadido en
+  producción — se perdería en el siguiente despliegue); la base de datos
+  (`backend/data/clients.db`) sí está dentro del Volume y sí sobrevive a los
+  despliegues. Por eso un corte nuevo del peluquero tenía que ir a la base
+  de datos si de verdad iba a "quedarse".
+- **Catálogo combinado, un único punto de fusión** (`app/pipeline/
+  style_catalog.py`): `load_catalog()`/`get_style_by_id()` (el JSON puro) se
+  dejan completamente intactos — los usan `test_style_catalog.py` y los
+  scripts de importación, y romper su pureza (sin depender de la base de
+  datos) habría sido un cambio innecesariamente arriesgado para lo que se
+  pedía. En su lugar se añadieron `load_full_catalog()` (JSON + `custom_
+  styles`) y `get_style_by_id_anywhere()`, y se cambiaron los sitios donde
+  de verdad hace falta ver también los cortes propios: `POST /api/simulate`,
+  `GET /api/styles`, `recommender.recommend_styles`, y las rutas de sesión/
+  historial (`session_routes.py`, `client_service.py`).
+- **`repository.list_custom_styles()` tolera una base de datos sin
+  `init_db()`** (captura `sqlite3.OperationalError` y devuelve `[]`): varios
+  tests (`test_growth.py`, etc.) llaman a `recommend_styles()` directamente
+  sin arrancar la app ni crear ninguna tabla — sin esto, añadir la tabla
+  `custom_styles` habría roto esos tests con un error de "no existe la
+  tabla" en vez de tratarlo, correctamente, como "todavía no hay cortes
+  propios".
+- **`POST /api/styles`** (solo peluquero, `StyleCreateIn` en
+  `app/api/schemas.py`): nombre, descripción opcional, largo de las tres
+  zonas (mm), degradado y una lista de tipos de pelo para los que vale. El
+  formulario de "añadir corte" (`frontend/assets/style-picker.js`) empieza
+  con los CUATRO tipos de pelo marcados por defecto — no vacío ni solo uno —
+  porque `suitable_hair_types` es un filtro DURO en `recommend_styles`
+  (excluye el corte de las recomendaciones para quien no tenga ese tipo
+  marcado, no solo lo reordena): un alta rápida a mitad de un corte real que
+  se dejara con un solo tipo marcado por descuido haría que ese corte nunca
+  volviera a aparecer para el resto de clientes.
+- **`frontend/assets/style-picker.js`** (componente nuevo, vainilla JS, sin
+  framework): sustituye al `<select>` en `index.html` (simulador) y
+  `ficha.html` ("Corte de hoy"). Busca por nombre/descripción/familia (con
+  normalización de acentos — "degradado" encuentra "degradado" aunque se
+  escriba sin tilde). Si lo escrito no coincide con ningún corte, aparece
+  "+ Añadir «texto» como corte nuevo", que abre el formulario de arriba
+  (`POST /api/styles`) y selecciona el corte recién creado al guardar. En
+  `ficha.html` convive con el "Otro (uso puntual)" que ya existía (para un
+  corte de una sola vez que NO se quiere añadir al catálogo general) vía la
+  opción `extraActions` del componente — las dos cosas conviven porque son
+  necesidades distintas: "Otro" es una anotación de esa visita, "+ Añadir
+  como corte nuevo" es alta real en el catálogo.
+- **Fallo de apilamiento (z-index) encontrado al probarlo de verdad, no solo
+  a ojo**: en `ficha.html`, el desplegable del selector (`position:
+  absolute`, `.sp-menu` en `theme.css`) quedaba TAPADO por la tarjeta
+  siguiente ("Historial de cortes") en vez de mostrarse por encima, aunque
+  su `z-index` fuera mayor. Causa: `.glass-card` usa `backdrop-filter`, que
+  crea su propio contexto de apilamiento aunque el elemento no tenga
+  `z-index` propio — un `z-index` interno solo compite dentro de SU contexto
+  de apilamiento, no contra el de una tarjeta hermana que va después en el
+  HTML. Se arregló dándole a `#log-sec` (`position: relative; z-index: 5;`)
+  su propio nivel de apilamiento frente a las tarjetas siguientes. Se
+  encontró probando el flujo completo con Playwright contra un servidor
+  real (ver abajo), no revisando el código a ojo — con captura de pantalla
+  sola no se nota porque el desplegable sí se pinta, solo que detrás.
+- Backend: 111/111 tests (`python -m unittest discover -s tests -q`), 3
+  nuevos (`test_style_catalog.py`: catálogo combinado sin base de datos
+  iniciada y con un corte propio ya guardado; `test_sessions.py`: alta de un
+  corte desde el selector, que requiere sesión de peluquero, que aparece
+  luego en `/api/styles` y en el historial, y que respeta el filtro de tipo
+  de pelo en las recomendaciones).
+- Verificado con Playwright de extremo a extremo contra un servidor local
+  real (no simulado): en `index.html`, buscar "buzz cut" filtra a un único
+  resultado, elegirlo lo selecciona, y escribir un nombre nuevo + guardar
+  crea el corte y lo deja seleccionado; en `ficha.html`, el flujo "Otro"
+  sigue mostrando el campo de texto libre y guardándose como antes, buscar
+  y elegir un corte del catálogo (p.ej. "mullet") oculta ese campo, y crear
+  un corte nuevo desde ahí también funciona y lo dio de alta en el
+  catálogo general (visible por el peluquero para cualquier cliente,
+  filtrado igual que el resto por tipo de pelo). Sin errores de consola
+  achacables a este cambio (los únicos errores que salían en `ficha.html`
+  eran de `growth-map.html` intentando cargar Three.js desde
+  `cdn.jsdelivr.net`, bloqueado en este entorno de desarrollo — mismo tipo
+  de restricción de red ya documentada para Tripo/Gemini/FAL/
+  `download.pytorch.org`, no relacionado con este cambio).
+- Pendiente/límite honesto: el buscador no tiene ninguna función de
+  "corregir/fusionar" un corte que el peluquero añadió por error con nombre
+  duplicado o casi idéntico a uno ya existente (p.ej. "Fade alto" y "fade
+  Alto"); si eso pasa en el uso real, hoy quedarían como dos cortes
+  distintos en el catálogo.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

@@ -2,8 +2,17 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from app.pipeline.style_catalog import HaircutStyle, load_catalog
+from app import config
+from app.db import database
+from app.pipeline.style_catalog import (
+    HaircutStyle,
+    get_style_by_id_anywhere,
+    load_catalog,
+    load_custom_styles,
+    load_full_catalog,
+)
 
 
 class TestLoadCatalogSchemaDrift(unittest.TestCase):
@@ -67,6 +76,60 @@ class TestLoadCatalogSchemaDrift(unittest.TestCase):
         # bien tras mover su ubicación fuera de data/.
         catalogo = load_catalog()
         self.assertEqual(len(catalogo), 104)
+
+
+class TestCustomStyles(unittest.TestCase):
+    """Cortes que el peluquero añade desde el selector (ver POST /api/styles,
+    sept 2026), guardados en la base de datos y combinados con el catálogo
+    base por `load_full_catalog`."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        tmp = Path(self.tmp.name)
+        self.patches = [
+            patch.object(database, "DB_PATH", tmp / "clients.db"),
+            patch.object(config, "DB_PATH", tmp / "clients.db"),
+        ]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+        self.tmp.cleanup()
+
+    def test_sin_base_de_datos_iniciada_no_revienta(self):
+        # Una base de datos recién creada (sqlite3.connect la crea sola)
+        # pero sin `init_db()` no tiene la tabla `custom_styles` todavía --
+        # p.ej. tests que llaman a `recommend_styles`/`load_full_catalog`
+        # de forma aislada sin arrancar la app entera (ver test_growth.py).
+        self.assertEqual(load_custom_styles(), [])
+        self.assertEqual(len(load_full_catalog()), 104)
+
+    def test_corte_propio_se_combina_con_el_catalogo_base(self):
+        database.init_db()
+        from app.db import repository
+        style_id = repository.create_custom_style(
+            "Corte de prueba", "Descripción de prueba", 40, 10, 10, "bajo", ["liso", "afro"],
+        )
+        self.assertTrue(style_id.startswith("personalizado-"))
+
+        propios = load_custom_styles()
+        self.assertEqual(len(propios), 1)
+        self.assertEqual(propios[0].name, "Corte de prueba")
+        self.assertEqual(propios[0].suitable_hair_types, ["liso", "afro"])
+        # Campos que este corte no tiene (no viene del catálogo base):
+        # opcionales, no un dato inventado.
+        self.assertIsNone(propios[0].style_family)
+        self.assertIsNone(propios[0].reference_image)
+
+        completo = load_full_catalog()
+        self.assertEqual(len(completo), 105)  # 104 del catálogo base + 1 propio
+        self.assertIn(style_id, {s.id for s in completo})
+        self.assertEqual(get_style_by_id_anywhere(style_id).name, "Corte de prueba")
+        # El catálogo base a secas no se entera -- lo usan los tests/scripts
+        # que necesitan aislarse de la base de datos.
+        self.assertEqual(len(load_catalog()), 104)
 
 
 if __name__ == "__main__":

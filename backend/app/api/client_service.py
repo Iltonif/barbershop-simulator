@@ -24,7 +24,7 @@ from app.db import repository
 from app.db.models import ClientProfile
 from app.pipeline import avatar, barber_sheet, growth_analysis, haircut_editor, maintenance, trait_rules
 from app.pipeline.recommender import match_percent, recommend_styles
-from app.pipeline.style_catalog import get_style_by_id
+from app.pipeline.style_catalog import get_style_by_id_anywhere
 
 # Lo que responde el cliente en "Mi perfil" (hair_pattern_shape) -> tipo de
 # pelo del catálogo. La corrección del peluquero (hair_texture_override)
@@ -77,7 +77,7 @@ def barber_sheet_for(client: ClientProfile, style_id: str | None = None) -> Barb
     """La ficha "cómo pedirlo": del corte que se pida o, si no se pide
     ninguno, del primero recomendado."""
     if style_id:
-        style = get_style_by_id(style_id)
+        style = get_style_by_id_anywhere(style_id)
         if style is None:
             raise HTTPException(status_code=404, detail="Corte no encontrado")
     else:
@@ -131,7 +131,7 @@ def simulate_with_stored_photo(client: ClientProfile, style_id: str, provider: s
     visita. Exige el consentimiento de simulación guardado en la ficha
     (`consent_simulation`) y, si lo pide el propio cliente, respeta el tope
     diario `MAX_CLIENT_SIMULATIONS_PER_DAY`."""
-    style = get_style_by_id(style_id)
+    style = get_style_by_id_anywhere(style_id)
     if style is None:
         raise HTTPException(status_code=404, detail="Corte no encontrado")
     if not client.simulation_photo_path:
@@ -166,7 +166,7 @@ def simulate_on_avatar3d(client: ClientProfile, style_id: str, provider: str | N
     diario, no uno nuevo ligado a `consent_3d_scan` (ese consentimiento ya
     cubre crear y guardar el modelo 3D, no reenviar una vista de él a un
     tercero). Además exige que el cliente ya tenga un gemelo 3D creado."""
-    style = get_style_by_id(style_id)
+    style = get_style_by_id_anywhere(style_id)
     if style is None:
         raise HTTPException(status_code=404, detail="Corte no encontrado")
     if not client.avatar3d_path:
@@ -195,7 +195,7 @@ def next_visit_for(client: ClientProfile, last: dict | None) -> dict | None:
     corte que lleva si quedó registrado."""
     if not last:
         return None
-    style = get_style_by_id(last["style_id"]) if last.get("style_id") else None
+    style = get_style_by_id_anywhere(last["style_id"]) if last.get("style_id") else None
     weeks = maintenance.weeks_for_style(style) if style else None
     nv = maintenance.next_visit(last["at"], weeks, visit_frequency_days(client))
     if nv:
@@ -208,7 +208,7 @@ def last_cut_lengths(client: ClientProfile) -> dict | None:
     """Largo con el que salió del último corte registrado (si era uno del
     catálogo), para el maniquí."""
     for record in repository.list_haircuts(client.id):
-        style = get_style_by_id(record.style_id) if record.style_id else None
+        style = get_style_by_id_anywhere(record.style_id) if record.style_id else None
         if style:
             return {"at": record.created_at, "top": style.length_top_mm, "sides": style.length_sides_mm,
                     "back": style.length_back_mm, "fade": style.fade_type, "style_name": style.name}

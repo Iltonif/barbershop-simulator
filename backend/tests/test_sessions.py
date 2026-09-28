@@ -175,6 +175,55 @@ class SessionFlowTest(unittest.TestCase):
         self.assertFalse(any(h["has_photo"] for h in after))
         self.assertFalse(list((Path(self.tmp.name) / "photos").rglob("*.jpg")))
 
+    def test_custom_style_added_from_the_picker(self):
+        # Corte que el peluquero añade desde el selector cuando no lo
+        # encuentra en el catálogo (ver frontend/assets/style-picker.js).
+        cid = self._register().json()["id"]
+        payload = {
+            "name": "Fade militar a medida", "description": "Pedido concreto del cliente",
+            "length_top_mm": 15, "length_sides_mm": 2, "length_back_mm": 2,
+            "fade_type": "alto", "suitable_hair_types": ["liso"],
+        }
+        # Sin sesión de peluquero, no se puede crear.
+        self.assertEqual(self.client_tab.post("/api/styles", json=payload).status_code, 401)
+
+        self._barber_login()
+        r = self.barber.post("/api/styles", json=payload)
+        self.assertEqual(r.status_code, 200, r.text)
+        style = r.json()
+        self.assertTrue(style["id"].startswith("personalizado-"))
+        self.assertEqual(style["name"], "Fade militar a medida")
+
+        # Aparece en el catálogo general como cualquier otro corte.
+        listado = self.barber.get("/api/styles").json()
+        self.assertIn(style["id"], {s["id"] for s in listado})
+
+        # Se puede registrar en el historial del cliente igual que uno del
+        # catálogo base (no solo como texto libre "Otro").
+        hist = self.barber.post(f"/api/clients/{cid}/history", data={"style_id": style["id"]})
+        self.assertEqual(hist.status_code, 200)
+        self.assertEqual(hist.json()[0]["style_id"], style["id"])
+        self.assertEqual(hist.json()[0]["style_name"], "Fade militar a medida")
+
+        # Solo aparece en las recomendaciones para el tipo de pelo que se
+        # marcó (filtro real, no solo orientativo -- ver recommender.py).
+        self.barber.patch(f"/api/clients/{cid}/hair-type", json={"texture": "liso"})
+        recs_liso = self.client_tab.get("/api/me/recommendations").json()["recommendations"]
+        self.assertIn(style["id"], {r["style"]["id"] for r in recs_liso})
+        self.barber.patch(f"/api/clients/{cid}/hair-type", json={"texture": "afro"})
+        recs_afro = self.client_tab.get("/api/me/recommendations").json()["recommendations"]
+        self.assertNotIn(style["id"], {r["style"]["id"] for r in recs_afro})
+
+        # Validación: nombre vacío y fade_type inventado se rechazan (422),
+        # y sin tipos de pelo elegidos también (sería invisible en las
+        # recomendaciones de cualquier cliente con tipo de pelo conocido).
+        bad = dict(payload, name="   ")
+        self.assertEqual(self.barber.post("/api/styles", json=bad).status_code, 422)
+        bad = dict(payload, fade_type="rarisimo")
+        self.assertEqual(self.barber.post("/api/styles", json=bad).status_code, 422)
+        bad = dict(payload, suitable_hair_types=[])
+        self.assertEqual(self.barber.post("/api/styles", json=bad).status_code, 422)
+
     def test_history_photo_needs_consent(self):
         cid = self._register(consent_save_photo=False).json()["id"]
         self._barber_login()

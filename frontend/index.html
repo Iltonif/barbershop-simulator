@@ -95,8 +95,8 @@
 
     <div class="field-grid">
       <div>
-        <label for="style"><span data-icon="scissors"></span>Corte</label>
-        <select id="style" required></select>
+        <label for="style-picker"><span data-icon="scissors"></span>Corte</label>
+        <div id="style-picker"></div>
       </div>
       <div>
         <div class="head-row lbl-row">
@@ -161,6 +161,7 @@
 
   <script src="assets/ui.js"></script>
   <script src="assets/session.js"></script>
+  <script src="assets/style-picker.js"></script>
   <script>Session.requireBarber();</script>
   <script>
     // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
@@ -187,13 +188,16 @@
       if (file) document.getElementById("photo-preview").src = URL.createObjectURL(file);
     });
 
+    let stylePicker = null;
     async function loadStyles() {
       const res = await fetch(`${API_BASE}/styles`);
       const styles = await res.json();
-      const select = document.getElementById("style");
-      select.innerHTML = styles
-        .map((s) => `<option value="${s.id}">${s.name}</option>`)
-        .join("");
+      stylePicker = StylePicker.mount(document.getElementById("style-picker"), {
+        styles,
+        allowCreate: true,
+        placeholder: "Busca un corte…",
+      });
+      return styles;
     }
 
     // ---- Motor de simulación (ver backend/app/pipeline/haircut_editor.py) ----
@@ -265,7 +269,7 @@
       event.preventDefault();
 
       const photoInput = document.getElementById("photo");
-      const styleId = document.getElementById("style").value;
+      const styleId = stylePicker.getValue();
       const useColor = document.getElementById("use-color").checked;
       const colorHex = document.getElementById("color").value;
       const clientName = document.getElementById("client-name").value.trim();
@@ -273,6 +277,7 @@
       const hairTexture = document.getElementById("hair-texture").value;
 
       if (!photoInput.files[0]) { say("warn", "Falta la foto"); return; }
+      if (!styleId) { say("warn", "Elige un corte"); return; }
       if (providers.length && !document.getElementById("consent-photo").checked) {
         say("warn", "Falta su consentimiento para enviar la foto");
         return;
@@ -364,7 +369,7 @@
     loadStyles().then(() => {
       // Llegar desde el catálogo con un corte ya elegido (?style=<id>).
       const pre = new URLSearchParams(location.search).get("style");
-      if (pre) document.getElementById("style").value = pre;
+      if (pre) stylePicker.selectById(pre);
     });
     loadProviders();
   </script>

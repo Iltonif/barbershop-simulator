@@ -45,7 +45,7 @@ from dataclasses import dataclass, field
 
 from app.pipeline import combined_rules, growth_analysis, growth_rules, maintenance, trait_rules, visagismo_rules
 from app.pipeline.rule_effects import AVISO_SUAVE, BOOST_SUAVE, Effect
-from app.pipeline.style_catalog import HaircutStyle, load_catalog
+from app.pipeline.style_catalog import HaircutStyle, load_full_catalog
 
 # Familias del catálogo (ver style_catalog.py / el script que asignó las
 # fotos) que refuerzan visualmente una cara redonda: el tazón por su
@@ -157,7 +157,7 @@ def recommend_styles(
     # marcado el peluquero) no se filtra: se ordena todo el catálogo con el
     # resto de señales.
     compatibles = [
-        style for style in load_catalog()
+        style for style in load_full_catalog()
         if hair_texture is None or hair_texture in style.suitable_hair_types
     ]
 

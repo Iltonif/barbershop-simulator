@@ -27,6 +27,54 @@ class StyleOut(BaseModel):
                                           self.length_category, self.style_family))
 
 
+_FADE_TYPES = ("ninguno", "bajo", "medio", "alto", "skin")
+_HAIR_TYPES = ("liso", "ondulado", "rizado", "afro")
+
+
+class StyleCreateIn(BaseModel):
+    """Corte nuevo que añade el peluquero desde el selector de cortes cuando
+    no encuentra el que busca (ver `frontend/assets/style-picker.js` y
+    `POST /api/styles`, sept 2026). Se guarda en la base de datos, no en el
+    JSON del catálogo (ver STYLES_CATALOG_PATH en app/config.py), y a partir
+    de ahí se comporta como cualquier otro corte."""
+
+    name: str = Field(min_length=1, max_length=120)
+    description: str = Field(default="", max_length=500)
+    length_top_mm: int = Field(ge=0, le=600)
+    length_sides_mm: int = Field(ge=0, le=600)
+    length_back_mm: int = Field(ge=0, le=600)
+    fade_type: str = "ninguno"
+    # Por defecto vale para los cuatro: es un filtro DURO en las
+    # recomendaciones (ver recommender.py), así que dejarlo vacío por
+    # descuido no debe hacer que el corte desaparezca para nadie.
+    suitable_hair_types: list[str] = Field(default_factory=lambda: list(_HAIR_TYPES))
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("El nombre no puede estar vacío")
+        return v
+
+    @field_validator("fade_type")
+    @classmethod
+    def _valid_fade(cls, v: str) -> str:
+        if v not in _FADE_TYPES:
+            raise ValueError(f"fade_type debe ser uno de {_FADE_TYPES}")
+        return v
+
+    @field_validator("suitable_hair_types")
+    @classmethod
+    def _valid_hair_types(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("Elige al menos un tipo de pelo")
+        bad = [t for t in v if t not in _HAIR_TYPES]
+        if bad:
+            raise ValueError(f"Tipos de pelo no válidos: {bad}")
+        return v
+
+
 class ReasonOut(BaseModel):
     """Por qué encaja o no un corte: etiqueta corta para la tarjeta y la
     explicación completa (ver app/pipeline/rule_effects.py)."""

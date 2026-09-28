@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from app import config
 from app.api import routes
 from app.pipeline import haircut_editor as he
-from app.pipeline.style_catalog import HaircutStyle
+from app.pipeline.style_catalog import HaircutStyle, load_catalog
 
 STYLE = HaircutStyle(
     id="fade-bajo", name="Fade bajo con textura arriba",
@@ -121,7 +121,7 @@ class TestSimulateGuards(unittest.TestCase):
         app.dependency_overrides[require_barber] = lambda: None
         self.client = TestClient(app)
         self.files = {"photo": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
-        style_id = routes.load_catalog()[0].id
+        style_id = load_catalog()[0].id
         self.data = {"style_id": style_id}
 
     def test_providers_endpoint(self):

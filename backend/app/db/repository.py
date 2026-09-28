@@ -17,6 +17,7 @@ cada finalidad tenga su propio consentimiento, no vale uno genérico.
 """
 
 import json
+import sqlite3
 import uuid
 from datetime import datetime, timezone
 
@@ -456,3 +457,47 @@ def set_appearance(client_id: str, hair_color: str | None, current_length: dict 
              _now() if current_length else None, client_id),
         )
     return get_client(client_id)
+
+
+# ------------------------------------------------------------- cortes propios
+
+
+def create_custom_style(name: str, description: str, length_top_mm: int, length_sides_mm: int,
+                        length_back_mm: int, fade_type: str, suitable_hair_types: list[str]) -> str:
+    """Guarda un corte que el peluquero ha añadido desde el selector (ver
+    `style_catalog.load_full_catalog`, que lo combina con el catálogo base).
+    Devuelve el `id` nuevo, con un prefijo distinto al de los cortes del
+    catálogo para que nunca puedan coincidir."""
+    style_id = f"personalizado-{uuid.uuid4().hex[:10]}"
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO custom_styles (id, created_at, name, description, length_top_mm, length_sides_mm, "
+            "length_back_mm, fade_type, suitable_hair_types) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (style_id, _now(), name, description, length_top_mm, length_sides_mm, length_back_mm, fade_type,
+             json.dumps(suitable_hair_types)),
+        )
+    return style_id
+
+
+def list_custom_styles() -> list[dict]:
+    """Cortes añadidos por el peluquero, como diccionarios listos para
+    construir un `HaircutStyle` (ver `style_catalog.load_custom_styles`).
+
+    Tolera que la tabla todavía no exista (base de datos sin `init_db()`
+    -- p.ej. tests que llaman a `recommend_styles`/`load_catalog` de forma
+    aislada sin arrancar la app entera, ver `test_growth.py`): en ese caso
+    simplemente no hay cortes propios todavía, no es un error."""
+    try:
+        with get_connection() as conn:
+            rows = conn.execute("SELECT * FROM custom_styles ORDER BY created_at").fetchall()
+    except sqlite3.OperationalError:
+        return []
+    return [
+        {
+            "id": row["id"], "name": row["name"], "description": row["description"],
+            "length_top_mm": row["length_top_mm"], "length_sides_mm": row["length_sides_mm"],
+            "length_back_mm": row["length_back_mm"], "fade_type": row["fade_type"],
+            "suitable_hair_types": json.loads(row["suitable_hair_types"]),
+        }
+        for row in rows
+    ]

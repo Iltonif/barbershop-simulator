@@ -55,7 +55,7 @@ from app.api.schemas import (
 )
 from app.db import repository
 from app.pipeline.avatar import HAIR_LENGTHS
-from app.pipeline.style_catalog import get_style_by_id, load_catalog
+from app.pipeline.style_catalog import get_style_by_id_anywhere, load_full_catalog
 
 router = APIRouter()
 
@@ -325,7 +325,7 @@ def my_recommendations(request: Request):
 @router.put("/me/likes", response_model=ClientOut)
 def my_likes(payload: LikesIn, request: Request):
     client = _me(request)
-    known = {s.id for s in load_catalog()}
+    known = {s.id for s in load_full_catalog()}
     ids = list(dict.fromkeys(i for i in payload.style_ids if i in known))[:50]
     return _client_out(repository.set_liked_styles(client.id, ids))
 
@@ -417,7 +417,7 @@ _HISTORY_PHOTO_SIDE = 1400
 
 
 def _haircut_out(record) -> HaircutOut:
-    style = get_style_by_id(record.style_id) if record.style_id else None
+    style = get_style_by_id_anywhere(record.style_id) if record.style_id else None
     return HaircutOut(id=record.id, created_at=record.created_at, style_id=record.style_id,
                       style_name=record.style_name or (style.name if style else None), notes=record.notes,
                       reference_image=style.reference_image if style else None, photo_path=record.photo_path)
@@ -440,7 +440,7 @@ async def barber_add_haircut(client_id: str, style_id: str | None = Form(None), 
     dio permiso para guardar fotos, la foto del resultado. Al pasar de
     `MAX_HAIRCUT_HISTORY` se borran los más antiguos con su foto."""
     client = _get_client_or_404(client_id)
-    if style_id and get_style_by_id(style_id) is None:
+    if style_id and get_style_by_id_anywhere(style_id) is None:
         raise HTTPException(status_code=404, detail="Corte no encontrado en el catálogo")
     if not style_id and not (style_name or "").strip():
         raise HTTPException(status_code=422, detail="Elige el corte del catálogo o escribe cuál ha sido.")

@@ -61,3 +61,40 @@ def get_style_by_id(style_id: str, path: Path = STYLES_CATALOG_PATH) -> HaircutS
         if style.id == style_id:
             return style
     return None
+
+
+def load_custom_styles() -> list[HaircutStyle]:
+    """Cortes que el peluquero ha añadido desde el propio selector cuando no
+    encontraba el que buscaba (ver `frontend/assets/style-picker.js`, sept
+    2026). Se guardan en la base de datos, no en `STYLES_CATALOG_PATH` --
+    ver la nota de ese mismo nombre en `app/config.py` sobre por qué ese
+    JSON no puede recibir escrituras en producción sin perderlas en el
+    siguiente despliegue.
+
+    Import diferido de `app.db.repository`: así `load_catalog`/
+    `get_style_by_id` (usados por tests e import scripts con un `path`
+    propio) siguen sin depender de la base de datos, y solo paga ese coste
+    quien de verdad necesita el catálogo completo (`load_full_catalog`)."""
+    from app.db import repository
+
+    return [
+        HaircutStyle(**row, source="peluquero", style_family=None, length_category=None, reference_image=None)
+        for row in repository.list_custom_styles()
+    ]
+
+
+def load_full_catalog(path: Path = STYLES_CATALOG_PATH) -> list[HaircutStyle]:
+    """El catálogo base (`load_catalog`, versionado en git) más los cortes
+    propios del peluquero (`load_custom_styles`, en la base de datos). Es lo
+    que deben usar el catálogo, el simulador, las recomendaciones y el
+    historial -- cualquier sitio donde un corte "cualquiera" del negocio
+    tiene que poder aparecer. `load_catalog`/`get_style_by_id` a secas se
+    dejan para los tests y scripts que trabajan solo con el JSON base."""
+    return load_catalog(path) + load_custom_styles()
+
+
+def get_style_by_id_anywhere(style_id: str, path: Path = STYLES_CATALOG_PATH) -> HaircutStyle | None:
+    for style in load_full_catalog(path):
+        if style.id == style_id:
+            return style
+    return None

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.api.auth import require_barber
 
-from app.api.schemas import HeadShapeOut, SimulationProviderOut, SimulationResponse, StyleOut
+from app.api.schemas import HeadShapeOut, SimulationProviderOut, SimulationResponse, StyleCreateIn, StyleOut
 from app.config import CLIENT_PHOTOS_DIR
 from app.db import repository
 from app.pipeline import (
@@ -24,7 +24,7 @@ from app.pipeline import (
 )
 from app.pipeline import haircut_editor
 from app.pipeline.generator import GenerationRequest, generate_haircut_preview
-from app.pipeline.style_catalog import get_style_by_id, load_catalog
+from app.pipeline.style_catalog import get_style_by_id_anywhere, load_full_catalog
 
 router = APIRouter()
 
@@ -37,7 +37,22 @@ _DEBUG_DIR = Path(__file__).resolve().parent.parent.parent / "debug_output"
 
 @router.get("/styles", response_model=list[StyleOut])
 def list_styles():
-    return [StyleOut(**style.__dict__) for style in load_catalog()]
+    return [StyleOut(**style.__dict__) for style in load_full_catalog()]
+
+
+@router.post("/styles", response_model=StyleOut, dependencies=[Depends(require_barber)])
+def create_style(payload: StyleCreateIn):
+    """El peluquero añade un corte que no encuentra en el catálogo desde el
+    propio selector de cortes (ver `frontend/assets/style-picker.js`, sept
+    2026). A partir de aquí se comporta como cualquier otro corte del
+    catálogo: aparece en el simulador, el catálogo y las recomendaciones
+    (ver `style_catalog.load_full_catalog`)."""
+    style_id = repository.create_custom_style(
+        payload.name, payload.description, payload.length_top_mm, payload.length_sides_mm,
+        payload.length_back_mm, payload.fade_type, payload.suitable_hair_types,
+    )
+    style = get_style_by_id_anywhere(style_id)
+    return StyleOut(**style.__dict__)
 
 
 @router.post("/growth-map/head-shape", response_model=HeadShapeOut, dependencies=[Depends(require_barber)])
@@ -98,7 +113,7 @@ async def simulate(
     # la primera se anota en el historial del cliente.
     record_visit: bool = Form(True),
 ):
-    style = get_style_by_id(style_id)
+    style = get_style_by_id_anywhere(style_id)
     if style is None:
         raise HTTPException(status_code=404, detail=f"Corte '{style_id}' no encontrado en el catálogo")
 

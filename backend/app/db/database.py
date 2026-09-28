@@ -88,6 +88,28 @@ CREATE TABLE IF NOT EXISTS simulation_log (
     created_at TEXT NOT NULL,
     requested_by TEXT NOT NULL
 );
+
+-- Cortes que el peluquero añade desde el propio selector de cortes cuando
+-- no encuentra el que busca (ver frontend/assets/style-picker.js, sept
+-- 2026). Van aquí -- en el Volume, igual que clients.db -- y NO en
+-- app/pipeline/catalog_data/styles.json, que vive fuera del Volume a
+-- propósito y con cada despliegue se sustituye por la copia de git (ver
+-- STYLES_CATALOG_PATH en app/config.py): un corte guardado ahí en
+-- producción se perdería en el siguiente despliegue. `style_catalog.
+-- load_full_catalog()` combina esta tabla con el catálogo base para que
+-- estos cortes aparezcan igual que cualquier otro (catálogo, simulador,
+-- recomendaciones, historial).
+CREATE TABLE IF NOT EXISTS custom_styles (
+    id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    length_top_mm INTEGER NOT NULL,
+    length_sides_mm INTEGER NOT NULL,
+    length_back_mm INTEGER NOT NULL,
+    fade_type TEXT NOT NULL,
+    suitable_hair_types TEXT NOT NULL
+);
 """
 
 # Columnas añadidas después de la primera versión del esquema. `CREATE
