@@ -151,7 +151,10 @@ class SessionFlowTest(unittest.TestCase):
         history = r.json()
         # Solo los 3 últimos, y la foto del más antiguo se ha borrado del disco.
         self.assertEqual([h["notes"] for h in history], ["visita 3", "visita 2", "visita 1"])
-        self.assertTrue(all(h["has_photo"] and h["reference_image"] for h in history))
+        # reference_image no se comprueba aquí: el catálogo base ya no trae
+        # fotos de stock (sept 2026, a la espera de fotos reales de la
+        # peluquería), así que solo importa la foto propia del cliente.
+        self.assertTrue(all(h["has_photo"] for h in history))
         self.assertEqual(len(list((Path(self.tmp.name) / "photos").rglob("history/*.jpg"))), 3)
         # Corte libre, sin foto.
         self.assertEqual(self.barber.post(f"/api/clients/{cid}/history", data={"style_name": "Rapado a máquina"}).status_code, 200)

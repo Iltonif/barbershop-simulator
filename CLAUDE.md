@@ -1869,6 +1869,52 @@ que un nombre (largo por zona, degradado, para qué tipos de pelo vale).
   Alto"); si eso pasa en el uso real, hoy quedarían como dos cortes
   distintos en el catálogo.
 
+## Revisión del catálogo: descripciones reales, deduplicado y fotos fuera (sept 2026)
+
+Pedro pidió revisar `styles.json` antes de la demo con la peluquería real. Tres cambios:
+
+- **Descripciones reales para los 100 cortes importados de Esquire**: desde el
+  import (`scripts/import_esquire_styles.py`) el campo `description` de esos
+  100 cortes era literalmente el `name` repetido (el artículo de Esquire no
+  traía una descripción separada). Se escribió a mano una descripción propia
+  y distinta para cada uno, en el mismo estilo que los 4 cortes originales
+  (qué se ve, no solo el nombre): p.ej. "Corte mullet con flequillo tazón y
+  patilla larga" pasó de describirse como sí mismo a "Mullet con flequillo
+  recto estilo tazón por delante, degradado bajo en los laterales y patillas
+  largas marcadas."
+- **Dos duplicados exactos fusionados**: el ranking de Esquire traía dos
+  entradas para "Semirrecogido con moño" (puestos #62 y #86) y dos para
+  "Peinado de efecto recién levantado" (#25 y #98) — mismo nombre, mismos mm,
+  mismo `fade_type`, mismo tipo de pelo, sin ningún dato real que los
+  distinguiera más allá de la foto (que además se ha quitado, ver abajo). Se
+  eliminó el duplicado de mayor número de puesto de cada par
+  (`esq2023-086-...`, `esq2023-098-...`) en vez de inventarles una diferencia
+  artificial. El catálogo pasa de 104 a **102 cortes**. Tests actualizados en
+  `backend/tests/test_style_catalog.py` (104→102, 105→103) y
+  `backend/tests/test_sessions.py` (`test_haircut_history_max_request_and_privacy`
+  ya no exige `reference_image` en el historial, solo `has_photo`, por el
+  punto siguiente).
+- **Fotos de stock retiradas de los 102 cortes** (decisión de Pedro): las
+  fotos de Unsplash documentadas más arriba ("Catálogo de cortes con foto
+  propia") eran un placeholder hasta tener fotos reales. Con la demo con la
+  peluquería ya decidida, Pedro prefiere construir el catálogo de fotos desde
+  cero con cortes reales hechos allí en vez de seguir con las de stock. Se
+  puso `reference_image` a `null` en las 102 entradas de `styles.json` y se
+  borraron las 116 fotos de `frontend/assets/style_photos/` (las 104 propias
+  de cada corte más las 12 huérfanas que ya no usaba ningún corte desde la
+  pasada de "casi 1 foto por corte"). No hizo falta tocar código: todo el
+  frontend que pinta `reference_image` (`catalogo.html`, `probar.html`,
+  `ficha.html`, `mis-cortes.html`, `recomendaciones.html`) ya usaba `|| ""` o
+  comprobaba el campo antes de usarlo, y `haircut_editor.load_reference_photo`
+  ya devolvía `None` con elegancia si el fichero no existe — así que el
+  simulador sigue funcionando (Gemini/FLUX generan a partir del texto del
+  corte, sin foto de referencia) y el catálogo/selector muestran las
+  tarjetas sin imagen en vez de romperse. Pendiente cuando haya fotos reales:
+  rellenar `reference_image` corte a corte (o los que se vayan fotografiando)
+  y quitar este apunte.
+- Verificado con la suite completa: 111/111 tests
+  (`python -m unittest discover -s tests -q`).
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

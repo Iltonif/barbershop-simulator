@@ -71,11 +71,12 @@ class TestLoadCatalogSchemaDrift(unittest.TestCase):
         self.assertIsNone(catalogo[0].reference_image)
 
     def test_catalogo_real_sigue_cargando_sin_perder_entradas(self):
-        # Regresión de que el propio catálogo real del proyecto (104
-        # cortes en app/pipeline/catalog_data/styles.json) sigue cargando
-        # bien tras mover su ubicación fuera de data/.
+        # Regresión de que el propio catálogo real del proyecto (102
+        # cortes en app/pipeline/catalog_data/styles.json, tras fusionar
+        # dos duplicados exactos del import de Esquire -- sept 2026) sigue
+        # cargando bien tras mover su ubicación fuera de data/.
         catalogo = load_catalog()
-        self.assertEqual(len(catalogo), 104)
+        self.assertEqual(len(catalogo), 102)
 
 
 class TestCustomStyles(unittest.TestCase):
@@ -104,7 +105,7 @@ class TestCustomStyles(unittest.TestCase):
         # p.ej. tests que llaman a `recommend_styles`/`load_full_catalog`
         # de forma aislada sin arrancar la app entera (ver test_growth.py).
         self.assertEqual(load_custom_styles(), [])
-        self.assertEqual(len(load_full_catalog()), 104)
+        self.assertEqual(len(load_full_catalog()), 102)
 
     def test_corte_propio_se_combina_con_el_catalogo_base(self):
         database.init_db()
@@ -124,12 +125,12 @@ class TestCustomStyles(unittest.TestCase):
         self.assertIsNone(propios[0].reference_image)
 
         completo = load_full_catalog()
-        self.assertEqual(len(completo), 105)  # 104 del catálogo base + 1 propio
+        self.assertEqual(len(completo), 103)  # 102 del catálogo base + 1 propio
         self.assertIn(style_id, {s.id for s in completo})
         self.assertEqual(get_style_by_id_anywhere(style_id).name, "Corte de prueba")
         # El catálogo base a secas no se entera -- lo usan los tests/scripts
         # que necesitan aislarse de la base de datos.
-        self.assertEqual(len(load_catalog()), 104)
+        self.assertEqual(len(load_catalog()), 102)
 
 
 if __name__ == "__main__":
