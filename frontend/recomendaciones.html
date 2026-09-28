@@ -34,11 +34,10 @@
   .inline-form input { flex: 1; min-width: 0; }
   .inline-form button { width: auto; margin: 0; white-space: nowrap; }
   .cut-top { display: flex; align-items: center; gap: 8px; }
-  .cut-top .cut-name { margin: 0; }
   .cut-top details.info > summary { width: 24px; height: 24px; }
   .card { position: relative; }
   .card:has(details.info[open]) { z-index: 40; }
-  .card-body, .cut-item { position: relative; }
+  .card-body { position: relative; }
   .card details.info > .info-body { max-height: 60vh; overflow-y: auto; }
   /* En el móvil la tarjeta es estrecha: el "por qué" se abre como una hoja
      abajo de la pantalla, a todo lo ancho (por eso la tarjeta no lleva
@@ -82,13 +81,12 @@
   }
   .card-body { padding: 14px 16px 18px; }
   .card-body h3 { margin: 0 0 2px; font-size: 16px; color: var(--text-main); }
-  .family-hint { margin: 0 0 12px; font-size: 12px; color: var(--text-faint); }
-  .cut-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-  .cut-item { border-top: 1px solid var(--glass-border); padding-top: 10px; }
-  .cut-item:first-child { border-top: none; padding-top: 0; }
-  .cut-item.con-aviso { background: var(--warning-bg); margin: 0 -16px; padding: 10px 16px; border-top-color: var(--warning-border); border-radius: 8px; }
-  .cut-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
-  .cut-desc { margin: 0 0 6px; font-size: 12px; color: var(--text-dim); }
+  /* "Parecido a: <familia>" -- solo cuando el corte tiene hermanos muy
+     similares en el catálogo; sirve de pista visual de por qué están uno al
+     lado del otro en la rejilla (ver orderWithFamiliesAdjacent), sin
+     apilarlos dentro de la misma tarjeta como antes. */
+  .family-hint { display: flex; align-items: center; gap: 4px; margin: 0 0 10px; font-size: 12px; color: var(--text-faint); }
+  .family-hint .ico { width: 13px; height: 13px; flex: none; }
   .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
   .badge {
     font-size: 11px; padding: 3px 8px; border-radius: 999px; background: rgba(79, 124, 255, 0.18); color: #c7d4ff;
@@ -98,11 +96,10 @@
   .badge .ico { width: 11px; height: 11px; margin-right: 3px; vertical-align: -1px; }
   .note { font-size: 12px; color: var(--warning); margin-top: 4px; }
   .source { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
-  details.more > summary { cursor: pointer; font-size: 12px; color: var(--accent-cyan); padding-top: 8px; list-style: none; }
-  details.more > summary::-webkit-details-marker { display: none; }
-  details.more[open] > summary { margin-bottom: 6px; }
   .cut-top h3 { margin: 0 0 6px; flex: 1; }
-  .card-body.con-aviso { background: var(--warning-bg); border-radius: 0 0 13px 13px; }
+  .simulate-btn { margin-top: 10px; background: rgba(79, 227, 255, 0.14); border-color: rgba(79, 227, 255, 0.35); color: var(--accent-cyan); font-weight: 700; }
+  .simulate-btn:hover { background: rgba(79, 227, 255, 0.22); }
+  .simulate-btn .ico { color: var(--accent-cyan); }
   @media (max-width: 640px) {
     .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .card img, .no-photo { height: 170px; }
@@ -187,8 +184,6 @@
       corte_tazon_bowl_rizado: "Corte tazón (bowl cut) — pelo rizado",
     };
 
-    const MAX_VISIBLE_PER_FAMILY = 4;
-
     function cutBadgesHtml(s) {
       const badges = [];
       if (s.length_category) badges.push(`<span class="badge">${LENGTH_LABELS[s.length_category] || s.length_category}</span>`);
@@ -221,66 +216,21 @@
       return body ? `<details class="info"><summary aria-label="Por qué">${UI.icon("info")}</summary><div class="info-body">${body}</div></details>` : "";
     }
 
-    function cutItemHtml(rec) {
-      const s = rec.style;
-      return `
-        <li class="cut-item">
-          <div class="cut-top"><div class="cut-name">${s.name}</div>${infoHtml(rec)}</div>
-          ${cutBadgesHtml(s)}
-          ${whyChipsHtml(rec)}
-        </li>
-      `;
-    }
-
-    function renderFamilyCard(family) {
-      const card = document.createElement("div");
-      card.className = "card";
-
-      const photoHtml = family.referenceImage
-        ? `<img src="${family.referenceImage}" alt="Foto de referencia: ${family.label}" loading="lazy" />`
-        : `<div class="no-photo">${UI.icon("image")}</div>`;
-
-      const visible = family.items.slice(0, MAX_VISIBLE_PER_FAMILY);
-      const rest = family.items.slice(MAX_VISIBLE_PER_FAMILY);
-
-
-      if (family.items.length === 1) {
-        const rec = family.items[0];
-        card.innerHTML = `
-          ${photoHtml}
-          <div class="card-body">
-            <div class="cut-top"><h3>${family.label}</h3>${infoHtml(rec)}</div>
-            ${cutBadgesHtml(rec.style)}
-            ${whyChipsHtml(rec)}
-          </div>
-        `;
-        return card;
-      }
-      const visibleHtml = visible.map(cutItemHtml).join("");
-      const restHtml = rest.length
-        ? `<details class="more"><summary>+${rest.length}</summary>
-             <ul class="cut-list">${rest.map(cutItemHtml).join("")}</ul>
-           </details>`
-        : "";
-
-      card.innerHTML = `
-        ${photoHtml}
-        <div class="card-body">
-          <h3>${family.label}</h3>
-          ${family.items.length > 1 ? `<p class="family-hint">${family.items.length} cortes</p>` : ""}
-          <ul class="cut-list">${visibleHtml}</ul>
-          ${restHtml}
-        </div>
-      `;
-      return card;
-    }
-
+    // Cada corte tiene ya su propia tarjeta (ver renderStyleCard). Esta
+    // agrupación ya NO sirve para apilar cortes parecidos dentro de una
+    // misma tarjeta (como antes, con una lista "+N" plegada) -- solo para
+    // decidir en qué orden se pintan, de forma que los cortes de una misma
+    // familia visual queden UNOS AL LADO DE OTROS en la rejilla (seguidos),
+    // y para poner un pequeño aviso "Parecido a: <familia>" en su tarjeta.
     function groupByFamily(recommendations) {
       const families = new Map();
       for (const rec of recommendations) {
-        // Igual que en catalogo.html: cada corte tiene su propia foto, así que
-        // se agrupa por foto (antes por familia, y la tarjeta enseñaba la foto
-        // de otro corte de la familia).
+        // Con las fotos de stock retiradas del catálogo (sept 2026,
+        // "Revisión del catálogo") `reference_image` es siempre null, así
+        // que en la práctica esto agrupa por `style_family` (12 familias);
+        // se deja `reference_image` primero por si en el futuro vuelve a
+        // haber foto propia por corte, que sería una señal de parecido más
+        // fuerte que la familia genérica.
         const key = rec.style.reference_image || rec.style.style_family || rec.style.id;
         if (!families.has(key)) {
           families.set(key, {
@@ -292,19 +242,62 @@
         }
         families.get(key).items.push(rec);
       }
-      for (const family of families.values()) {
-        if (family.items.length === 1) family.label = family.items[0].style.name;
-      }
       // El orden de inserción ya viene de la lista original (los cortes
       // sin aviso de remolinos primero), así que las familias que solo
       // tienen avisos quedan al final de forma natural.
       return Array.from(families.values());
     }
 
+    // Aplana las familias en una única lista, en el mismo orden (mejor
+    // puntuación primero, familias juntas), y adjunta a cada corte la
+    // etiqueta de su familia SOLO cuando tiene hermanos (para no mostrar
+    // "Parecido a: <su propio nombre>" en un corte que va solo).
+    function orderWithFamiliesAdjacent(recommendations) {
+      const families = groupByFamily(recommendations);
+      const flat = [];
+      for (const family of families) {
+        for (const rec of family.items) {
+          flat.push({ rec, familyLabel: family.items.length > 1 ? family.label : null });
+        }
+      }
+      return flat;
+    }
+
+    function renderStyleCard({ rec, familyLabel }) {
+      const s = rec.style;
+      const card = document.createElement("div");
+      card.className = "card";
+      const photoHtml = s.reference_image
+        ? `<img src="${s.reference_image}" alt="${s.name}" loading="lazy" />`
+        : `<div class="no-photo">${UI.icon("image")}</div>`;
+      const familyHint = familyLabel ? `<p class="family-hint">${UI.icon("images")}Parecido a: ${familyLabel}</p>` : "";
+      card.innerHTML = `
+        ${photoHtml}
+        <div class="card-body">
+          <div class="cut-top"><h3>${s.name}</h3>${infoHtml(rec)}</div>
+          ${familyHint}
+          ${cutBadgesHtml(s)}
+          ${whyChipsHtml(rec)}
+          <a class="chip simulate-btn" href="${simulateHref(s.id)}">${UI.icon("wand-sparkles")}Simular corte</a>
+        </div>
+      `;
+      return card;
+    }
+
     // Dos modos: el propio cliente (su sesión, /api/me) o el peluquero con
     // la ficha de un cliente abierta (?client_id=, necesita su PIN).
     const barberMode = !!clientId;
     const ficha = (path) => barberMode ? `${path}?client_id=${encodeURIComponent(clientId)}` : path;
+    // Lleva a "Probar cortes" (probar.html) con ese corte ya elegido, sobre
+    // la foto guardada del cliente -- mismo destino que ya usa el catálogo
+    // ("Probar en un cliente"/"Probar en mí") y la ficha (repetir un corte
+    // del historial), solo que aquí ya se conoce el client_id de antemano
+    // (modo peluquero) en vez de tener que detectar la sesión.
+    function simulateHref(styleId) {
+      const base = ficha("probar.html");
+      const sep = base.includes("?") ? "&" : "?";
+      return `${base}${sep}style=${encodeURIComponent(styleId)}`;
+    }
 
     async function load() {
       let client, data;
@@ -371,18 +364,16 @@
             <details class="info"><summary aria-label="Cómo crece el pelo">${UI.icon("info")}</summary><div class="info-body">${growth.map((l) =>
             `<p>${l}</p>`).join("")}<p class="hint">Las recomendaciones lo tienen en cuenta (remolinos, hacia dónde crece, raya).</p></div></details></div>`
         : "";
-      const families = groupByFamily(data.recommendations);
+      const ordered = orderWithFamiliesAdjacent(data.recommendations);
       statusEl.textContent = `${data.recommendations.length} cortes`;
       gridEl.innerHTML = "";
-      for (const family of families) {
-        const card = renderFamilyCard(family);
+      for (const entry of ordered) {
+        const card = renderStyleCard(entry);
         // Corazón para guardar el corte (cliente) o ver que le gusta (peluquero).
-        if (family.items.length === 1) {
-          const id = family.items[0].style.id;
-          if (!barberMode) card.insertAdjacentHTML("afterbegin", Session.heartHtml(id));
-          else if ((client.liked_styles || []).includes(id)) {
-            card.insertAdjacentHTML("afterbegin", `<span class="heart-btn" aria-pressed="true" title="Le gusta">${UI.icon("heart")}</span>`);
-          }
+        const id = entry.rec.style.id;
+        if (!barberMode) card.insertAdjacentHTML("afterbegin", Session.heartHtml(id));
+        else if ((client.liked_styles || []).includes(id)) {
+          card.insertAdjacentHTML("afterbegin", `<span class="heart-btn" aria-pressed="true" title="Le gusta">${UI.icon("heart")}</span>`);
         }
         gridEl.appendChild(card);
       }

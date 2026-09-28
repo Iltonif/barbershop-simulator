@@ -1915,6 +1915,49 @@ Pedro pidió revisar `styles.json` antes de la demo con la peluquería real. Tre
 - Verificado con la suite completa: 111/111 tests
   (`python -m unittest discover -s tests -q`).
 
+## Recomendaciones: simular corte desde la tarjeta y cortes parecidos uno al lado del otro (sept 2026)
+
+Pedro: "que en la sección de recomendación aparezca una opción de simular corte, además de que aparezcan los cortes de pelo similares al lado pero no debajo" -- dos cambios en `frontend/recomendaciones.html`, sin tocar backend.
+
+- **"Simular corte" en cada tarjeta**: enlaza a `probar.html` (mismo destino
+  que ya usan el catálogo y la ficha para repetir un corte del historial)
+  con ese corte ya elegido (`?style=<id>`) y, en modo peluquero, con el
+  `client_id` de la ficha abierta (`simulateHref()`, reutiliza el helper
+  `ficha()` que ya existía para el resto de enlaces de la página). Abre
+  directamente sobre la foto guardada del cliente -- no hace falta pasar
+  por el catálogo ni escribir el nombre del corte a mano.
+- **Cortes parecidos uno al lado del otro, no apilados**: antes,
+  `groupByFamily()` metía todos los cortes de una misma familia visual
+  dentro de una ÚNICA tarjeta, en una lista vertical con un "+N" plegado
+  (pensado para cuando compartían la misma foto de referencia de stock).
+  Desde que esas fotos se retiraron del catálogo (ver "Revisión del
+  catálogo" más abajo, `reference_image` siempre `null`), ese agrupado ya
+  solo servía para amontonar cortes de una misma familia dentro de una
+  tarjeta cada vez más larga. Se sustituyó por `orderWithFamiliesAdjacent()`:
+  cada corte tiene ahora su PROPIA tarjeta completa (foto/badges/por qué/
+  Simular corte), pero el orden en el que se pintan mantiene los de una
+  misma familia SEGUIDOS, así que la rejilla (`display:grid`, columnas en
+  fila) los deja uno al lado del otro de forma natural -- sin necesitar
+  ningún contenedor especial para "agrupar visualmente". Cada tarjeta de un
+  corte con hermanos lleva además un aviso pequeño ("Parecido a: <familia>")
+  para que se entienda por qué están juntos.
+- `groupByFamily()` se mantiene tal cual (mismo criterio de agrupado por
+  `reference_image`/`style_family`/`id`) porque sigue haciendo falta para
+  decidir el orden y la etiqueta de familia -- lo que cambió es que ya no
+  se usa para renderizar una tarjeta por familia, sino una por corte.
+- Se quitó del CSS lo que solo servía para la lista apilada de antes
+  (`cut-list`, `cut-item`, `details.more`) y dos reglas de `con-aviso` que
+  ya estaban muertas desde antes de este cambio (ninguna función de JS
+  llegaba a aplicar esas clases).
+- Sin tests de backend que tocar (cambio 100% de frontend). Verificado con
+  Playwright contra un servidor local real (peluquero, ficha con cliente
+  sin filtros de pelo/cara -- el caso con más cortes a la vez, 102):
+  sin errores de consola, 102 tarjetas individuales, los 3 primeros cortes
+  de la familia "Fade / undercut con textura" cayendo en la misma fila uno
+  junto a otro (captura de pantalla), y el botón "Simular corte" de la
+  primera tarjeta generando el enlace correcto
+  (`probar.html?client_id=<id>&style=undercut-flequillo`).
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).
