@@ -2341,6 +2341,55 @@ llegó a estar en el texto/PDF que Pedro pegó, no está cubierto aquí.
   una captura de Playwright de la tarjeta "Proporciones" (mismo criterio
   del resto del módulo: no hay ángulo que comprobar, solo inspección
   visual) y con la suite completa (140 tests, sin romper nada).
+- **Tercera entrega de Pedro (mismo día): ~19 fotos de famosos con nombre
+  de estilo, y un tercer PDF re-subido.** El PDF se sigue cortando en el
+  mismo punto de siempre ("En las corre...") -- tercera confirmación de
+  que ese hueco no depende de Pedro y no hay que volver a insistir en
+  pedírselo. Las fotos sí traían nombres nuevos: como el volumen y el
+  riesgo de inventar contenido sin fuente eran altos (meten una categoría
+  entera, patillas, que no existía), se preguntó a Pedro con
+  `AskUserQuestion` qué quería hacer con ellas -- eligió "añadirlas como
+  ejemplos + crear sección de patillas", ambas sin regla de recomendación
+  nueva (ninguna foto traía texto de corrección).
+  - **Alias plegados en tarjetas ya existentes** (mismo estilo, otro
+    nombre en la foto de Pedro, no un dibujo nuevo): "bigote con perilla"
+    = mosquetero; "barba de fin de semana" = varios días/media sombra.
+  - **`BEARDS_VARIANTES`** (nueva lista en
+    `tools/generar_barba_bigote_guia.py`, sub-sección "Otros nombres que
+    vas a escuchar" dentro de `#barbas` en `guia-barba-bigote.html`, NO
+    mezclada con las 5 bases de `BEARDS`): candado extendido, Van Dycke
+    (perilla + bigote fino sin conectar), perilla larga, barba imperial
+    (perilla + tira fina de mandíbula + bigote), duck tail (completa con
+    pico marcado), completa corta. Dos de ellas, "triangular (forma de la
+    barba)" y "cuadrada (forma de la barba)", usan la MISMA palabra que
+    dos valores de `face_shape_override` pero describen la forma que se
+    le da al pelo, no la cara del cliente -- cada `detalle` dice
+    explícitamente "OJO: no es una recomendación para el rostro
+    triangular/cuadrado" para que no se lean como si por fin hubiera una
+    regla para la cara cuadrada (sigue sin haberla, a propósito, ver más
+    arriba).
+  - **`SIDEBURNS`** (patillas: cuadrada/corta/larga, sección `#patillas`
+    nueva en la guía, con su propio enlace en el menú de saltos):
+    categoría sin precedente en el proyecto. Solo catálogo visual, sin
+    ninguna correlación con forma de rostro -- ninguna fuente la trae.
+  - **Sin fotos reales**: las ilustraciones son dibujos de línea propios
+    en el mismo lenguaje visual del resto de la guía (`face()`,
+    `_sliver`, `_mirror`, clases `bb-fill*`), nunca las fotos de los
+    famosos que mandó Pedro -- usar esas fotos directamente habría sido
+    distribuir imágenes con derechos de imagen de personas reales.
+  - **Dos bugs encontrados y corregidos por inspección visual con
+    Playwright** (mismo criterio del resto del módulo: no hay ángulo que
+    comprobar): la tira de la barba imperial arrancaba a la altura de los
+    ojos (`y=50`) en vez de a la altura de la mandíbula, cruzando la
+    mejilla como un "bigote de gato" -- se corrigió el punto de partida a
+    `y=62`, siguiendo el borde de la mandíbula. La barba cuadrada, con un
+    único punto de barbilla suavizado por `_catmull_rom`, no se
+    distinguía de "completa"/"duck tail" -- se corrigió añadiendo varios
+    puntos casi a la misma altura en la base para que la curva se pegue a
+    un tramo recto en vez de redondear una punta.
+  - Verificado con capturas de Playwright de la sección completa y de
+    cada icono ambiguo por separado, y con la suite completa (140 tests,
+    sin romper nada -- este cambio no toca ningún archivo de `backend/`).
 
 ## Cómo trabajar en este repo
 

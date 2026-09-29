@@ -28,6 +28,26 @@ Fuentes de los 18 estilos y de qué forma de rostro le sienta a cada uno:
 ver el docstring de `app/pipeline/beard_mustache_rules.py` (los mismos
 vídeos/texto que dio Pedro, peluquero dueño del proyecto, en sept 2026).
 
+Sept 2026, segunda tanda de fotos de Pedro: mandó ~19 fotos de referencia
+(famosos con cada corte, ej. Tom Selleck para el chevron, Robert Downey Jr.
+para el candado extendido) con nombres adicionales -- varios eran alias de
+estilos que ya estaban aquí ("bigote con perilla" = mosquetero, "barba de
+fin de semana" = varios días/media sombra), otros eran variantes reales de
+las 5 bases (Van Dycke, Duck Tail, Barba imperial, Candado extendido,
+Perilla larga, Barba completa corta, y dos FORMAS de barba que él llamó
+igual que dos formas de ROSTRO ya usadas para el rostro del cliente --
+"triangular" y "cuadrada" -- pero que aquí describen la forma del pelo, no
+la cara: se deja explícito en cada detalle para no confundir las dos
+cosas), y una categoría nueva sin precedente, patillas (cuadrada/corta/
+larga). Pedro confirmó por AskUserQuestion que quería las variantes en la
+guía Y una sección de patillas, pero solo como catálogo visual -- ninguna
+corrección de forma de rostro nueva, porque ninguna fuente la traía (el
+PDF que acompañaba a las fotos se sigue cortando en el mismo punto de
+siempre). Importante: NO se han usado las fotos reales de los famosos --
+serían imágenes con derechos de imagen de personas reales, y este archivo
+sigue generando dibujos de línea propios en el mismo lenguaje visual que
+el resto de la guía, nunca fotografías.
+
 Uso (desde la raíz del repo):
     python3 tools/generar_barba_bigote_guia.py
 """
@@ -219,7 +239,8 @@ MUSTACHES = [
     ("morsa", "Morsa (walrus)", mustache_morsa,
      "Muy poblado y caído, tapa el labio superior por completo y cae sobre las comisuras."),
     ("mosquetero", "Mosquetero", mustache_mosquetero,
-     "Bigote corto y cuidado, más una perilla pequeña justo bajo el labio inferior, sin conectar con la barbilla."),
+     "Bigote corto y cuidado, más una perilla pequeña justo bajo el labio inferior, sin conectar con la barbilla. "
+     "Es el mismo estilo que Pedro también llama \"bigote con perilla\" en una de sus fotos de referencia."),
     ("revolucionario", "Revolucionario", mustache_revolucionario,
      "Muy ancho, poblado y caído hacia la mandíbula, más grande y voluminoso que la morsa."),
     ("corto", "Corto", mustache_corto,
@@ -277,7 +298,149 @@ BEARDS = [
     ("chiva_chivita", "Chiva / chivita", beard_chiva,
      "Solo la barbilla, más estrecha y apurada que la perilla, sin bigote."),
     ("varios_dias_media_sombra", "De varios días / media sombra", beard_media_sombra,
-     "Sombra uniforme y corta por toda la cara, sin perfilar ninguna línea."),
+     "Sombra uniforme y corta por toda la cara, sin perfilar ninguna línea. También se la conoce como "
+     "\"barba de fin de semana\"."),
+]
+
+
+# ---------------------------------------------------------------------
+# Variantes con nombre propio (sept 2026, segunda tanda de fotos de
+# referencia de Pedro -- Van Dycke, Duck Tail, Barba Imperial, Candado
+# extendido, Perilla larga, Barba completa corta, y dos FORMAS de barba,
+# "triangular" y "cuadrada", que Pedro nombró igual que dos formas de
+# ROSTRO ya usadas en `face_shape_override` pero que aquí describen la
+# forma que se le da al PELO, no la cara del cliente -- por eso cada
+# detalle de estas dos deja explícito que no hay relación).
+#
+# Pedro pidió expresamente que estas se traten como variantes de las 5
+# bases de arriba, no como bases nuevas ("cualquier barba moderna es
+# combinación de esas 5, con más o menos largo o perfilado" -- lo mismo
+# que ya decía el texto original): por eso van en una lista aparte y se
+# muestran en su propia sub-sección de la guía, no mezcladas con
+# `BEARDS`. Ninguna trae una correlación con forma de rostro propia --
+# las fotos que las acompañaban no traían ese texto (el PDF que las
+# acompañaba se sigue cortando en el mismo punto de siempre), así que no
+# se ha inventado ninguna.
+# ---------------------------------------------------------------------
+
+def beard_candado_extendido():
+    inner_ext = [(30, 42), (32, 55), (38, 67), (46, 78), (50, 81), (54, 78), (62, 67), (68, 55), (70, 42)]
+    ring = _JAW_OUTER + list(reversed(inner_ext))
+    d = _catmull_rom(ring)
+    return f'<path class="bb-fill bb-fill-soft" d="{d}"/>'
+
+
+def beard_van_dycke():
+    return beard_chiva() + mustache_ingles()
+
+
+def beard_perilla_larga():
+    chin = _catmull_rom([(42, 74), (40, 88), (45, 95), (50, 97), (55, 95), (60, 88), (58, 74)])
+    return f'<path class="bb-fill" d="{chin}"/>'
+
+
+def beard_imperial():
+    chin = _catmull_rom([(38, 70), (36, 86), (44, 94), (50, 96), (56, 94), (64, 86), (62, 70)])
+    # Tira fina que conecta la perilla con la patilla SIGUIENDO el borde de
+    # la mandíbula (puntos de _JAW_OUTER), no cruzando la mejilla: por eso
+    # arranca a la altura de la mandíbula (y~64), no a la altura de los
+    # ojos (y~50), que daba el efecto de "bigote de gato" cruzando la cara.
+    strap = _sliver((23, 62), (28, 68), (39, 71), 1.5, 1.2)
+    return f'<path class="bb-fill" d="{chin}"/>' + _mirror(strap, "bb-fill") + mustache_corto()
+
+
+def beard_duck_tail():
+    jaw = [(21, 50), (24, 64), (30, 78), (42, 86), (50, 98), (58, 86), (70, 78), (76, 64), (79, 50)]
+    outline = _CHEEK_TOP + jaw[1:-1][::-1]
+    d = _catmull_rom(outline)
+    return f'<path class="bb-fill" d="{d}"/>'
+
+
+def beard_completa_corta():
+    outline = _CHEEK_TOP + _JAW_OUTER[1:-1][::-1]
+    d = _catmull_rom(outline)
+    return f'<path class="bb-fill bb-fill-soft" d="{d}"/>'
+
+
+def beard_triangular_forma():
+    outline = [(23, 52), (30, 78), (50, 91), (70, 78), (77, 52), (65, 49), (50, 47), (35, 49)]
+    d = _catmull_rom(outline)
+    return f'<path class="bb-fill" d="{d}"/>'
+
+
+def beard_cuadrada_forma():
+    # Varios puntos casi a la misma altura en la base (y=85-87) para que la
+    # curva de catmull-rom se pegue a un tramo recto en vez de redondear un
+    # único punto de barbilla (que es lo que hace "completa"/"duck tail") --
+    # así se lee como un corte recto con esquinas, no como una punta o una
+    # curva.
+    outline = _CHEEK_TOP + [
+        (76, 54), (78, 68), (75, 81), (62, 86), (50, 87), (38, 86), (25, 81), (22, 68), (24, 54),
+    ]
+    d = _catmull_rom(outline)
+    return f'<path class="bb-fill" d="{d}"/>'
+
+
+BEARDS_VARIANTES = [
+    ("candado_extendido", "Candado extendido", beard_candado_extendido,
+     "Variante del candado (en collar), pero más ancha: sube algo más hacia la mejilla en vez de ceñirse "
+     "solo al borde justo de la mandíbula."),
+    ("van_dycke", "Van Dycke", beard_van_dycke,
+     "Perilla en la barbilla más un bigote fino, sin conectar entre sí -- quedan claramente separados, "
+     "con la piel del labio visible entre uno y otro."),
+    ("perilla_larga", "Perilla larga", beard_perilla_larga,
+     "Como la chiva/chivita, pero bastante más larga: la punta baja notablemente por debajo de la barbilla."),
+    ("barba_imperial", "Barba imperial", beard_imperial,
+     "Perilla poblada conectada a la mandíbula por una línea fina a cada lado, más bigote -- más cobertura "
+     "que un candado, sin llegar a ser una barba completa."),
+    ("duck_tail", "Duck tail", beard_duck_tail,
+     "Barba completa recortada en un pico bien marcado en la barbilla, en vez de dejarlo redondeado."),
+    ("completa_corta", "Completa corta", beard_completa_corta,
+     "La misma barba completa/clásica de arriba, pero recortada corta y densa en vez de dejarla crecer larga."),
+    ("triangular_forma", "Triangular (forma de la barba)", beard_triangular_forma,
+     "OJO: no es una recomendación para el rostro triangular (esa correlación está en la ficha del cliente, "
+     "no aquí) -- aquí \"triangular\" describe la FORMA que se le da al pelo: ancha en las mejillas y "
+     "estrecha hacia la barbilla, con los laterales casi rectos."),
+    ("cuadrada_forma", "Cuadrada (forma de la barba)", beard_cuadrada_forma,
+     "OJO: tampoco es una recomendación para el rostro cuadrado (que sigue sin regla propia, ver la sección "
+     "de \"Fuentes\" más abajo) -- aquí \"cuadrada\" describe la FORMA de la barba: recorte recto y con "
+     "esquinas marcadas por abajo, en vez de redondeado o en pico."),
+]
+
+
+# ---------------------------------------------------------------------
+# Patillas (sept 2026, misma tanda de fotos). Pedro pidió una sección de
+# referencia visual para esto, pero SIN regla de recomendación: ninguna
+# de sus fuentes correlaciona forma de patilla con forma de rostro, así
+# que aquí no se inventa ninguna -- son solo los 3 cortes con su nombre.
+# ---------------------------------------------------------------------
+
+_HAIR_CAP = '<path class="bb-fill-soft" d="M24 26 Q26 14 50 12 Q74 14 76 26 Q64 18 50 17 Q36 18 24 26 Z"/>'
+
+
+def _sideburn(bottom_y, w0, w1):
+    return _sliver((76, 26), (79, (26 + bottom_y) / 2), (75, bottom_y), w0, w1)
+
+
+def patilla_cuadrada():
+    return _HAIR_CAP + _mirror(_sideburn(54, 3.2, 2.6), "bb-fill-soft")
+
+
+def patilla_corta():
+    return _HAIR_CAP + _mirror(_sideburn(40, 3.0, 0.6), "bb-fill-soft")
+
+
+def patilla_larga():
+    return _HAIR_CAP + _mirror(_sideburn(68, 2.8, 0.8), "bb-fill-soft")
+
+
+SIDEBURNS = [
+    ("patilla_cuadrada", "Patilla cuadrada", patilla_cuadrada,
+     "Corte recto y grueso, sin apurar hacia la punta -- termina con un borde horizontal marcado."),
+    ("patilla_corta", "Patilla corta", patilla_corta,
+     "Se acaba a la altura de la oreja o justo por encima, apurada y discreta."),
+    ("patilla_larga", "Patilla larga", patilla_larga,
+     "Baja bien por debajo de la oreja, acercándose a la mandíbula, siempre apurada en punta."),
 ]
 
 
@@ -332,13 +495,19 @@ def proportions_diagram():
 
 
 def main():
-    out = {"bigotes": [], "barbas": [], "proporciones": None}
+    out = {"bigotes": [], "barbas": [], "barbas_variantes": [], "patillas": [], "proporciones": None}
     for key, label, builder, detail in MUSTACHES:
         out["bigotes"].append(dict(clave=key, nombre=label, detalle=detail, svg=face(builder())))
         print("bigote  ", key)
     for key, label, builder, detail in BEARDS:
         out["barbas"].append(dict(clave=key, nombre=label, detalle=detail, svg=face(builder())))
         print("barba   ", key)
+    for key, label, builder, detail in BEARDS_VARIANTES:
+        out["barbas_variantes"].append(dict(clave=key, nombre=label, detalle=detail, svg=face(builder())))
+        print("variante", key)
+    for key, label, builder, detail in SIDEBURNS:
+        out["patillas"].append(dict(clave=key, nombre=label, detalle=detail, svg=face(builder())))
+        print("patilla ", key)
     out["proporciones"] = dict(
         svg=proportions_diagram(),
         texto=(

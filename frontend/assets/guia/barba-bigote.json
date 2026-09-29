@@ -63,7 +63,7 @@
   {
    "clave": "mosquetero",
    "nombre": "Mosquetero",
-   "detalle": "Bigote corto y cuidado, más una perilla pequeña justo bajo el labio inferior, sin conectar con la barbilla.",
+   "detalle": "Bigote corto y cuidado, más una perilla pequeña justo bajo el labio inferior, sin conectar con la barbilla. Es el mismo estilo que Pedro también llama \"bigote con perilla\" en una de sus fotos de referencia.",
    "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill\" d=\"M42.0,62.0 C42.0,60.8 44.7,58.8 46.0,58.0 C47.3,57.2 48.7,57.0 50.0,57.0 C51.3,57.0 52.7,57.2 54.0,58.0 C55.3,58.8 58.0,60.8 58.0,62.0 C58.0,63.2 55.3,64.3 54.0,65.0 C52.7,65.7 51.3,66.0 50.0,66.0 C48.7,66.0 47.3,65.7 46.0,65.0 C44.7,64.3 42.0,63.2 42.0,62.0 Z\"/><circle class=\"bb-fill\" cx=\"50\" cy=\"75\" r=\"3.4\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
   },
   {
@@ -107,8 +107,78 @@
   {
    "clave": "varios_dias_media_sombra",
    "nombre": "De varios días / media sombra",
-   "detalle": "Sombra uniforme y corta por toda la cara, sin perfilar ninguna línea.",
+   "detalle": "Sombra uniforme y corta por toda la cara, sin perfilar ninguna línea. También se la conoce como \"barba de fin de semana\".",
    "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill bb-fill-stubble\" d=\"M24.0,54.0 C25.8,51.7 30.7,51.0 35.0,50.0 C39.3,49.0 45.0,48.0 50.0,48.0 C55.0,48.0 60.7,49.0 65.0,50.0 C69.3,51.0 74.2,51.7 76.0,54.0 C77.8,56.3 77.0,60.0 76.0,64.0 C75.0,68.0 72.7,74.0 70.0,78.0 C67.3,82.0 63.3,85.8 60.0,88.0 C56.7,90.2 53.3,91.0 50.0,91.0 C46.7,91.0 43.3,90.2 40.0,88.0 C36.7,85.8 32.7,82.0 30.0,78.0 C27.3,74.0 25.0,68.0 24.0,64.0 C23.0,60.0 22.2,56.3 24.0,54.0 Z\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  }
+ ],
+ "barbas_variantes": [
+  {
+   "clave": "candado_extendido",
+   "nombre": "Candado extendido",
+   "detalle": "Variante del candado (en collar), pero más ancha: sube algo más hacia la mejilla en vez de ceñirse solo al borde justo de la mandíbula.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill bb-fill-soft\" d=\"M21.0,50.0 C20.0,53.7 22.5,59.3 24.0,64.0 C25.5,68.7 27.3,74.0 30.0,78.0 C32.7,82.0 36.7,85.8 40.0,88.0 C43.3,90.2 46.7,91.0 50.0,91.0 C53.3,91.0 56.7,90.2 60.0,88.0 C63.3,85.8 67.3,82.0 70.0,78.0 C72.7,74.0 74.5,68.7 76.0,64.0 C77.5,59.3 80.0,53.7 79.0,50.0 C78.0,46.3 71.8,41.2 70.0,42.0 C68.2,42.8 69.3,50.8 68.0,55.0 C66.7,59.2 64.3,63.2 62.0,67.0 C59.7,70.8 56.0,75.7 54.0,78.0 C52.0,80.3 51.3,81.0 50.0,81.0 C48.7,81.0 48.0,80.3 46.0,78.0 C44.0,75.7 40.3,70.8 38.0,67.0 C35.7,63.2 33.3,59.2 32.0,55.0 C30.7,50.8 31.8,42.8 30.0,42.0 C28.2,41.2 22.0,46.3 21.0,50.0 Z\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "van_dycke",
+   "nombre": "Van Dycke",
+   "detalle": "Perilla en la barbilla más un bigote fino, sin conectar entre sí -- quedan claramente separados, con la piel del labio visible entre uno y otro.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill\" d=\"M44.0,76.0 C41.8,77.7 42.5,83.3 43.0,86.0 C43.5,88.7 45.8,90.7 47.0,92.0 C48.2,93.3 49.0,94.0 50.0,94.0 C51.0,94.0 51.8,93.3 53.0,92.0 C54.2,90.7 56.5,88.7 57.0,86.0 C57.5,83.3 58.2,77.7 56.0,76.0 C53.8,74.3 46.2,74.3 44.0,76.0 Z\"/><path class=\"bb-fill\" d=\"M58.1,62.3 Q69.0,60.0 81.0,60.2 L81.0,59.8 Q69.0,60.0 57.9,59.7 Z\"/><g transform=\"translate(100,0) scale(-1,1)\"><path class=\"bb-fill\" d=\"M58.1,62.3 Q69.0,60.0 81.0,60.2 L81.0,59.8 Q69.0,60.0 57.9,59.7 Z\"/></g><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "perilla_larga",
+   "nombre": "Perilla larga",
+   "detalle": "Como la chiva/chivita, pero bastante más larga: la punta baja notablemente por debajo de la barbilla.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill\" d=\"M42.0,74.0 C39.0,76.3 39.5,84.5 40.0,88.0 C40.5,91.5 43.3,93.5 45.0,95.0 C46.7,96.5 48.3,97.0 50.0,97.0 C51.7,97.0 53.3,96.5 55.0,95.0 C56.7,93.5 59.5,91.5 60.0,88.0 C60.5,84.5 61.0,76.3 58.0,74.0 C55.0,71.7 45.0,71.7 42.0,74.0 Z\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "barba_imperial",
+   "nombre": "Barba imperial",
+   "detalle": "Perilla poblada conectada a la mandíbula por una línea fina a cada lado, más bigote -- más cobertura que un candado, sin llegar a ser una barba completa.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill\" d=\"M38.0,70.0 C33.7,72.7 35.0,82.0 36.0,86.0 C37.0,90.0 41.7,92.3 44.0,94.0 C46.3,95.7 48.0,96.0 50.0,96.0 C52.0,96.0 53.7,95.7 56.0,94.0 C58.3,92.3 63.0,90.0 64.0,86.0 C65.0,82.0 66.3,72.7 62.0,70.0 C57.7,67.3 42.3,67.3 38.0,70.0 Z\"/><path class=\"bb-fill\" d=\"M21.8,63.0 Q28.0,68.0 38.7,72.2 L39.3,69.8 Q28.0,68.0 24.2,61.0 Z\"/><g transform=\"translate(100,0) scale(-1,1)\"><path class=\"bb-fill\" d=\"M21.8,63.0 Q28.0,68.0 38.7,72.2 L39.3,69.8 Q28.0,68.0 24.2,61.0 Z\"/></g><path class=\"bb-fill\" d=\"M42.0,62.0 C42.0,60.8 44.7,58.8 46.0,58.0 C47.3,57.2 48.7,57.0 50.0,57.0 C51.3,57.0 52.7,57.2 54.0,58.0 C55.3,58.8 58.0,60.8 58.0,62.0 C58.0,63.2 55.3,64.3 54.0,65.0 C52.7,65.7 51.3,66.0 50.0,66.0 C48.7,66.0 47.3,65.7 46.0,65.0 C44.7,64.3 42.0,63.2 42.0,62.0 Z\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "duck_tail",
+   "nombre": "Duck tail",
+   "detalle": "Barba completa recortada en un pico bien marcado en la barbilla, en vez de dejarlo redondeado.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill\" d=\"M24.0,54.0 C25.8,51.7 30.7,51.0 35.0,50.0 C39.3,49.0 45.0,48.0 50.0,48.0 C55.0,48.0 60.7,49.0 65.0,50.0 C69.3,51.0 74.2,51.7 76.0,54.0 C77.8,56.3 77.0,60.0 76.0,64.0 C75.0,68.0 73.0,74.3 70.0,78.0 C67.0,81.7 61.3,82.7 58.0,86.0 C54.7,89.3 52.7,98.0 50.0,98.0 C47.3,98.0 45.3,89.3 42.0,86.0 C38.7,82.7 33.0,81.7 30.0,78.0 C27.0,74.3 25.0,68.0 24.0,64.0 C23.0,60.0 22.2,56.3 24.0,54.0 Z\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "completa_corta",
+   "nombre": "Completa corta",
+   "detalle": "La misma barba completa/clásica de arriba, pero recortada corta y densa en vez de dejarla crecer larga.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill bb-fill-soft\" d=\"M24.0,54.0 C25.8,51.7 30.7,51.0 35.0,50.0 C39.3,49.0 45.0,48.0 50.0,48.0 C55.0,48.0 60.7,49.0 65.0,50.0 C69.3,51.0 74.2,51.7 76.0,54.0 C77.8,56.3 77.0,60.0 76.0,64.0 C75.0,68.0 72.7,74.0 70.0,78.0 C67.3,82.0 63.3,85.8 60.0,88.0 C56.7,90.2 53.3,91.0 50.0,91.0 C46.7,91.0 43.3,90.2 40.0,88.0 C36.7,85.8 32.7,82.0 30.0,78.0 C27.3,74.0 25.0,68.0 24.0,64.0 C23.0,60.0 22.2,56.3 24.0,54.0 Z\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "triangular_forma",
+   "nombre": "Triangular (forma de la barba)",
+   "detalle": "OJO: no es una recomendación para el rostro triangular (esa correlación está en la ficha del cliente, no aquí) -- aquí \"triangular\" describe la FORMA que se le da al pelo: ancha en las mejillas y estrecha hacia la barbilla, con los laterales casi rectos.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill\" d=\"M23.0,52.0 C22.2,56.8 25.5,71.5 30.0,78.0 C34.5,84.5 43.3,91.0 50.0,91.0 C56.7,91.0 65.5,84.5 70.0,78.0 C74.5,71.5 77.8,56.8 77.0,52.0 C76.2,47.2 69.5,49.8 65.0,49.0 C60.5,48.2 55.0,47.0 50.0,47.0 C45.0,47.0 39.5,48.2 35.0,49.0 C30.5,49.8 23.8,47.2 23.0,52.0 Z\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "cuadrada_forma",
+   "nombre": "Cuadrada (forma de la barba)",
+   "detalle": "OJO: tampoco es una recomendación para el rostro cuadrado (que sigue sin regla propia, ver la sección de \"Fuentes\" más abajo) -- aquí \"cuadrada\" describe la FORMA de la barba: recorte recto y con esquinas marcadas por abajo, en vez de redondeado o en pico.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill\" d=\"M24.0,54.0 C25.8,53.3 30.7,51.0 35.0,50.0 C39.3,49.0 45.0,48.0 50.0,48.0 C55.0,48.0 60.7,49.0 65.0,50.0 C69.3,51.0 74.2,53.3 76.0,54.0 C77.8,54.7 75.7,51.7 76.0,54.0 C76.3,56.3 78.2,63.5 78.0,68.0 C77.8,72.5 77.7,78.0 75.0,81.0 C72.3,84.0 66.2,85.0 62.0,86.0 C57.8,87.0 54.0,87.0 50.0,87.0 C46.0,87.0 42.2,87.0 38.0,86.0 C33.8,85.0 27.7,84.0 25.0,81.0 C22.3,78.0 22.2,72.5 22.0,68.0 C21.8,63.5 23.7,56.3 24.0,54.0 C24.3,51.7 22.2,54.7 24.0,54.0 Z\"/><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  }
+ ],
+ "patillas": [
+  {
+   "clave": "patilla_cuadrada",
+   "nombre": "Patilla cuadrada",
+   "detalle": "Corte recto y grueso, sin apurar hacia la punta -- termina con un borde horizontal marcado.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill-soft\" d=\"M24 26 Q26 14 50 12 Q74 14 76 26 Q64 18 50 17 Q36 18 24 26 Z\"/><path class=\"bb-fill-soft\" d=\"M72.9,26.7 Q79.0,40.0 72.5,53.3 L77.5,54.7 Q79.0,40.0 79.1,25.3 Z\"/><g transform=\"translate(100,0) scale(-1,1)\"><path class=\"bb-fill-soft\" d=\"M72.9,26.7 Q79.0,40.0 72.5,53.3 L77.5,54.7 Q79.0,40.0 79.1,25.3 Z\"/></g><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "patilla_corta",
+   "nombre": "Patilla corta",
+   "detalle": "Se acaba a la altura de la oreja o justo por encima, apurada y discreta.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill-soft\" d=\"M24 26 Q26 14 50 12 Q74 14 76 26 Q64 18 50 17 Q36 18 24 26 Z\"/><path class=\"bb-fill-soft\" d=\"M73.2,27.2 Q79.0,33.0 74.5,39.7 L75.5,40.3 Q79.0,33.0 78.8,24.8 Z\"/><g transform=\"translate(100,0) scale(-1,1)\"><path class=\"bb-fill-soft\" d=\"M73.2,27.2 Q79.0,33.0 74.5,39.7 L75.5,40.3 Q79.0,33.0 78.8,24.8 Z\"/></g><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
+  },
+  {
+   "clave": "patilla_larga",
+   "nombre": "Patilla larga",
+   "detalle": "Baja bien por debajo de la oreja, acercándose a la mandíbula, siempre apurada en punta.",
+   "svg": "<svg viewBox=\"0 0 100 100\" class=\"bb-art\" role=\"img\"><ellipse class=\"bb-face\" cx=\"50\" cy=\"52\" rx=\"27\" ry=\"36\"/><path class=\"bb-fill-soft\" d=\"M24 26 Q26 14 50 12 Q74 14 76 26 Q64 18 50 17 Q36 18 24 26 Z\"/><path class=\"bb-fill-soft\" d=\"M73.2,26.4 Q79.0,47.0 74.2,67.9 L75.8,68.1 Q79.0,47.0 78.8,25.6 Z\"/><g transform=\"translate(100,0) scale(-1,1)\"><path class=\"bb-fill-soft\" d=\"M73.2,26.4 Q79.0,47.0 74.2,67.9 L75.8,68.1 Q79.0,47.0 78.8,25.6 Z\"/></g><path class=\"bb-line\" d=\"M40 44 h4 M56 44 h4\"/><path class=\"bb-line\" d=\"M36 34 q4 -4 8 -1 M56 33 q4 -3 8 1\"/><path class=\"bb-line\" d=\"M50 46 L48 59 Q50 61 52 59\"/><path class=\"bb-line bb-mouth\" d=\"M43 66 q7 4 14 0\"/></svg>"
   }
  ],
  "proporciones": {

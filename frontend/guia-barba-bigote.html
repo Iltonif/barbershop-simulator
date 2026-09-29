@@ -78,6 +78,7 @@
   <div class="jump">
     <a href="#bigotes"><span data-icon="scissors"></span>Bigotes</a>
     <a href="#barbas"><span data-icon="scissors"></span>Barbas</a>
+    <a href="#patillas"><span data-icon="scissors"></span>Patillas</a>
     <a href="#proporciones"><span data-icon="ruler"></span>Proporciones</a>
   </div>
 
@@ -94,6 +95,20 @@
       <details class="info"><summary></summary><div class="info-body">Cualquier barba moderna es una combinación de estas 5 bases, con más o menos largo y más o menos perfilado.</div></details>
     </div>
     <div class="cards" id="barbas-cards"></div>
+
+    <div class="head-row sec-head" style="margin-top: 28px;">
+      <h3 style="font-size: 16px; margin: 0;">Otros nombres que vas a escuchar</h3>
+      <details class="info"><summary></summary><div class="info-body">Son variantes de las 5 bases de arriba -- más largas, más anchas o con otro recorte -- no estilos nuevos. Ninguna trae aquí una recomendación de forma de rostro propia.</div></details>
+    </div>
+    <div class="cards" id="barbas-variantes-cards"></div>
+  </section>
+
+  <section class="section" id="patillas">
+    <div class="head-row sec-head">
+      <h2>Patillas</h2>
+      <details class="info"><summary></summary><div class="info-body">Solo catálogo de referencia visual: no hay ninguna corrección de forma de rostro asociada a estos 3 cortes.</div></details>
+    </div>
+    <div class="cards" id="patillas-cards"></div>
   </section>
 
   <section class="section" id="proporciones">
@@ -114,6 +129,10 @@
         forma del rostro ("Human Face. How to draw a face with correct proportions // VISUPLAS").</li>
       <li>El eje de simetría y la "zona intelectual" (frente, entre el nacimiento del pelo y las cejas) que se
         marcan en el dibujo de proporciones vienen de capturas de ese mismo vídeo que Pedro añadió después.</li>
+      <li>"Otros nombres que vas a escuchar" y la sección de Patillas vienen de una tercera tanda de fotos de
+        referencia (famosos con cada corte) que mandó Pedro. Los dibujos son ilustraciones propias en el mismo
+        estilo del resto de la guía, no las fotos originales -- y ninguna de las dos secciones trae una
+        corrección de forma de rostro propia, porque esas fotos no venían acompañadas de ese texto.</li>
     </ul>
     <p class="note">
       Los consejos son orientaciones habituales de barbería, no reglas: el criterio del barbero y lo que quiere
@@ -131,25 +150,24 @@
     return node;
   }
 
+  function fillCards(containerId, items) {
+    const container = document.getElementById(containerId);
+    for (const item of items) {
+      const card = el("article", "card glass-card");
+      card.appendChild(el("div", "art", item.svg));
+      card.appendChild(el("h3", "", item.nombre));
+      card.appendChild(el("p", "advice", item.detalle));
+      container.appendChild(card);
+    }
+  }
+
   fetch("assets/guia/barba-bigote.json")
     .then((res) => res.json())
     .then((data) => {
-      const bigotes = document.getElementById("bigotes-cards");
-      for (const item of data.bigotes) {
-        const card = el("article", "card glass-card");
-        card.appendChild(el("div", "art", item.svg));
-        card.appendChild(el("h3", "", item.nombre));
-        card.appendChild(el("p", "advice", item.detalle));
-        bigotes.appendChild(card);
-      }
-      const barbas = document.getElementById("barbas-cards");
-      for (const item of data.barbas) {
-        const card = el("article", "card glass-card");
-        card.appendChild(el("div", "art", item.svg));
-        card.appendChild(el("h3", "", item.nombre));
-        card.appendChild(el("p", "advice", item.detalle));
-        barbas.appendChild(card);
-      }
+      fillCards("bigotes-cards", data.bigotes);
+      fillCards("barbas-cards", data.barbas);
+      fillCards("barbas-variantes-cards", data.barbas_variantes || []);
+      fillCards("patillas-cards", data.patillas || []);
       const prop = document.getElementById("proporciones-cards");
       const card = el("article", "card glass-card");
       card.appendChild(el("div", "art", data.proporciones.svg));
