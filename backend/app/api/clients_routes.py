@@ -202,14 +202,15 @@ def override_visagismo_auto_analysis(
     separación de ojos, gafas -- ver `facial_traits_analysis.py`): eso es
     gratis, 100% local, y no depende de ningún consentimiento adicional.
 
-    Perfil, cejas, orejas, mentón, mandíbula y cuello NO se pueden medir
-    con geometría clásica de forma fiable (probado con fotos reales, ver
+    Perfil, cejas, orejas, mentón, mandíbula, cuello, frente, tamaño de
+    nariz, grosor de labios y papada NO se pueden medir con geometría
+    clásica de forma fiable (probado con fotos reales, ver
     `facial_traits_analysis.py` y CLAUDE.md). Si el cliente tiene
     `consent_ai_analysis=true` y hay `ANTHROPIC_API_KEY` configurada, las 3
     fotos se envían también a la API de Claude para que las juzgue como lo
     haría un peluquero (ver `visagismo_vision_analysis.py`) -- ESTO SÍ
     implica enviar las fotos a un tercero, a diferencia del resto de este
-    endpoint. Sin ese consentimiento, o sin esa clave configurada, esos 6
+    endpoint. Sin ese consentimiento, o sin esa clave configurada, esos 10
     campos se quedan sin rellenar (con un aviso explicando por qué) y el
     resto del análisis (la parte local) sigue funcionando igual: no es un
     422 que bloquee todo el endpoint, porque hay trabajo útil que hacer
@@ -241,12 +242,14 @@ def override_visagismo_auto_analysis(
     existing_profile = dict(client.visagismo_profile or {})
     existing_anatomical = dict(existing_profile.get("anatomical_metrics") or {})
     existing_features = dict(existing_anatomical.get("facial_features_profile") or {})
+    existing_zones = dict(existing_anatomical.get("facial_horizontal_zones_ratio") or {})
 
     # Solo se auto-rellenan los campos que el barbero no hubiera rellenado
     # ya a mano (ver docstring de arriba y `merge_detected_features`).
     merged_features = facial_traits_analysis.merge_detected_features(
         existing_features, result.facial_features_profile
     )
+    merged_zones = dict(existing_zones)
 
     vision_warnings: list[str] = []
     if client.consent_ai_analysis:
@@ -263,6 +266,9 @@ def override_visagismo_auto_analysis(
             merged_features = facial_traits_analysis.merge_detected_features(
                 merged_features, vision_result.facial_features_profile
             )
+            merged_zones = facial_traits_analysis.merge_detected_features(
+                merged_zones, vision_result.facial_horizontal_zones_ratio
+            )
             vision_warnings = vision_result.warnings
         except visagismo_vision_analysis.VisionAnalysisNotConfigured as exc:
             vision_warnings = [str(exc)]
@@ -270,12 +276,13 @@ def override_visagismo_auto_analysis(
             vision_warnings = [str(exc)]
     else:
         vision_warnings = [
-            "Perfil, cejas, orejas, mentón, mandíbula y cuello no se han "
-            "analizado por IA: este cliente no tiene el permiso de IA "
-            "marcado en su ficha."
+            "Perfil, cejas, orejas, mentón, mandíbula, cuello, frente, "
+            "nariz, labios y papada no se han analizado por IA: este "
+            "cliente no tiene el permiso de IA marcado en su ficha."
         ]
 
     existing_anatomical["facial_features_profile"] = merged_features
+    existing_anatomical["facial_horizontal_zones_ratio"] = merged_zones
     existing_profile["anatomical_metrics"] = existing_anatomical
 
     updated_client = repository.update_visagismo_profile(client_id, existing_profile)

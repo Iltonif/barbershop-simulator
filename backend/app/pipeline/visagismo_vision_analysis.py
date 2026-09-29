@@ -1,7 +1,8 @@
 """
 Análisis de rasgos faciales de perfil (perfil de nariz, cejas, orejas,
-mentón, mandíbula y cuello) usando visión de un modelo de IA, en vez de
-geometría clásica (landmarks/contorno).
+mentón, mandíbula, cuello, frente, tamaño de nariz, grosor de labios y
+papada) usando visión de un modelo de IA, en vez de geometría clásica
+(landmarks/contorno).
 
 Por qué existe este módulo -- contexto completo en CLAUDE.md, sección
 "Análisis automático de rasgos faciales" y su subsección "Calibración de
@@ -64,6 +65,22 @@ envía las 3 FOTOS reales del cliente a la API de Claude. Por eso:
 Tests: `backend/tests/test_visagismo_vision_analysis.py`, mismo patrón que
 `test_visagismo_ai_advisor.py` (mockeando `anthropic.Anthropic`, sin
 llamada real ni fotos reales).
+
+Sept 2026, ampliación: frente, tamaño de nariz, grosor de labios y papada
+(`intellectual_zone_forehead`, `nose_size`, `lip_thickness`,
+`has_double_chin`) se añadieron para la recomendación de barba y bigote
+(`beard_mustache_rules.py`) como campos SOLO manuales -- a propósito,
+porque en ese momento no hacía falta más que eso. Pedro pidió después que
+la IA también los juzgue (igual que los otros 6), sin dejar de poder
+corregirlos a mano: se añaden aquí con el mismo criterio exacto que los 6
+originales (mismo consentimiento, mismo "null si no hay confianza", misma
+nota de coherencia). La única diferencia de fontanería es que
+`intellectual_zone_forehead` no vive en `facial_features_profile` sino en
+`facial_horizontal_zones_ratio` (un modelo hermano, ver `schemas.py`), así
+que `VisionTraitsResult` reparte los 10 campos entre sus dos diccionarios
+en vez de meterlos todos en uno; y `has_double_chin` es un booleano, no
+una categoría, así que se valida aparte de `_VALID_VALUES` (que asume
+siempre un conjunto de strings).
 """
 
 import base64
@@ -79,9 +96,10 @@ from app.config import ANTHROPIC_API_KEY, ANTHROPIC_MODEL
 # foto de móvil sin comprimir.
 _MAX_SIDE_PX = 1536
 
-# Mismos valores que `FacialFeaturesProfileIn` (`app/api/schemas.py`) y el
-# motor de reglas (`visagismo_rules.py`). Si el modelo devolviera otra
-# cosa, se descarta con un aviso en vez de guardar un valor inventado.
+# Mismos valores que `FacialFeaturesProfileIn`/`FacialHorizontalZonesRatioIn`
+# (`app/api/schemas.py`) y el motor de reglas (`visagismo_rules.py`,
+# `beard_mustache_rules.py`). Si el modelo devolviera otra cosa, se
+# descarta con un aviso en vez de guardar un valor inventado.
 _VALID_VALUES: dict[str, set[str]] = {
     "profile_type": {"straight", "convex_prominent_nose", "concave"},
     "ears_projection": {"flat", "prominent_protruding"},
@@ -89,7 +107,19 @@ _VALID_VALUES: dict[str, set[str]] = {
     "eyebrow_type": {"straight_low", "arched", "prominent_ridge"},
     "chin_projection": {"retruded", "balanced", "prominent"},
     "jawline_definition": {"defined", "soft"},
+    "intellectual_zone_forehead": {"narrow", "proportional", "prominent"},
+    "nose_size": {"small", "proportional", "large"},
+    "lip_thickness": {"thin", "proportional", "prominent"},
 }
+
+# Único campo booleano (no una categoría): se valida aparte, ver el bucle
+# en `analyze_facial_traits_with_vision`.
+_BOOL_FIELDS: set[str] = {"has_double_chin"}
+
+# `intellectual_zone_forehead` vive en `facial_horizontal_zones_ratio`, no
+# en `facial_features_profile` como el resto -- ver `schemas.py`. Todo lo
+# que no esté aquí va a `facial_features_profile` por defecto.
+_ZONE_FIELDS: set[str] = {"intellectual_zone_forehead"}
 
 _FIELD_LABELS = {
     "profile_type": "perfil de nariz",
@@ -98,9 +128,13 @@ _FIELD_LABELS = {
     "eyebrow_type": "forma de cejas",
     "chin_projection": "proyección de mentón",
     "jawline_definition": "definición de mandíbula",
+    "intellectual_zone_forehead": "tamaño de frente",
+    "nose_size": "tamaño de nariz",
+    "lip_thickness": "grosor de labios",
+    "has_double_chin": "papada / doble mentón",
 }
 
-SYSTEM_PROMPT = """Eres un peluquero/barbero experto en visajismo masculino. Vas a recibir 3 fotos guiadas de un cliente: frontal, perfil izquierdo y perfil derecho. Tu tarea es juzgar, solo a partir de lo que ves en las fotos (como lo haría un peluquero mirando a un cliente real, no midiendo ángulos con precisión clínica), estos 6 rasgos:
+SYSTEM_PROMPT = """Eres un peluquero/barbero experto en visajismo masculino. Vas a recibir 3 fotos guiadas de un cliente: frontal, perfil izquierdo y perfil derecho. Tu tarea es juzgar, solo a partir de lo que ves en las fotos (como lo haría un peluquero mirando a un cliente real, no midiendo ángulos con precisión clínica), estos 10 rasgos:
 
 - profile_type: perfil de la nariz visto de lado -- "straight" (recto), "convex_prominent_nose" (convexo/nariz prominente) o "concave" (cóncavo).
 - ears_projection: cuánto sobresalen las orejas de la cabeza -- "flat" (pegadas) o "prominent_protruding" (de soplillo/prominentes).
@@ -108,20 +142,24 @@ SYSTEM_PROMPT = """Eres un peluquero/barbero experto en visajismo masculino. Vas
 - eyebrow_type: forma de las cejas -- "straight_low" (recta/baja), "arched" (arqueada) o "prominent_ridge" (arco superciliar marcado).
 - chin_projection: proyección del mentón visto de perfil -- "retruded" (retraído), "balanced" (equilibrado) o "prominent" (prominente).
 - jawline_definition: definición de la línea mandibular -- "defined" (definida) o "soft" (poco definida).
+- intellectual_zone_forehead: tamaño de la frente, entre el nacimiento del pelo y las cejas -- "narrow" (pequeña), "proportional" (proporcional) o "prominent" (ancha).
+- nose_size: tamaño de la nariz en conjunto (no su perfil, eso es profile_type) -- "small" (pequeña), "proportional" (proporcional) o "large" (grande).
+- lip_thickness: grosor de los labios -- "thin" (finos), "proportional" (proporcionados) o "prominent" (prominentes).
+- has_double_chin: true si se aprecia papada o doble mentón (sobre todo en las fotos de perfil), false si no, null si no se ve con confianza suficiente.
 
-Usa sobre todo las fotos de perfil para el perfil de nariz, el mentón, la mandíbula y el cuello, y la foto frontal (apoyándote en las de perfil si hace falta) para las cejas y las orejas.
+Usa sobre todo las fotos de perfil para el perfil de nariz, el mentón, la mandíbula, el cuello y la papada, y la foto frontal (apoyándote en las de perfil si hace falta) para las cejas, las orejas, la frente, el tamaño de nariz y el grosor de labios.
 
-Si alguno de los 6 rasgos no se puede juzgar con una confianza razonable en las fotos recibidas (foto borrosa, mal encuadrada, pelo tapando la zona, ángulo insuficiente, cabeza girada), devuelve null en ese campo en vez de adivinar: es preferible dejar un campo sin rellenar, para que el peluquero lo revise a mano, que rellenarlo mal.
+Si alguno de los 10 rasgos no se puede juzgar con una confianza razonable en las fotos recibidas (foto borrosa, mal encuadrada, pelo tapando la zona, ángulo insuficiente, cabeza girada), devuelve null en ese campo en vez de adivinar: es preferible dejar un campo sin rellenar, para que el peluquero lo revise a mano, que rellenarlo mal.
 
-Responde siempre llamando a la herramienta `record_facial_traits`, nunca en texto libre. Rellena SIEMPRE `confidence_notes` en primer lugar (es el primer campo de la herramienta): describe ahí, en 1-2 frases, lo que ves de verdad en las fotos para estos 6 rasgos y cualquier limitación (foto borrosa, ángulo insuficiente, pelo tapando la zona). Después, rellena los 6 campos de forma estrictamente COHERENTE con lo que acabas de describir -- por ejemplo, si en la nota dices que la mandíbula se ve poco marcada, `jawline_definition` tiene que ser "soft", nunca "defined". Nunca escribas en la nota una observación distinta de la que reflejan los campos: si dudas de un rasgo concreto, la forma correcta de expresarlo es devolver null en ese campo, no describir en la nota un valor diferente al que elijas."""
+Responde siempre llamando a la herramienta `record_facial_traits`, nunca en texto libre. Rellena SIEMPRE `confidence_notes` en primer lugar (es el primer campo de la herramienta): describe ahí, en 1-2 frases, lo que ves de verdad en las fotos para estos 10 rasgos y cualquier limitación (foto borrosa, ángulo insuficiente, pelo tapando la zona). Después, rellena los 10 campos de forma estrictamente COHERENTE con lo que acabas de describir -- por ejemplo, si en la nota dices que la mandíbula se ve poco marcada, `jawline_definition` tiene que ser "soft", nunca "defined"; si dices que no se aprecia papada, `has_double_chin` tiene que ser false, nunca true. Nunca escribas en la nota una observación distinta de la que reflejan los campos: si dudas de un rasgo concreto, la forma correcta de expresarlo es devolver null en ese campo, no describir en la nota un valor diferente al que elijas."""
 
 _TOOL_SCHEMA = {
     "name": "record_facial_traits",
     "description": (
-        "Registra el juicio visual de los 6 rasgos faciales de perfil a "
+        "Registra el juicio visual de los 10 rasgos faciales de perfil a "
         "partir de las 3 fotos, o null en el campo que no se pueda juzgar "
         "con confianza razonable. `confidence_notes` va primero a propósito: "
-        "escribir antes la descripción ayuda a que los 6 campos que van "
+        "escribir antes la descripción ayuda a que los 10 campos que van "
         "después sean coherentes con ella, en vez de un texto y un veredicto "
         "que se contradicen."
     ),
@@ -131,22 +169,23 @@ _TOOL_SCHEMA = {
             "confidence_notes": {
                 "type": "string",
                 "description": (
-                    "Escribe esto PRIMERO, antes que los 6 campos de abajo: "
+                    "Escribe esto PRIMERO, antes que los 10 campos de abajo: "
                     "1-2 frases (en español) describiendo lo que ves de "
                     "verdad en las fotos para perfil/cejas/orejas/mentón/"
-                    "mandíbula/cuello y la calidad de las fotos (p.ej. si "
-                    "alguna foto de perfil no permitía ver bien un rasgo). "
-                    "Los 6 campos siguientes DEBEN coincidir con lo que "
-                    "digas aquí -- nunca describas aquí un rasgo distinto "
-                    "del valor que vayas a elegir abajo."
+                    "mandíbula/cuello/frente/nariz/labios/papada y la calidad "
+                    "de las fotos (p.ej. si alguna foto de perfil no permitía "
+                    "ver bien un rasgo). Los 10 campos siguientes DEBEN "
+                    "coincidir con lo que digas aquí -- nunca describas aquí "
+                    "un rasgo distinto del valor que vayas a elegir abajo."
                 ),
             },
             **{
                 name: {"type": ["string", "null"], "enum": sorted(values) + [None]}
                 for name, values in _VALID_VALUES.items()
             },
+            **{name: {"type": ["boolean", "null"]} for name in _BOOL_FIELDS},
         },
-        "required": ["confidence_notes", *list(_VALID_VALUES.keys())],
+        "required": ["confidence_notes", *_VALID_VALUES.keys(), *_BOOL_FIELDS],
     },
 }
 
@@ -167,6 +206,7 @@ class VisionAnalysisError(RuntimeError):
 @dataclass
 class VisionTraitsResult:
     facial_features_profile: dict = field(default_factory=dict)
+    facial_horizontal_zones_ratio: dict = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
 
@@ -209,9 +249,9 @@ def analyze_facial_traits_with_vision(
     if not ANTHROPIC_API_KEY:
         raise VisionAnalysisNotConfigured(
             "No hay ninguna ANTHROPIC_API_KEY configurada en este despliegue: "
-            "perfil, cejas, orejas, mentón, mandíbula y cuello no se pueden "
-            "analizar por IA hasta que se configure esa variable de entorno "
-            "(ver CLAUDE.md)."
+            "perfil, cejas, orejas, mentón, mandíbula, cuello, frente, nariz, "
+            "labios y papada no se pueden analizar por IA hasta que se "
+            "configure esa variable de entorno (ver CLAUDE.md)."
         )
     try:
         import anthropic
@@ -253,7 +293,17 @@ def analyze_facial_traits_with_vision(
     result = VisionTraitsResult()
     for field_name, valid_values in _VALID_VALUES.items():
         value = raw.get(field_name)
+        destination = result.facial_horizontal_zones_ratio if field_name in _ZONE_FIELDS else result.facial_features_profile
         if value in valid_values:
+            destination[field_name] = value
+        elif value is not None:
+            result.warnings.append(
+                f"La IA devolvió un valor no reconocido para {_FIELD_LABELS[field_name]} "
+                f"({value!r}): se descarta, revísalo a mano."
+            )
+    for field_name in _BOOL_FIELDS:
+        value = raw.get(field_name)
+        if isinstance(value, bool):
             result.facial_features_profile[field_name] = value
         elif value is not None:
             result.warnings.append(
@@ -263,7 +313,10 @@ def analyze_facial_traits_with_vision(
     note = (raw.get("confidence_notes") or "").strip()
     if note:
         result.warnings.append(f"Nota de la IA sobre estas fotos: {note}")
-    missing = [_FIELD_LABELS[f] for f in _VALID_VALUES if f not in result.facial_features_profile]
+    missing = [
+        _FIELD_LABELS[f] for f in (*_VALID_VALUES, *_BOOL_FIELDS)
+        if f not in result.facial_features_profile and f not in result.facial_horizontal_zones_ratio
+    ]
     if missing:
         result.warnings.append(
             "La IA no pudo juzgar con confianza: " + ", ".join(missing) + " -- revísalo a mano."

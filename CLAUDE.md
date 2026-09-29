@@ -554,13 +554,61 @@ las 3 fotos, en vez de medir ángulos.
     `consent_ai_analysis` sigue en `false`). Sin errores de consola
     achacables a este cambio. Suite completa: 118/118.
 
+- **Frente/nariz/labios/papada pasan de manuales a juzgados por IA (sept
+  2026)**: `intellectual_zone_forehead`, `nose_size`, `lip_thickness` y
+  `has_double_chin` se habían añadido antes como campos SOLO manuales
+  (ver la sección de barba y bigote más abajo), porque en ese momento no
+  hacía falta más. Pedro, tras usar la página y ver el icono ✋ en estos 4
+  campos junto al ✨ de los otros 6, pidió explícitamente: "quiero que no
+  sean campos manuales, que se puedan editar pero que te de una respuesta
+  la IA" -- es decir, mismo tratamiento que perfil/cejas/orejas/mentón/
+  mandíbula/cuello (la IA los rellena si hay consentimiento y confianza,
+  el barbero puede corregirlos siempre).
+  - `visagismo_vision_analysis.py`: `_VALID_VALUES` gana `nose_size` y
+    `lip_thickness` (parecidos a los 6 originales, valen igual);
+    `intellectual_zone_forehead` también entra pero se marca aparte en
+    `_ZONE_FIELDS` porque vive en `facial_horizontal_zones_ratio`, un
+    diccionario HERMANO de `facial_features_profile` (ver `schemas.py`,
+    `AnatomicalMetricsIn`) -- no en el mismo, así que `VisionTraitsResult`
+    ahora reparte el resultado entre dos diccionarios en vez de uno solo.
+    `has_double_chin` se marca en `_BOOL_FIELDS` porque es un booleano, no
+    una categoría de texto -- se valida y se añade a `_TOOL_SCHEMA` por
+    separado del resto (`{"type": ["boolean", "null"]}` en vez del
+    `enum` de string que usa `_VALID_VALUES`). `SYSTEM_PROMPT` y
+    `_TOOL_SCHEMA` pasan de describir 6 rasgos a 10, con un ejemplo de
+    coherencia para `has_double_chin` igual que ya tenían los otros 6
+    (para el mismo problema de nota-contra-campos que se documenta arriba).
+  - `clients_routes.override_visagismo_auto_analysis`: además de fusionar
+    `facial_features_profile` (como ya hacía), ahora también lee, fusiona
+    (`merge_detected_features`, sin pisar lo manual) y guarda
+    `facial_horizontal_zones_ratio` -- antes este endpoint no tocaba ese
+    diccionario en absoluto.
+  - `facial_traits_analysis.merge_detected_features`: `has_double_chin`
+    se añade al caso especial que ya tenía `has_glasses` (un `False` de
+    checkbox sin marcar cuenta como "vacío", no como un valor puesto a
+    mano, porque una casilla no distingue "no" de "sin especificar").
+  - `frontend/visagismo.html`: los 4 campos (Frente, Nariz, Labios,
+    Papada / doble mentón) cambian su icono de ✋ `tag-hand` a
+    `wand-sparkles` `tag-ai`, y las dos leyendas explicativas (la del
+    encabezado y la de la sección "Rasgos") pasan de listar 6 rasgos por
+    IA a los 10. Ningún cambio en los `<select>` ni en `applyClientToPage`:
+    los valores del enum ya coincidían, solo cambiaba de dónde podían
+    venir.
+  - Tests ampliados: `test_visagismo_vision_analysis.py` (rutas de los 4
+    campos nuevos a su diccionario correcto, `has_double_chin` con
+    `True`/`False`/valor no booleano) y
+    `test_sessions.py::test_visagismo_auto_analysis_gated_by_ai_consent_and_key`
+    (fusión de extremo a extremo contra el endpoint real, incluida la
+    corrección manual previa sin pisar en ambos diccionarios). 143/143 en
+    verde.
+
 Pendiente / no cubierto a propósito en `frontend/visagismo.html`: la
-página nueva solo cubre `facial_features_profile` (los campos de esta
-sección) -- `hair_physical_metrics`, `lifestyle_and_preferences`,
-`cranial_morphology` y `facial_geometry` del resto de
-`visagismo_profile` siguen sin tener UI dedicada (mismo estado "solo
-API" que ya tenían antes de esta feature, ver nota al final de la
-sección de reglas de visagismo).
+página nueva solo cubre `facial_features_profile` y
+`facial_horizontal_zones_ratio` (los campos de esta sección) --
+`hair_physical_metrics`, `lifestyle_and_preferences`, `cranial_morphology`
+y `facial_geometry` del resto de `visagismo_profile` siguen sin tener UI
+dedicada (mismo estado "solo API" que ya tenían antes de esta feature, ver
+nota al final de la sección de reglas de visagismo).
 
 ## Guía de visajismo de perfil y cámara con marco (sept 2026)
 

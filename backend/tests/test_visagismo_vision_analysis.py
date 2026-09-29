@@ -60,6 +60,87 @@ class TestAnalyzeFacialTraitsWithVision(unittest.TestCase):
         image_blocks = [b for b in content if b.get("type") == "image"]
         self.assertEqual(len(image_blocks), 3)
 
+    def test_success_path_routes_new_fields_to_correct_destination(self):
+        """`intellectual_zone_forehead` (Frente) vive en un diccionario distinto
+        (`facial_horizontal_zones_ratio`) al resto, y `has_double_chin` es un
+        booleano, no una categoría -- ver el docstring del módulo (ampliación
+        sept 2026, Pedro pidió que la IA también juzgue estos 4 campos)."""
+        fake_response = _fake_tool_use({
+            "profile_type": "straight",
+            "ears_projection": "prominent_protruding",
+            "neck_proportions": "proportional",
+            "eyebrow_type": "arched",
+            "chin_projection": "balanced",
+            "jawline_definition": "defined",
+            "intellectual_zone_forehead": "proportional",
+            "nose_size": "small",
+            "lip_thickness": "thin",
+            "has_double_chin": False,
+            "confidence_notes": "Fotos claras, buena confianza.",
+        })
+        fake_client = mock.Mock()
+        fake_client.messages.create.return_value = fake_response
+
+        with mock.patch.object(vision, "ANTHROPIC_API_KEY", "sk-fake"):
+            with mock.patch("anthropic.Anthropic", return_value=fake_client):
+                result = vision.analyze_facial_traits_with_vision(_fake_image(), _fake_image(), _fake_image())
+
+        self.assertEqual(result.facial_features_profile, {
+            "profile_type": "straight",
+            "ears_projection": "prominent_protruding",
+            "neck_proportions": "proportional",
+            "eyebrow_type": "arched",
+            "chin_projection": "balanced",
+            "jawline_definition": "defined",
+            "nose_size": "small",
+            "lip_thickness": "thin",
+            "has_double_chin": False,
+        })
+        self.assertEqual(result.facial_horizontal_zones_ratio, {"intellectual_zone_forehead": "proportional"})
+        # No debe quedar como "sin juzgar" solo por ser `False`.
+        self.assertFalse(any("papada" in w and "no pudo juzgar" in w for w in result.warnings))
+
+    def test_boolean_field_true_is_kept(self):
+        fake_response = _fake_tool_use({
+            "profile_type": "straight",
+            "ears_projection": "flat",
+            "neck_proportions": "proportional",
+            "eyebrow_type": "arched",
+            "chin_projection": "balanced",
+            "jawline_definition": "defined",
+            "has_double_chin": True,
+            "confidence_notes": "Se aprecia papada en las fotos de perfil.",
+        })
+        fake_client = mock.Mock()
+        fake_client.messages.create.return_value = fake_response
+
+        with mock.patch.object(vision, "ANTHROPIC_API_KEY", "sk-fake"):
+            with mock.patch("anthropic.Anthropic", return_value=fake_client):
+                result = vision.analyze_facial_traits_with_vision(_fake_image(), _fake_image(), _fake_image())
+
+        self.assertEqual(result.facial_features_profile["has_double_chin"], True)
+
+    def test_boolean_field_with_non_bool_value_is_discarded_with_warning(self):
+        fake_response = _fake_tool_use({
+            "profile_type": "straight",
+            "ears_projection": "flat",
+            "neck_proportions": "proportional",
+            "eyebrow_type": "arched",
+            "chin_projection": "balanced",
+            "jawline_definition": "defined",
+            "has_double_chin": "sí",
+            "confidence_notes": "",
+        })
+        fake_client = mock.Mock()
+        fake_client.messages.create.return_value = fake_response
+
+        with mock.patch.object(vision, "ANTHROPIC_API_KEY", "sk-fake"):
+            with mock.patch("anthropic.Anthropic", return_value=fake_client):
+                result = vision.analyze_facial_traits_with_vision(_fake_image(), _fake_image(), _fake_image())
+
+        self.assertNotIn("has_double_chin", result.facial_features_profile)
+        self.assertTrue(any("valor no reconocido" in w and "papada" in w for w in result.warnings))
+
     def test_null_fields_from_model_are_left_out_with_warning(self):
         fake_response = _fake_tool_use({
             "profile_type": None,

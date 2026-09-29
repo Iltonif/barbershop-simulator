@@ -266,10 +266,12 @@ def merge_detected_features(existing: dict, detected: dict) -> dict:
     se había guardado una vez, el análisis automático no volvía a rellenar
     nada (devolvía 200 sin avisos, pero sin guardar ningún resultado).
 
-    `has_glasses` además acepta `False` como vacío: la página lo guarda con
-    una casilla, que no puede distinguir "no lleva gafas" de "sin
-    especificar". La detección de gafas fue la más fiable de la
-    calibración, así que una casilla sin marcar no debe bloquearla.
+    `has_glasses` y `has_double_chin` además aceptan `False` como vacío:
+    la página los guarda con una casilla, que no puede distinguir "no" de
+    "sin especificar". La detección de gafas fue la más fiable de la
+    calibración, así que una casilla sin marcar no debe bloquearla; lo
+    mismo aplica a la papada, que ahora también juzga la IA con visión
+    (ver `visagismo_vision_analysis.py`).
 
     `eye_symmetry_percent` solo se escribe junto con `eye_symmetry`, para
     no dejar un porcentaje medido que contradiga una simetría puesta a mano."""
@@ -277,7 +279,7 @@ def merge_detected_features(existing: dict, detected: dict) -> dict:
 
     def is_empty(key):
         value = merged.get(key)
-        return value is None or value == "" or (key == "has_glasses" and value is False)
+        return value is None or value == "" or (key in ("has_glasses", "has_double_chin") and value is False)
 
     symmetry_filled = False
     for key, value in detected.items():

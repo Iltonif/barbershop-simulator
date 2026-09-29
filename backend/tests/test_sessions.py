@@ -441,11 +441,12 @@ class SessionFlowTest(unittest.TestCase):
             app_config.TRIPO_API_KEY = old_key
 
     def test_visagismo_auto_analysis_gated_by_ai_consent_and_key(self):
-        """El análisis local (frontal) funciona siempre. Los 6 rasgos por
-        IA con visión (perfil/cejas/orejas/mentón/mandíbula/cuello) solo se
-        intentan si el cliente tiene consent_ai_analysis -- y si además
-        falta ANTHROPIC_API_KEY o la llamada falla, el endpoint sigue
-        devolviendo 200 con un aviso, nunca rompe el resto del análisis."""
+        """El análisis local (frontal) funciona siempre. Los 10 rasgos por
+        IA con visión (perfil/cejas/orejas/mentón/mandíbula/cuello/frente/
+        nariz/labios/papada) solo se intentan si el cliente tiene
+        consent_ai_analysis -- y si además falta ANTHROPIC_API_KEY o la
+        llamada falla, el endpoint sigue devolviendo 200 con un aviso,
+        nunca rompe el resto del análisis."""
         from app import config as app_config
         from app.pipeline import visagismo_vision_analysis as vision
 
@@ -476,13 +477,18 @@ class SessionFlowTest(unittest.TestCase):
         self.assertTrue(any("ANTHROPIC_API_KEY" in w for w in r.json()["warnings"]))
 
         # Con consentimiento y clave, y la API respondiendo: se rellenan
-        # los 6 campos, fusionados con lo que ya hubiera (no pisa nada).
+        # los 10 campos, fusionados con lo que ya hubiera (no pisa nada).
+        # `intellectual_zone_forehead` (frente) va a un diccionario distinto
+        # (`facial_horizontal_zones_ratio`) y `has_double_chin` (papada) es
+        # booleano -- ver docstring de `visagismo_vision_analysis.py`.
         fake_block = Mock()
         fake_block.type = "tool_use"
         fake_block.input = {
             "profile_type": "straight", "ears_projection": "flat",
             "neck_proportions": "proportional", "eyebrow_type": "arched",
             "chin_projection": "balanced", "jawline_definition": "defined",
+            "intellectual_zone_forehead": "proportional", "nose_size": "small",
+            "lip_thickness": "thin", "has_double_chin": False,
             "confidence_notes": "",
         }
         fake_response = Mock()
@@ -498,15 +504,27 @@ class SessionFlowTest(unittest.TestCase):
              patch("anthropic.Anthropic", return_value=fake_anthropic_client):
             r = self.barber.post(f"/api/clients/{cid}/visagismo-auto-analysis", files=photos)
         self.assertEqual(r.status_code, 200, r.text)
-        features = r.json()["client"]["visagismo_profile"]["anatomical_metrics"]["facial_features_profile"]
+        anatomical = r.json()["client"]["visagismo_profile"]["anatomical_metrics"]
+        features = anatomical["facial_features_profile"]
         self.assertEqual(features["profile_type"], "straight")
         self.assertEqual(features["jawline_definition"], "defined")
+        self.assertEqual(features["nose_size"], "small")
+        self.assertEqual(features["lip_thickness"], "thin")
+        self.assertEqual(features["has_double_chin"], False)
+        self.assertEqual(anatomical["facial_horizontal_zones_ratio"]["intellectual_zone_forehead"], "proportional")
 
-        # Corrección manual previa: no se pisa con un segundo análisis.
+        # Corrección manual previa: no se pisa con un segundo análisis --
+        # tanto en `facial_features_profile` como en el diccionario hermano
+        # `facial_horizontal_zones_ratio`.
         vp = self.barber.get(f"/api/clients/{cid}").json()["visagismo_profile"]
         vp["anatomical_metrics"]["facial_features_profile"]["profile_type"] = "concave"
+        vp["anatomical_metrics"]["facial_horizontal_zones_ratio"]["intellectual_zone_forehead"] = "narrow"
         self.barber.patch(f"/api/clients/{cid}/visagismo-profile", json=vp)
-        fake_block.input = dict(fake_block.input, profile_type="convex_prominent_nose")
+        fake_block.input = dict(
+            fake_block.input,
+            profile_type="convex_prominent_nose",
+            intellectual_zone_forehead="prominent",
+        )
         photos = {"photo_frontal": ("f.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
                   "photo_perfil_izquierdo": ("i.jpg", io.BytesIO(_jpeg()), "image/jpeg"),
                   "photo_perfil_derecho": ("d.jpg", io.BytesIO(_jpeg()), "image/jpeg")}
@@ -514,8 +532,9 @@ class SessionFlowTest(unittest.TestCase):
              patch.object(vision, "ANTHROPIC_API_KEY", "sk-fake"), \
              patch("anthropic.Anthropic", return_value=fake_anthropic_client):
             r = self.barber.post(f"/api/clients/{cid}/visagismo-auto-analysis", files=photos)
-        features = r.json()["client"]["visagismo_profile"]["anatomical_metrics"]["facial_features_profile"]
-        self.assertEqual(features["profile_type"], "concave")
+        anatomical = r.json()["client"]["visagismo_profile"]["anatomical_metrics"]
+        self.assertEqual(anatomical["facial_features_profile"]["profile_type"], "concave")
+        self.assertEqual(anatomical["facial_horizontal_zones_ratio"]["intellectual_zone_forehead"], "narrow")
 
 
 if __name__ == "__main__":
