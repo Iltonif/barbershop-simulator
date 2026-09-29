@@ -1,6 +1,6 @@
-# Simulador Hiperrealista de Cortes de Pelo/Barba
+# Compendio
 
-MVP de arquitectura para una app de barbería que, a partir de una foto del cliente, genera una simulación personalizada de un corte de pelo/barba.
+Simulador hiperrealista de cortes de pelo/barba para barberías: MVP de arquitectura para una app que, a partir de una foto del cliente, genera una simulación personalizada de un corte de pelo/barba.
 
 Ver `CLAUDE.md` para el contexto completo del proyecto, las decisiones de arquitectura y el roadmap — está pensado para que Claude Code lo lea automáticamente al abrir este repo.
 

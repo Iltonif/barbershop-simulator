@@ -2545,6 +2545,50 @@ Verificado con la suite completa de backend (145 tests, incluida la nueva
 mano (`node -e "new Function(...)"` sobre cada `<script>` inline) que
 ningún HTML tocado quedó con un error de sintaxis tras los borrados.
 
+## Nombre de la app: Compendio (sept 2026)
+
+Pedro: "vamos a ponerle de nombre Compendio a la app". Cambio de marca, sin
+tocar funcionalidad. Se sustituyó el nombre genérico ("Simulador de Cortes
+de Pelo/Barba") por "Compendio" en todos los sitios donde el usuario final
+lo ve:
+
+- **`frontend/inicio.html`**: `<title>` y el `<h1>` de la portada (antes
+  "Simulador de Cortes de Pelo & Barba", ahora solo "Compendio"; se deja el
+  `<div class="eyebrow">Barbería · IA</div>` encima como descripción corta,
+  mismo criterio de "poco texto" ya documentado más arriba). El `<h1>` no
+  tenía un tamaño fijo pensado para dos líneas (`clamp()` + `text-align:
+  center`), así que una sola palabra no rompe el diseño.
+- **`frontend/index.html`**: `<title>` pasa a "Compendio · Simular corte"
+  (con el nombre de la página, igual que el resto de páginas ya llevan un
+  título funcional propio -- ver la lista de `<title>` de cada página, que
+  no se ha tocado salvo estas dos).
+- **`frontend/manifest.webmanifest`**: `name` y `short_name` pasan a
+  "Compendio" (antes "Simulador de Cortes de Pelo/Barba" /
+  "Cortes Simulador") -- es el nombre que aparece bajo el icono al instalar
+  la PWA en la pantalla de inicio de una tablet/móvil.
+- **`<meta name="apple-mobile-web-app-title">`**: cambiado de "Cortes
+  Simulador" a "Compendio" en las 14 páginas que lo llevan (mismo nombre
+  que usa iOS bajo el icono si se añade a pantalla de inicio desde Safari,
+  que no lee `manifest.webmanifest`).
+- **`README.md`**: título del repo pasa a "# Compendio", con la
+  descripción anterior ("simulador hiperrealista de cortes de pelo/barba
+  para barberías") como primera frase en vez de como título.
+
+**Lo que NO se ha tocado, a propósito**: el nombre del repositorio de
+GitHub (`Iltonif/barbershop-simulator`) y el nombre del servicio en
+Railway (`barbershop-simulator`, ver la URL de producción
+`barbershop-simulator-production.up.railway.app`). Renombrar cualquiera de
+los dos es una operación aparte y más arriesgada (la URL pública cambiaría,
+y el flujo de bundles de esta sesión referencia ese repo por nombre) -- si
+Pedro quiere que la URL/repo también se llame "compendio" en vez de
+"barbershop-simulator", es una decisión suya a confirmar antes de tocarlo,
+no algo que se haga solo por pedir el nombre de la app.
+
+Sin tests de backend que tocar (cambio 100% de textos de frontend/
+documentación, ningún endpoint ni dato nuevo). Verificado con
+`node -e "new Function(...)"` sobre los `<script>` de `index.html` e
+`inicio.html` (sin errores de sintaxis tras el cambio del `<h1>`).
+
 ## Onboarding "medio forzado" de cliente y peluquero (sept 2026)
 
 Pedro: la primera vez que alguien use la web en la barbería (cliente o

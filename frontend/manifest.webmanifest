@@ -1,7 +1,7 @@
 {
-  "name": "Simulador de Cortes de Pelo/Barba",
-  "short_name": "Cortes Simulador",
-  "description": "Simulador y catálogo de cortes de pelo/barba para peluquerías",
+  "name": "Compendio",
+  "short_name": "Compendio",
+  "description": "Compendio — simulador y catálogo de cortes de pelo/barba para peluquerías",
   "start_url": "/inicio.html",
   "scope": "/",
   "display": "standalone",
