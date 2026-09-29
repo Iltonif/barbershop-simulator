@@ -139,7 +139,7 @@
     <h1 class="page-title">Visajismo</h1>
     <details class="info"><summary></summary><div class="info-body">
       <p>Rasgos de la cara del cliente para afinar las recomendaciones de corte.</p>
-      <p>Con las fotos se detectan solas la simetría y separación de los ojos y las gafas (<span data-icon="sparkles"></span>). Perfil, cejas, orejas, mentón, mandíbula y cuello (<span data-icon="wand-sparkles"></span>) los juzga una IA con visión si el cliente dio su permiso (en su ficha); si no, se marcan a mano. Todo se puede corregir.</p>
+      <p>Con las fotos se detectan solas la simetría y separación de los ojos y las gafas (<span data-icon="sparkles"></span>). Perfil, cejas, orejas, mentón, mandíbula y cuello (<span data-icon="wand-sparkles"></span>) los juzga una IA con visión si el cliente da su permiso (se pregunta al abrir su ficha aquí); si no, se marcan a mano. Todo se puede corregir.</p>
     </div></details>
   </div>
 
@@ -164,7 +164,23 @@
 
   <div id="status" role="status"></div>
 
-  <section id="photos-card" class="glass-card form-card">
+  <section id="ai-gate" class="glass-card form-card" style="display:none;">
+    <div class="head-row step-head">
+      <h2 class="step-title"><span data-icon="shield-check"></span>Permiso de IA</h2>
+      <details class="info"><summary></summary><div class="info-body">
+        <p>Perfil, cejas, orejas, mentón, mandíbula y cuello se pueden rellenar solos si un modelo de IA con visión (API de Claude) analiza las 2 fotos de perfil del cliente -- para eso, esas 2 fotos salen del servidor hacia ese servicio.</p>
+        <p>Sin este permiso se puede seguir usando esta página igual: esos 6 campos se rellenan a mano, y el resto del análisis (simetría/separación de ojos, gafas) no depende de este permiso.</p>
+      </div></details>
+    </div>
+    <label class="checkbox-row">
+      <input type="checkbox" id="ai-gate-checkbox" />
+      <span>Permiso para juzgar perfil/cejas/orejas/mentón/mandíbula/cuello con IA</span>
+    </label>
+    <button id="ai-gate-accept" type="button"><span data-icon="check"></span>Aceptar y continuar</button>
+    <button id="ai-gate-skip" type="button" class="secondary"><span data-icon="hand"></span>Seguir sin IA (rellenar a mano)</button>
+  </section>
+
+  <section id="photos-card" class="glass-card form-card"
     <div class="head-row step-head">
       <h2 class="step-title"><span class="step-num" id="step-num-2">2</span>Fotos</h2>
       <details class="info"><summary></summary><div class="info-body">
@@ -228,7 +244,7 @@
       <h2 class="step-title"><span class="step-num" id="step-num-3">3</span>Rasgos</h2>
       <details class="info"><summary></summary><div class="info-body">
         <p><span data-icon="sparkles"></span> = lo rellena el análisis local de las fotos (gratis, siempre).</p>
-        <p><span data-icon="wand-sparkles"></span> = lo juzga una IA con visión a partir de las 3 fotos, solo si el cliente dio su permiso de IA (marca la casilla en su ficha). Puedes corregirlo igual que el resto.</p>
+        <p><span data-icon="wand-sparkles"></span> = lo juzga una IA con visión a partir de las 3 fotos, solo si el cliente dio su permiso de IA (se pregunta al abrir su ficha, arriba). Puedes corregirlo igual que el resto.</p>
         <p><span data-icon="hand"></span> = se marca a mano mirando al cliente: las fotos no permiten detectarlo con fiabilidad.</p>
       </div></details>
     </div>
@@ -452,6 +468,79 @@
       document.getElementById("quiz-link").href = `cuestionario.html?client_id=${encodeURIComponent(client.id)}`;
     }
 
+    // Permiso de IA (consent_ai_analysis): antes vivía como una casilla más
+    // en ficha.html, donde Pedro varias veces no la encontraba. Ahora se
+    // pregunta aquí mismo, al abrir un cliente concreto en Visajismo: si
+    // todavía no la dio, se oculta el resto de la página (fotos, rasgos) y
+    // solo se ve esta pregunta, hasta que el peluquero pulse "Aceptar" o
+    // "Seguir sin IA". No es un requisito para poder usar la página --
+    // declinar dejar los 6 campos de IA a rellenar a mano, como ya pasaba
+    // antes de que existiera este permiso.
+    const aiGateSection = document.getElementById("ai-gate");
+    const searchSection = document.getElementById("search-section");
+    const photosCard = document.getElementById("photos-card");
+    let gateClient = null;
+
+    function showAiGate(client) {
+      gateClient = client;
+      document.getElementById("ai-gate-checkbox").checked = false;
+      searchSection.style.display = "none";
+      photosCard.style.display = "none";
+      analysisForm.style.display = "none";
+      aiGateSection.style.display = "block";
+      aiGateSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function hideAiGate() {
+      gateClient = null;
+      aiGateSection.style.display = "none";
+      searchSection.style.display = "";
+      photosCard.style.display = "";
+    }
+
+    function openClient(client) {
+      if (client.display_name) document.getElementById("client-name").value = client.display_name;
+      if (client.consent_ai_analysis) {
+        hideAiGate();
+        applyClientToPage(client);
+        say("ok", client.display_name || "Ficha abierta");
+      } else {
+        showAiGate(client);
+      }
+    }
+
+    document.getElementById("ai-gate-accept").addEventListener("click", async () => {
+      if (!gateClient) return;
+      document.getElementById("ai-gate-checkbox").checked = true;
+      say("busy", "Guardando permiso…");
+      try {
+        const res = await fetch(`${API_BASE}/clients/${gateClient.id}/consents`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ consent_ai_analysis: true }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          say("warn", `No se pudo guardar: ${err.detail || res.statusText}`);
+          return;
+        }
+        const client = await res.json();
+        hideAiGate();
+        applyClientToPage(client);
+        say("ok", "Permiso guardado");
+      } catch (e) {
+        say("warn", `Sin conexión: ${e.message}`);
+      }
+    });
+
+    document.getElementById("ai-gate-skip").addEventListener("click", () => {
+      if (!gateClient) return;
+      const client = gateClient;
+      hideAiGate();
+      applyClientToPage(client);
+      say("ok", client.display_name || "Ficha abierta");
+    });
+
     async function loadClientFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const clientId = params.get("client_id");
@@ -465,9 +554,7 @@
         }
         const client = await res.json();
         document.getElementById("consent").checked = true;
-        if (client.display_name) document.getElementById("client-name").value = client.display_name;
-        applyClientToPage(client);
-        say("ok", client.display_name || "Ficha abierta");
+        openClient(client);
       } catch (e) {
         say("warn", `Sin conexión: ${e.message}`);
       }
@@ -498,8 +585,7 @@
           }
           match = await createRes.json();
         }
-        applyClientToPage(match);
-        say("ok", match.display_name || "Ficha abierta");
+        openClient(match);
       } catch (e) {
         say("warn", `Sin conexión: ${e.message}`);
       }

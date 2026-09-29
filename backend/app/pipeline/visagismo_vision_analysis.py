@@ -111,32 +111,42 @@ SYSTEM_PROMPT = """Eres un peluquero/barbero experto en visajismo masculino. Vas
 
 Usa sobre todo las fotos de perfil para el perfil de nariz, el mentón, la mandíbula y el cuello, y la foto frontal (apoyándote en las de perfil si hace falta) para las cejas y las orejas.
 
-Si alguno de los 6 rasgos no se puede juzgar con una confianza razonable en las fotos recibidas (foto borrosa, mal encuadrada, pelo tapando la zona, ángulo insuficiente, cabeza girada), devuelve null en ese campo en vez de adivinar: es preferible dejar un campo sin rellenar, para que el peluquero lo revise a mano, que rellenarlo mal. Responde siempre llamando a la herramienta `record_facial_traits`, nunca en texto libre."""
+Si alguno de los 6 rasgos no se puede juzgar con una confianza razonable en las fotos recibidas (foto borrosa, mal encuadrada, pelo tapando la zona, ángulo insuficiente, cabeza girada), devuelve null en ese campo en vez de adivinar: es preferible dejar un campo sin rellenar, para que el peluquero lo revise a mano, que rellenarlo mal.
+
+Responde siempre llamando a la herramienta `record_facial_traits`, nunca en texto libre. Rellena SIEMPRE `confidence_notes` en primer lugar (es el primer campo de la herramienta): describe ahí, en 1-2 frases, lo que ves de verdad en las fotos para estos 6 rasgos y cualquier limitación (foto borrosa, ángulo insuficiente, pelo tapando la zona). Después, rellena los 6 campos de forma estrictamente COHERENTE con lo que acabas de describir -- por ejemplo, si en la nota dices que la mandíbula se ve poco marcada, `jawline_definition` tiene que ser "soft", nunca "defined". Nunca escribas en la nota una observación distinta de la que reflejan los campos: si dudas de un rasgo concreto, la forma correcta de expresarlo es devolver null en ese campo, no describir en la nota un valor diferente al que elijas."""
 
 _TOOL_SCHEMA = {
     "name": "record_facial_traits",
     "description": (
         "Registra el juicio visual de los 6 rasgos faciales de perfil a "
         "partir de las 3 fotos, o null en el campo que no se pueda juzgar "
-        "con confianza razonable."
+        "con confianza razonable. `confidence_notes` va primero a propósito: "
+        "escribir antes la descripción ayuda a que los 6 campos que van "
+        "después sean coherentes con ella, en vez de un texto y un veredicto "
+        "que se contradicen."
     ),
     "input_schema": {
         "type": "object",
         "properties": {
+            "confidence_notes": {
+                "type": "string",
+                "description": (
+                    "Escribe esto PRIMERO, antes que los 6 campos de abajo: "
+                    "1-2 frases (en español) describiendo lo que ves de "
+                    "verdad en las fotos para perfil/cejas/orejas/mentón/"
+                    "mandíbula/cuello y la calidad de las fotos (p.ej. si "
+                    "alguna foto de perfil no permitía ver bien un rasgo). "
+                    "Los 6 campos siguientes DEBEN coincidir con lo que "
+                    "digas aquí -- nunca describas aquí un rasgo distinto "
+                    "del valor que vayas a elegir abajo."
+                ),
+            },
             **{
                 name: {"type": ["string", "null"], "enum": sorted(values) + [None]}
                 for name, values in _VALID_VALUES.items()
             },
-            "confidence_notes": {
-                "type": "string",
-                "description": (
-                    "Nota breve (1-2 frases, en español) sobre la calidad de "
-                    "las fotos o la confianza del juicio -- p.ej. si alguna "
-                    "foto de perfil no permitía ver bien un rasgo."
-                ),
-            },
         },
-        "required": [*list(_VALID_VALUES.keys()), "confidence_notes"],
+        "required": ["confidence_notes", *list(_VALID_VALUES.keys())],
     },
 }
 

@@ -480,6 +480,79 @@ las 3 fotos, en vez de medir ángulos.
   no dependen de la posición en el DOM) a después de la rejilla de
   campos y de "Usa gafas"/notas, justo antes del botón "Guardar" --
   ahora primero se ven los rasgos ya rellenados y debajo el porqué.
+- **Nota de la IA incoherente con los campos que rellena (sept 2026,
+  bug real visto con fotos reales de Pedro)**: la nota que devuelve el
+  modelo (`confidence_notes`, "Nota de la IA sobre estas fotos") describía
+  rasgos que CONTRADECÍAN el valor guardado en los propios campos -- p.ej.
+  la nota decía "la mandíbula se aprecia poco marcada" mientras el campo
+  Mandíbula quedaba en "Definida", o "cejas rectas y relativamente bajas"
+  mientras el campo Cejas quedaba en "Arqueada". Causa: con `tool_choice`
+  forzado, el modelo genera el JSON completo de una vez, sin ningún paso
+  de razonamiento visible antes; `confidence_notes` iba como ÚLTIMO campo
+  del schema, así que nada obligaba a que ese texto libre describiera lo
+  mismo que los 6 valores categóricos ya elegidos -- ambos se generaban de
+  forma independiente y podían divergir. Arreglo en
+  `visagismo_vision_analysis.py` (`_TOOL_SCHEMA`, `SYSTEM_PROMPT`): se
+  puso `confidence_notes` como PRIMER campo del schema (antes de los 6
+  campos categóricos) y se le pide explícitamente que describa ahí primero
+  lo que ve, y que los 6 campos siguientes sean coherentes con esa
+  descripción -- aprovecha que Claude genera el JSON de una herramienta en
+  el orden de sus propiedades, así que escribir la nota antes obliga a que
+  los valores categóricos que vienen después estén condicionados por ella,
+  en vez de ser dos respuestas independientes que puedan contradecirse. El
+  `SYSTEM_PROMPT` remacha además que si hay duda sobre un rasgo concreto,
+  la forma correcta de expresarlo es `null` en ese campo, no describir un
+  valor distinto en la nota. Esto reduce mucho el riesgo, pero sigue sin
+  ser una garantía absoluta (es un modelo de lenguaje, no una regla
+  determinista) -- conviene seguir revisando la nota contra los campos de
+  vez en cuando. No se han tocado los tests (siguen mockeando el `dict` de
+  respuesta, no dependen del orden de las claves) -- 118/118 en verde.
+- **El permiso de IA se pregunta al abrir Visajismo, no en la ficha (sept
+  2026)**: Pedro, tras localizar por fin la casilla "Permiso para juzgar
+  perfil/cejas/orejas/mentón/mandíbula/cuello con IA" en `ficha.html` (ver
+  el historial de confusión más arriba, en "Rasgos de perfil juzgados por
+  IA con visión"): pidió que esa pregunta viva DENTRO de Visajismo, y que
+  al abrir un cliente sin ese permiso solo se vea la pregunta -- nada de
+  fotos ni de campos de rasgos -- hasta que el peluquero responda.
+  - **`frontend/visagismo.html`**: nueva sección `#ai-gate` (checkbox +
+    "Aceptar y continuar" + "Seguir sin IA (rellenar a mano)"), oculta por
+    defecto. `openClient(client)` (llamada tanto al llegar con
+    `client_id` en la URL como al pulsar "Abrir ficha") decide: si
+    `client.consent_ai_analysis` ya es `true`, sigue el flujo normal
+    (`applyClientToPage`); si no, `showAiGate(client)` oculta
+    `#search-section`, `#photos-card` y `#analysis-form` y muestra SOLO
+    `#ai-gate`. "Aceptar y continuar" hace `PATCH
+    /api/clients/{id}/consents` con `consent_ai_analysis: true` (mismo
+    endpoint que ya usaba la casilla de `ficha.html`) y revela el flujo
+    normal con el cliente ya actualizado; "Seguir sin IA" revela el mismo
+    flujo normal SIN cambiar el consentimiento (queda en `false`, y esos 6
+    campos se siguen rellenando a mano, exactamente el comportamiento por
+    defecto que ya existía antes de este permiso). Deliberado que exista
+    esta segunda opción aunque Pedro pidiera que "solo aparezca eso":
+    RGPD exige que un consentimiento sea libre y no puede convertirse en
+    un requisito para poder usar el resto de la página (fotos, análisis
+    local, edición manual de los 6 campos no dependen de este permiso) --
+    sin una salida, un cliente que no quisiera dar este permiso concreto
+    dejaría al peluquero sin poder usar Visajismo en absoluto para él.
+  - **`frontend/ficha.html`**: se quita la casilla "Permiso para juzgar...
+    con IA" y su cableado (`q("c-ai")...`) -- ya no hay dos sitios
+    distintos preguntando por el mismo consentimiento, que es lo que
+    causaba la confusión original de Pedro. El resto de casillas de
+    consentimiento de esa página (foto, simulación) no se tocan.
+  - Nada cambia en el backend: sigue siendo el mismo
+    `consent_ai_analysis` y el mismo endpoint `PATCH
+    /api/clients/{id}/consents` de siempre, solo cambia qué pantalla lo
+    pregunta.
+  - Verificado con Playwright contra un servidor local real (no
+    simulado): al abrir `visagismo.html?client_id=...` de un cliente sin
+    el permiso, solo se ve `#ai-gate` (search-section y photos-card
+    ocultos); "Aceptar y continuar" hace el PATCH, oculta la pregunta y
+    muestra el resto de la página, y una recarga posterior ya no vuelve a
+    preguntar (el consentimiento quedó guardado); "Seguir sin IA" oculta
+    la pregunta y muestra el resto de la página sin tocar el
+    consentimiento (confirmado leyendo el cliente por la API:
+    `consent_ai_analysis` sigue en `false`). Sin errores de consola
+    achacables a este cambio. Suite completa: 118/118.
 
 Pendiente / no cubierto a propósito en `frontend/visagismo.html`: la
 página nueva solo cubre `facial_features_profile` (los campos de esta
