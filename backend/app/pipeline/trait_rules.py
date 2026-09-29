@@ -21,8 +21,10 @@ explicación. Las reglas salen de estas fuentes, las mismas de la guía de
   y a piel ("dejan la oreja a la vista en su punto más ancho"), no bajar
   de un #2 (~6 mm) en los laterales, y cortes medios con textura arriba.
 - Castlebeard (mentón retraído) y Beard Resource (mandíbula poco
-  definida): barba, ver `beard_advice`. Beard Resource además: laterales
-  cortos para alargar la cara.
+  definida): barba, ver `beard_mustache_rules.py` (sept 2026: sustituyó a
+  la antigua `beard_advice` de este módulo, fusionando estas dos fuentes
+  con el motor de barba y bigote completo). Beard Resource además:
+  laterales cortos para alargar la cara.
 
 Cómo se leen los cortes del catálogo (solo hay largos en mm, degradado,
 familia y texto): ver las funciones `_es_*` de abajo. Son aproximaciones:
@@ -160,29 +162,3 @@ def evaluate_traits(style: HaircutStyle, profile: dict | None) -> list[Effect]:
     if not f:
         return []
     return _orejas(style, f) + _menton_y_mandibula(style, f) + _perfil(style, f) + _cuello(style, f)
-
-
-def beard_advice(profile: dict | None) -> list[dict]:
-    """Consejo de barba (no depende del corte). Vacío si no hay rasgos que
-    lo justifiquen. Si el cliente ha dicho que va afeitado, se da igual
-    pero como sugerencia."""
-    f = _features(profile)
-    lifestyle = (profile or {}).get("lifestyle_and_preferences") or {} if isinstance(profile, dict) else {}
-    shaved = lifestyle.get("beard_preference") == "clean_shaven"
-    prefix = "Si quiere probar barba: " if shaved else ""
-    out = []
-    if f.get("chin_projection") == "retruded":
-        out.append({
-            "label": "Barba para el mentón",
-            "detail": prefix + "barba completa o perilla cerrada (con bigote), dejando unos 2-3 cm en la "
-                      "barbilla para alargarla y darle cuerpo. Evitar la barba de pocos días muy clara, "
-                      "que lo hace parecer más débil.",
-        })
-    if f.get("jawline_definition") == "soft":
-        out.append({
-            "label": "Barba para marcar la mandíbula",
-            "detail": prefix + "barba con largo y líneas rectas en la mandíbula, y el perfilado del cuello "
-                      "bajo (no más de un dedo por encima de la nuez) para no dejar a la vista la zona "
-                      "blanda de debajo.",
-        })
-    return out

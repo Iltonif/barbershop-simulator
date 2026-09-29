@@ -113,7 +113,8 @@ class RecommendationsOut(BaseModel):
     whorl_count: int
     face_shape: str | None = None
     recommendations: list[StyleRecommendationOut]
-    # Consejo de barba según mentón/mandíbula (no depende del corte).
+    # Consejo de barba y bigote según forma de rostro y rasgos faciales
+    # (no depende del corte). Ver app/pipeline/beard_mustache_rules.py.
     beard_advice: list[ReasonOut] = []
     liked_styles: list[str] = []
     # Cómo se ha leído el mapa de remolinos (una línea por dato), y la raya natural.
@@ -163,7 +164,10 @@ class ClientCreateIn(BaseModel):
 
 class FacialHorizontalZonesRatioIn(BaseModel):
     """Proporción de cada tercio horizontal de la cara, a ojo del barbero
-    (no hay ninguna medición automática de esto todavía)."""
+    (no hay ninguna medición automática de esto todavía). `intellectual_
+    zone_forehead` ("narrow"/"prominent") alimenta desde sept 2026 la
+    recomendación de barba y bigote (frente pequeña/ancha, ver
+    beard_mustache_rules.py); los otros dos campos siguen sin ninguna regla."""
 
     intellectual_zone_forehead: str | None = None  # "proportional" | "prominent" | "narrow"
     affective_zone_mid_face: str | None = None  # "proportional" | "prominent" | "narrow"
@@ -185,6 +189,11 @@ class FacialFeaturesProfileIn(BaseModel):
     # Rasgos de perfil (a mano, con la guía de visagismo; ver trait_rules.py).
     chin_projection: str | None = None  # "retruded" | "balanced" | "prominent"
     jawline_definition: str | None = None  # "defined" | "soft"
+    # Rasgos añadidos en sept 2026 para la recomendación de barba y bigote
+    # (ver app/pipeline/beard_mustache_rules.py). A mano, igual que el resto.
+    has_double_chin: bool | None = None  # papada/doble mentón
+    nose_size: str | None = None  # "small" | "proportional" | "large"
+    lip_thickness: str | None = None  # "thin" | "proportional" | "prominent"
     # Cualquier irregularidad que no encaje en un campo estructurado de
     # arriba (p.ej. una cicatriz, una asimetría de nariz/orejas puntual):
     # texto libre en vez de intentar catalogar cada caso posible.
@@ -303,7 +312,11 @@ class HairTypeOverrideIn(BaseModel):
 
 
 class FaceShapeOverrideIn(BaseModel):
-    face_shape: str  # "ovalada" | "redonda" | "cuadrada" | "alargada"
+    # sept 2026: se añadieron "diamante" | "triangular" | "triangular_invertida"
+    # para la recomendación de barba y bigote (ver beard_mustache_rules.py).
+    # "cuadrada" se queda sin regla de barba/bigote a propósito -- ver el
+    # docstring de ese módulo.
+    face_shape: str  # "ovalada" | "redonda" | "cuadrada" | "alargada" | "diamante" | "triangular" | "triangular_invertida"
 
 
 class GrowthStrokeIn(BaseModel):

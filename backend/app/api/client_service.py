@@ -22,7 +22,7 @@ from app.api.schemas import (
 )
 from app.db import repository
 from app.db.models import ClientProfile
-from app.pipeline import avatar, barber_sheet, growth_analysis, haircut_editor, maintenance, trait_rules
+from app.pipeline import avatar, barber_sheet, beard_mustache_rules, growth_analysis, haircut_editor, maintenance
 from app.pipeline.recommender import match_percent, recommend_styles
 from app.pipeline.style_catalog import get_style_by_id_anywhere
 
@@ -66,7 +66,8 @@ def build_recommendations(client: ClientProfile) -> RecommendationsOut:
             )
             for r in recs
         ],
-        beard_advice=[ReasonOut(**b) for b in trait_rules.beard_advice(client.visagismo_profile)],
+        beard_advice=[ReasonOut(**b) for b in beard_mustache_rules.advice(client.visagismo_profile,
+                                                                          client.face_shape_override)],
         liked_styles=client.liked_styles,
         growth_summary=growth.lines(),
         natural_part=growth.natural_part,

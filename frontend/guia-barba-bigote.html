@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
+<title>Guía de barba y bigote</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  .section { margin: 0 0 40px; }
+  .section h2 { font-size: 20px; margin: 0; }
+  .sec-head { margin-bottom: 14px; }
+  .page-head { margin-bottom: 14px; }
+  .section { scroll-margin-top: 16px; }
+  .jump { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 0 28px; }
+  .jump::-webkit-scrollbar { display: none; }
+  .jump a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; white-space: nowrap;
+            background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-main); text-decoration: none; font-size: 13px; font-weight: 600; }
+  .jump a .ico { color: var(--accent-cyan); width: 16px; height: 16px; }
+  .sources-box > summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 8px; color: var(--text-dim); font-weight: 600; font-size: 14px; }
+  .sources-box > summary::-webkit-details-marker { display: none; }
+  .sources-box[open] > summary { margin-bottom: 10px; }
+  .section .how { color: var(--text-dim); font-size: 13.5px; line-height: 1.55; max-width: 720px; margin: 0 0 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .card { padding: 12px 14px 16px; display: flex; flex-direction: column; }
+  .card .art { background: rgba(0, 0, 0, 0.25); border-radius: 12px; overflow: hidden; aspect-ratio: 1 / 1; display: flex; }
+  .card .art svg { width: 100%; height: 100%; display: block; }
+  .card h3 { font-size: 15px; margin: 12px 0 2px; }
+  .card .advice { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0; }
+  .note { font-size: 12.5px; color: var(--text-faint); line-height: 1.5; max-width: 720px; }
+  .sources { font-size: 12px; color: var(--text-faint); line-height: 1.7; padding-left: 18px; }
+  .sources a { color: var(--text-dim); }
+  @media (max-width: 560px) {
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .card { padding: 8px 8px 12px; }
+    .card h3 { font-size: 13.5px; margin-top: 8px; }
+    .card .advice { font-size: 12px; }
+  }
+
+  /* Ilustraciones (SVG generado por tools/generar_barba_bigote_guia.py,
+     escrito en assets/guia/barba-bigote.json). Mismo lenguaje visual que
+     los iconos de cuestionario.html: trazo simple, un color. */
+  .bb-face { fill: #e9c9ad; stroke: #f5e2d0; stroke-width: 1.5; }
+  .bb-line { fill: none; stroke: #5b4636; stroke-width: 2.2; stroke-linecap: round; }
+  .bb-fill { fill: #2a2233; }
+  .bb-fill-soft { fill: #2a2233; opacity: 0.9; }
+  .bb-fill-stubble { fill: #2a2233; fill-opacity: 0.4; }
+  .bb-guide-v { stroke: var(--accent-cyan); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.8; }
+  .bb-guide-h { stroke: var(--accent-pink); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.8; }
+  .bb-art-guide { background: rgba(0, 0, 0, 0.15); }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a class="keep-label" href="recomendaciones.html"><span data-icon="arrow-left"></span><span class="lbl">Recomendaciones</span></a>
+    <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
+  </nav>
+
+  <div class="head-row page-head">
+    <h1 class="page-title">Barba y bigote</h1>
+    <details class="info"><summary></summary><div class="info-body">
+      <p>Los 13 tipos de bigote y los 5 estilos base de barba que usa la recomendación de <a href="recomendaciones.html">Recomendaciones</a>: cualquier barba moderna es una combinación de esas 5 bases.</p>
+      <p>Qué estilo sienta mejor a cada forma de rostro y qué corrige cada uno (frente, papada, nariz, mandíbula, labios) se explica junto al consejo generado en la ficha del cliente, no aquí: esta página es solo el catálogo de referencia visual.</p>
+    </div></details>
+  </div>
+
+  <div class="jump">
+    <a href="#bigotes"><span data-icon="scissors"></span>Bigotes</a>
+    <a href="#barbas"><span data-icon="scissors"></span>Barbas</a>
+    <a href="#proporciones"><span data-icon="ruler"></span>Proporciones</a>
+  </div>
+
+  <section class="section" id="bigotes">
+    <div class="head-row sec-head">
+      <h2>Tipos de bigote</h2>
+    </div>
+    <div class="cards" id="bigotes-cards"></div>
+  </section>
+
+  <section class="section" id="barbas">
+    <div class="head-row sec-head">
+      <h2>Estilos base de barba</h2>
+      <details class="info"><summary></summary><div class="info-body">Cualquier barba moderna es una combinación de estas 5 bases, con más o menos largo y más o menos perfilado.</div></details>
+    </div>
+    <div class="cards" id="barbas-cards"></div>
+  </section>
+
+  <section class="section" id="proporciones">
+    <div class="head-row sec-head">
+      <h2>Cómo se clasifica la forma del rostro</h2>
+    </div>
+    <div class="cards" id="proporciones-cards"></div>
+  </section>
+
+  <details class="section sources-box">
+    <summary><span data-icon="book-open"></span>Fuentes</summary>
+    <ul class="sources">
+      <li>Los 13 tipos de bigote, los 5 estilos base de barba, la correlación con la forma de rostro y las
+        correcciones por frente/papada/nariz/mandíbula/labios: vídeos y texto facilitados por Pedro (peluquero
+        dueño del proyecto) en sept 2026 -- ver el docstring de <code>app/pipeline/beard_mustache_rules.py</code>.</li>
+      <li>La técnica de proporciones (5 líneas verticales/horizontales) viene del PDF "VISAGISMO MASCULINO, tipos
+        de rostros" que también facilitó Pedro, transcripción de un vídeo sobre cómo dibujar y clasificar la
+        forma del rostro.</li>
+    </ul>
+    <p class="note">
+      Los consejos son orientaciones habituales de barbería, no reglas: el criterio del barbero y lo que quiere
+      el cliente van primero.
+    </p>
+  </details>
+</div>
+
+<script src="assets/ui.js"></script>
+<script>
+  function el(tag, cls, html) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (html !== undefined) node.innerHTML = html;
+    return node;
+  }
+
+  fetch("assets/guia/barba-bigote.json")
+    .then((res) => res.json())
+    .then((data) => {
+      const bigotes = document.getElementById("bigotes-cards");
+      for (const item of data.bigotes) {
+        const card = el("article", "card glass-card");
+        card.appendChild(el("div", "art", item.svg));
+        card.appendChild(el("h3", "", item.nombre));
+        card.appendChild(el("p", "advice", item.detalle));
+        bigotes.appendChild(card);
+      }
+      const barbas = document.getElementById("barbas-cards");
+      for (const item of data.barbas) {
+        const card = el("article", "card glass-card");
+        card.appendChild(el("div", "art", item.svg));
+        card.appendChild(el("h3", "", item.nombre));
+        card.appendChild(el("p", "advice", item.detalle));
+        barbas.appendChild(card);
+      }
+      const prop = document.getElementById("proporciones-cards");
+      const card = el("article", "card glass-card");
+      card.appendChild(el("div", "art", data.proporciones.svg));
+      card.appendChild(el("h3", "", "Dos unidades y media / tres unidades y media"));
+      card.appendChild(el("p", "advice", data.proporciones.texto));
+      prop.appendChild(card);
+    })
+    .catch(() => {
+      document.querySelector(".page-head").insertAdjacentHTML(
+        "afterend",
+        '<p class="note">No se han podido cargar los dibujos. Recarga la página.</p>'
+      );
+    });
+</script>
+</body>
+</html>

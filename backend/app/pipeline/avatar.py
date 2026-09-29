@@ -53,7 +53,15 @@ HAIR_LENGTHS = {
 
 HAIR_COLORS = ("negro", "castano_oscuro", "castano", "castano_claro", "rubio", "pelirrojo", "canoso")
 
-_FACE_OVERRIDE = {"ovalada": "face-oval", "redonda": "face-round", "cuadrada": "face-square", "alargada": "face-rectangular"}
+# sept 2026: se añadieron diamante/triangular/triangular_invertida (ver
+# beard_mustache_rules.py) -- reutilizan las mismas morphs "face-diamond"/
+# "face-triangle"/"face-heart" ya usadas por _FACE_GEOMETRY (el campo
+# inglés facial_geometry, ver AnatomicalMetricsIn), que ya existían en el
+# maniquí (tools/construir_cabeza_masculina.py) pero no eran alcanzables
+# desde face_shape_override.
+_FACE_OVERRIDE = {"ovalada": "face-oval", "redonda": "face-round", "cuadrada": "face-square",
+                  "alargada": "face-rectangular", "diamante": "face-diamond", "triangular": "face-triangle",
+                  "triangular_invertida": "face-heart"}
 _FACE_GEOMETRY = {"oval": "face-oval", "round": "face-round", "square": "face-square",
                   "rectangular_elongated": "face-rectangular", "diamond": "face-diamond",
                   "triangle": "face-triangle", "heart": "face-heart"}

@@ -811,7 +811,11 @@ que cada recomendación diga por qué encaja.
 - **Consejo de barba** (`beard_advice`): mentón retraído y/o mandíbula poco
   definida. Va aparte de los cortes (`beard_advice` en
   `GET .../recommendations`); si el cliente dijo "afeitado", se da como
-  sugerencia.
+  sugerencia. Sept 2026: sustituido por un motor mucho más completo de
+  barba Y bigote -- ver la sección "Barba y bigote: motor de recomendación
+  completo, 18 estilos ilustrados" más abajo. El campo de la API
+  (`beard_advice`) y el contrato (`list[dict]` con `label`/`detail`) no
+  cambiaron, solo lo que hay detrás.
 - **Campos nuevos** en `facial_features_profile`: `chin_projection`
   (retruded/balanced/prominent) y `jawline_definition` (defined/soft), a
   mano en `visagismo.html` (con ⓘ-enlace a la sección de la guía). El
@@ -2167,6 +2171,143 @@ arreglos, sin tocar backend:
   `recommendationsBtn` unas líneas más arriba del mismo fichero.
 - Sin tests de backend que tocar (cambio 100% de frontend, ningún endpoint
   ni dato nuevo).
+
+## Barba y bigote: motor de recomendación completo, 18 estilos ilustrados (sept 2026)
+
+Pedro pidió integrar un análisis y recomendación profesional de barba y
+bigote "aparte de toda la información que tienes agregada ya en el sistema
+de recomendación tras el análisis de visajismo", a partir de vídeos y texto
+que él mismo transcribió/resumió: 13 tipos de bigote (chevron, Dalí,
+inglés, húngaro, fu manchu, horizontal/lápiz, herradura, imperial,
+piramidal, morsa/walrus, mosquetero, revolucionario, corto), 5 estilos
+base de barba (en collar, completa/clásica, perilla, chiva/chivita, de
+varios días/media sombra -- cualquier barba moderna es combinación de
+estas 5), la correlación de cada uno con la forma de rostro, y
+correcciones por frente, papada/cuello, nariz, mandíbula y labios. También
+dio un PDF ("VISAGISMO MASCULINO, tipos de rostros") con la transcripción
+de un vídeo sobre cómo dibujar/clasificar la forma del rostro por
+proporciones (5 líneas verticales -> "dos unidades y media", 5
+horizontales -> "tres unidades y media").
+
+Aviso importante sobre las fuentes: Pedro dio los enlaces a varios vídeos
+de YouTube además del texto y las imágenes, pero **este entorno no tiene
+capacidad de ver vídeos** (un intento de `WebFetch` sobre una de esas URLs
+devolvió un rechazo del proxy, `PROXY_REJECTED`/429, con instrucción
+explícita de no reintentarlo). Todo lo que se implementó sale del texto
+que Pedro pegó él mismo, el PDF transcrito y las imágenes de guía que
+mandó -- no de haber "visto" los vídeos. Si algún matiz de un vídeo no
+llegó a estar en el texto/PDF que Pedro pegó, no está cubierto aquí.
+
+- **Motor de reglas nuevo** (`app/pipeline/beard_mustache_rules.py`,
+  función `advice(profile, face_shape)`): sustituye a la antigua
+  `trait_rules.beard_advice` (que solo cubría mentón retraído y mandíbula
+  poco definida). Mismo contrato hacia la API (`list[dict]` con
+  `label`/`detail`, expuesto en `RecommendationsOut.beard_advice`), pero
+  mucho más completo:
+  - **Por forma de rostro** (`face_shape_override`, ahora con 6 valores --
+    ver más abajo): ovalada (cualquier estilo vale), alargada (barba
+    rebajada + bigote horizontal/lápiz que acorta), redonda (barba de
+    candado angulosa o chivita/perilla alargada + bigote grande), diamante
+    (barba de candado + bigote con pelo bajo el labio, tipo mosquetero),
+    triangular invertida (barba completa y densa en mentón y mejillas),
+    triangular (perilla/chivita muy corta y pulida, evitar formas rectas).
+    **"cuadrada" se deja SIN regla a propósito**: ninguna fuente que dio
+    Pedro la cubre, y el criterio del proyecto es dejar un hueco honesto
+    en vez de inventar una regla sin fuente (mismo criterio que ya se
+    sigue en `recommender.py`/`combined_rules.py`).
+  - **Correcciones** (fusionadas con las reglas de barba que ya existían
+    para el mismo campo, en vez de duplicarlas): mentón retraído
+    (`chin_projection == "retruded"`, ya existía) + mandíbula prominente
+    (`"prominent"`, nueva); mandíbula poco definida (`jawline_definition
+    == "soft"`, ya existía, ahora también con el matiz de "dibuja una
+    línea de afeitado que alargue el cuello"); papada (`has_double_chin`,
+    campo nuevo); frente pequeña/ancha (`intellectual_zone_forehead`,
+    campo que YA EXISTÍA en el schema desde antes pero ninguna regla lo
+    leía hasta ahora) y entradas (`frontal_hairline_shape ==
+    "m_shaped_receding"`, reutilizado de `hair_physical_metrics`); nariz
+    grande/pequeña (`nose_size`, campo nuevo); labios prominentes/finos
+    (`lip_thickness`, campo nuevo).
+- **`face_shape_override` pasa de 4 a 7 valores posibles** (sigue siendo
+  un `str` libre, sin enum en el servidor): se añaden `"diamante"`,
+  `"triangular"` y `"triangular_invertida"` a los ya existentes
+  `"ovalada"|"redonda"|"cuadrada"|"alargada"`. El maniquí 3D YA TENÍA los
+  morphs correspondientes desde antes (`face-diamond`/`face-triangle`/
+  `face-heart` en `tools/construir_cabeza_masculina.py`, alcanzables solo
+  vía el campo inglés `facial_geometry`, nunca usado en la práctica) --
+  solo hacía falta mapear los 3 valores nuevos de `face_shape_override` a
+  esos mismos morphs en `avatar._FACE_OVERRIDE`, sin tocar el maniquí.
+  `triangular` -> cara con la mandíbula más ancha que la frente
+  (`head-triangular`); `triangular_invertida` -> frente más ancha que la
+  mandíbula (`head-invertedtriangular`, la misma malla que el corazón
+  inglés "heart", que es la forma equivalente).
+- **Campos nuevos** en `FacialFeaturesProfileIn` (`app/api/schemas.py`):
+  `has_double_chin` (bool), `nose_size`
+  (`"small"|"proportional"|"large"`), `lip_thickness`
+  (`"thin"|"proportional"|"prominent"`). Se rellenan a mano en
+  `visagismo.html` (icono "mano", igual que ya se documentaba en la guía
+  de esa página para rasgos que las fotos no permiten detectar con
+  fiabilidad) -- **no** se añadieron al análisis por visión de IA
+  (`visagismo_vision_analysis.py`): esos 6 campos ya estaban acotados y
+  probados (ver la sección de ese módulo), y ampliar ese análisis no se
+  pidió ni se ha calibrado, así que se quedan como rasgos manuales, igual
+  que `has_glasses`.
+- **`intellectual_zone_forehead`** (`facial_horizontal_zones_ratio`): campo
+  que ya existía en el schema desde hace tiempo sin ninguna UI ni regla.
+  Ahora tiene un select en `visagismo.html` (Pequeña/Proporcional/Ancha) y
+  alimenta la corrección de frente de `beard_mustache_rules.py`. Los otros
+  dos campos del mismo objeto (`affective_zone_mid_face`,
+  `sensitive_zone_jaw_chin`) siguen sin UI ni regla -- no se pidieron.
+- **Frontend**:
+  - `visagismo.html`: nuevos campos Frente/Nariz/Labios (selects) y Papada
+    (checkbox) en el formulario de rasgos, guardados en
+    `facial_features_profile` (Papada/Nariz/Labios) y
+    `facial_horizontal_zones_ratio` (Frente) -- este segundo objeto se
+    fusiona igual que el primero (se parte de lo ya guardado, se sobrescribe
+    solo `intellectual_zone_forehead`, sin tocar los otros dos campos que no
+    tienen UI).
+  - `cuestionario.html`: el selector de forma de rostro pasa de 4 a 7
+    opciones (se añaden diamante/triangular/triangular invertida, con SVG
+    nuevo para cada una siguiendo el mismo patrón que las 4 que ya
+    había -- `face('<path d="..."/>')`), y `FACE_TO_GEOMETRY` se amplía con
+    los 3 valores nuevos.
+  - `recomendaciones.html`: la sección "Barba" pasa a llamarse "Barba y
+    bigote" (el campo de la API sigue siendo `beard_advice`), con un
+    enlace ⓘ a la guía ilustrada nueva.
+- **Guía ilustrada nueva** (`frontend/guia-barba-bigote.html` +
+  `tools/generar_barba_bigote_guia.py` + `frontend/assets/guia/barba-bigote.json`):
+  18 ilustraciones (13 bigotes + 5 barbas) generadas por script, siguiendo
+  el mismo patrón que `tools/generar_perfiles_guia.py` (código en vez de
+  SVG pegado a mano). Diferencia importante con aquel script: los perfiles
+  se generan a partir de ÁNGULOS con definición publicada y el script
+  COMPRUEBA que cada dibujo mide lo que dice; un tipo de bigote o barba no
+  es una medida angular, así que aquí no hay ningún número que verificar
+  al final -- la única verificación posible fue visual (capturas de
+  pantalla con Playwright contra un servidor estático local, corrigiendo a
+  ojo dos bugs de geometría: los mechones con voluta enroscada de Dalí e
+  Imperial dibujaban una mancha grande en vez de una punta fina hasta que
+  se separó la voluta en un segundo mechón encadenado, y la barba
+  completa/media sombra tapaba los ojos hasta que se bajó el borde
+  superior de la zona de relleno). Estilo visual: el mismo lenguaje simple
+  de los iconos de `cuestionario.html` (trazo/relleno de un color, viewBox
+  100x100), no las siluetas anatómicas detalladas de
+  `generar_perfiles_guia.py` -- esto es un catálogo de referencia visual,
+  no una herramienta de medición de fotos reales. La página también
+  documenta la técnica de proporciones del PDF de Pedro como contenido de
+  referencia/educativo, sin convertirla en medición automática (mismo
+  criterio que el resto de rasgos de visagismo, ver
+  `app/pipeline/face_analysis.py` y el historial de `wip-perfil-automatico`
+  en la sección de "Rasgos de perfil juzgados por IA con visión").
+- **Tests**: `backend/tests/test_beard_mustache_rules.py` (nuevo, sustituye
+  al `test_beard_advice` que había en `test_trait_rules.py`) cubre las 6
+  formas de rostro con regla, que "cuadrada" no tiene ninguna, y cada
+  corrección por separado y combinada (sin duplicar entradas cuando dos
+  campos apuntan a la misma corrección). Suite completa: 140 tests, sin
+  romper nada de lo que ya había.
+- **RGPD**: los 3 campos nuevos (`has_double_chin`, `nose_size`,
+  `lip_thickness`) son datos biométricos del mismo tipo que el resto de
+  `facial_features_profile` -- se guardan bajo el mismo `consent_history`
+  que ya cubre esa ficha, no hace falta un consentimiento aparte (mismo
+  razonamiento que ya se documenta para `VisagismoProfileIn` más arriba).
 
 ## Cómo trabajar en este repo
 

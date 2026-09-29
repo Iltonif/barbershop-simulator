@@ -76,9 +76,10 @@
   .field-grid label { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
   .tag-auto { color: var(--accent-cyan); }
   .tag-ai { color: var(--accent-blue); }
+  .tag-hand { color: var(--text-faint); }
+  .tag-auto .ico, .tag-ai .ico, .tag-hand .ico { width: 14px; height: 14px; }
   .guide-link { display: inline-flex; color: var(--text-faint); margin-left: 2px; }
   .guide-link .ico { width: 14px; height: 14px; }
-  .tag-auto .ico, .tag-ai .ico { width: 14px; height: 14px; }
   @media (max-width: 480px) { .field-grid { grid-template-columns: 1fr; } }
   .glasses-row { margin: 14px 0 10px; }
   .glasses-row .checkbox-row { margin: 0; }
@@ -320,6 +321,33 @@
           <option value="proportional">Proporcional</option>
         </select>
       </div>
+      <div>
+        <label for="forehead-zone"><span data-icon="hand" class="tag-hand"></span>Frente</label>
+        <select id="forehead-zone">
+          <option value="">—</option>
+          <option value="narrow">Pequeña</option>
+          <option value="proportional">Proporcional</option>
+          <option value="prominent">Ancha</option>
+        </select>
+      </div>
+      <div>
+        <label for="nose-size"><span data-icon="hand" class="tag-hand"></span>Nariz</label>
+        <select id="nose-size">
+          <option value="">—</option>
+          <option value="small">Pequeña</option>
+          <option value="proportional">Proporcional</option>
+          <option value="large">Grande</option>
+        </select>
+      </div>
+      <div>
+        <label for="lip-thickness"><span data-icon="hand" class="tag-hand"></span>Labios</label>
+        <select id="lip-thickness">
+          <option value="">—</option>
+          <option value="thin">Finos</option>
+          <option value="proportional">Proporcionados</option>
+          <option value="prominent">Prominentes</option>
+        </select>
+      </div>
     </div>
     <div class="head-row glasses-row">
       <label class="checkbox-row">
@@ -327,6 +355,13 @@
         <span><span data-icon="sparkles" class="tag-auto"></span>Usa gafas</span>
       </label>
       <details class="info"><summary></summary><div class="info-body">Solo informativo: no cambia las recomendaciones de corte.</div></details>
+    </div>
+    <div class="head-row glasses-row">
+      <label class="checkbox-row">
+        <input type="checkbox" id="has-double-chin" />
+        <span><span data-icon="hand" class="tag-hand"></span>Papada / doble mentón</span>
+      </label>
+      <details class="info"><summary></summary><div class="info-body">Se usa en la recomendación de barba y bigote (una barba completa ayuda a disimularla).</div></details>
     </div>
     <textarea id="anomalies-notes" rows="2" placeholder="Notas (opcional)" aria-label="Otras irregularidades observadas"></textarea>
 
@@ -436,7 +471,7 @@
       });
     }
 
-    function fillFormFromFeatures(features) {
+    function fillFormFromFeatures(features, forehead) {
       const f = features || {};
       document.getElementById("profile-type").value = f.profile_type || "";
       document.getElementById("eye-spacing").value = f.eye_spacing || "";
@@ -447,6 +482,10 @@
       document.getElementById("chin-projection").value = f.chin_projection || "";
       document.getElementById("jawline-definition").value = f.jawline_definition || "";
       document.getElementById("has-glasses").checked = !!f.has_glasses;
+      document.getElementById("forehead-zone").value = forehead || "";
+      document.getElementById("nose-size").value = f.nose_size || "";
+      document.getElementById("lip-thickness").value = f.lip_thickness || "";
+      document.getElementById("has-double-chin").checked = !!f.has_double_chin;
       document.getElementById("anomalies-notes").value = f.detected_anomalies_notes || "";
 
       const percentHint = document.getElementById("eye-symmetry-percent-hint");
@@ -458,8 +497,10 @@
     function applyClientToPage(client) {
       currentClient = client;
       fullVisagismoProfile = client.visagismo_profile || {};
-      const features = ((fullVisagismoProfile.anatomical_metrics || {}).facial_features_profile) || {};
-      fillFormFromFeatures(features);
+      const anat = fullVisagismoProfile.anatomical_metrics || {};
+      const features = anat.facial_features_profile || {};
+      const forehead = (anat.facial_horizontal_zones_ratio || {}).intellectual_zone_forehead;
+      fillFormFromFeatures(features, forehead);
       analysisForm.style.display = "block";
       document.getElementById("analyze-hint").style.display = "none";
       markStep(1, true);
@@ -691,7 +732,17 @@
         chin_projection: document.getElementById("chin-projection").value || null,
         jawline_definition: document.getElementById("jawline-definition").value || null,
         has_glasses: document.getElementById("has-glasses").checked,
+        nose_size: document.getElementById("nose-size").value || null,
+        lip_thickness: document.getElementById("lip-thickness").value || null,
+        has_double_chin: document.getElementById("has-double-chin").checked,
         detected_anomalies_notes: document.getElementById("anomalies-notes").value || null,
+      };
+      // Igual que facial_features_profile: se parte de lo ya guardado y se
+      // sobrescribe solo el campo de esta pantalla (frente), sin tocar
+      // affective_zone_mid_face/sensitive_zone_jaw_chin (sin UI todavía).
+      merged.anatomical_metrics.facial_horizontal_zones_ratio = {
+        ...(merged.anatomical_metrics.facial_horizontal_zones_ratio || {}),
+        intellectual_zone_forehead: document.getElementById("forehead-zone").value || null,
       };
 
       say("busy", "Guardando…");

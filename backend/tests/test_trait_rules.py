@@ -63,14 +63,6 @@ class TestTraitRules(unittest.TestCase):
         self.assertEqual(labels(trait_rules.evaluate_traits(style(length_back_mm=150), p)), ["Acorta el cuello"])
         self.assertEqual(labels(trait_rules.evaluate_traits(style(length_back_mm=5), p)), ["Alarga el cuello"])
 
-    def test_beard_advice(self):
-        self.assertEqual(trait_rules.beard_advice(None), [])
-        advice = trait_rules.beard_advice(profile(chin_projection="retruded", jawline_definition="soft"))
-        self.assertEqual([a["label"] for a in advice], ["Barba para el mentón", "Barba para marcar la mandíbula"])
-        shaved = {**profile(chin_projection="retruded"),
-                  "lifestyle_and_preferences": {"beard_preference": "clean_shaven"}}
-        self.assertTrue(trait_rules.beard_advice(shaved)[0]["detail"].startswith("Si quiere probar barba"))
-
 
 class TestRecommenderExplanations(unittest.TestCase):
     def test_reasons_and_warnings_are_separated_and_order_follows_them(self):

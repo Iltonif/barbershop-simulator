@@ -107,6 +107,13 @@
     redonda: face('<circle cx="50" cy="52" r="35"/>'),
     cuadrada: face('<rect x="19" y="16" width="62" height="72" rx="12"/>'),
     alargada: face('<rect x="28" y="6" width="44" height="90" rx="21"/>'),
+    // Añadidas en sept 2026 para la recomendación de barba y bigote (ver
+    // beard_mustache_rules.py): diamante (pómulos anchos, frente y mentón
+    // estrechos), triangular (frente estrecha, mandíbula ancha) y
+    // triangular invertida (frente ancha, mentón estrecho).
+    diamante: face('<path d="M50 14 L82 50 L50 90 L18 50 Z"/>'),
+    triangular: face('<path d="M38 18 L62 18 L84 82 L16 82 Z"/>'),
+    triangular_invertida: face('<path d="M16 18 L84 18 L62 82 L38 82 Z"/>'),
   };
 
   // Nacimiento del pelo: cabeza de frente con el pelo recortado por la
@@ -203,7 +210,8 @@
   };
 
   // ---- Preguntas ----
-  const FACE_TO_GEOMETRY = { ovalada: "oval", redonda: "round", cuadrada: "square", alargada: "rectangular_elongated" };
+  const FACE_TO_GEOMETRY = { ovalada: "oval", redonda: "round", cuadrada: "square", alargada: "rectangular_elongated",
+                             diamante: "diamond", triangular: "triangle", triangular_invertida: "heart" };
   const QUESTIONS = [
     { key: "hair", title: "¿Cómo es tu pelo?", options: [
       ["straight", "Liso", HAIR_ART.straight], ["wavy", "Ondulado", HAIR_ART.wavy],
@@ -212,9 +220,11 @@
       ["rapado", "Rapado", LENGTH_ART.rapado], ["lados_cortos", "Lados cortos", LENGTH_ART.lados_cortos],
       ["corto", "Corto", LENGTH_ART.corto], ["medio", "Medio", LENGTH_ART.medio],
       ["largo", "Por la barbilla", LENGTH_ART.largo], ["melena", "Por los hombros", LENGTH_ART.melena]] },
-    { key: "face_shape", title: "¿Qué forma tiene tu cara?", options: [
+    { key: "face_shape", title: "¿Qué forma tiene tu cara?", cols: 3, options: [
       ["ovalada", "Ovalada", FACE_ART.ovalada], ["redonda", "Redonda", FACE_ART.redonda],
-      ["cuadrada", "Cuadrada", FACE_ART.cuadrada], ["alargada", "Alargada", FACE_ART.alargada]] },
+      ["cuadrada", "Cuadrada", FACE_ART.cuadrada], ["alargada", "Alargada", FACE_ART.alargada],
+      ["diamante", "Diamante", FACE_ART.diamante], ["triangular", "Triangular", FACE_ART.triangular],
+      ["triangular_invertida", "Triangular invertida", FACE_ART.triangular_invertida]] },
     { key: "hairline", title: "¿Cómo es el nacimiento de tu pelo?", options: [
       ["linear_straight", "Recto", HAIRLINE_ART.linear_straight], ["m_shaped_receding", "Con entradas", HAIRLINE_ART.m_shaped_receding],
       ["widows_peak", "En pico", HAIRLINE_ART.widows_peak], ["high_forehead", "Frente alta", HAIRLINE_ART.high_forehead]] },

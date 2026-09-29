@@ -62,6 +62,8 @@
   .beard-row { margin: 14px 0 0; gap: 8px; }
   .beard-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
   .beard-title .ico { color: var(--accent-cyan); }
+  .guide-link { display: inline-flex; color: var(--text-faint); margin-left: 2px; }
+  .guide-link .ico { width: 14px; height: 14px; }
 
   .grid {
     display: grid;
@@ -350,9 +352,9 @@
       }
       const beard = data.beard_advice || [];
       document.getElementById("beard").innerHTML = beard.length
-        ? `<div class="head-row beard-row"><span class="beard-title">${UI.icon("scissors")}Barba</span>${beard.map((b) =>
+        ? `<div class="head-row beard-row"><span class="beard-title">${UI.icon("scissors")}Barba y bigote</span><a class="guide-link" href="guia-barba-bigote.html" aria-label="Guía de barba y bigote">${UI.icon("circle-help")}</a>${beard.map((b) =>
             `<span class="why plus">${UI.icon("check")}${b.label}</span>`).join("")}
-            <details class="info"><summary aria-label="Consejo de barba">${UI.icon("info")}</summary><div class="info-body">${beard.map((b) =>
+            <details class="info"><summary aria-label="Consejo de barba y bigote">${UI.icon("info")}</summary><div class="info-body">${beard.map((b) =>
             `<p><b>${b.label}.</b> ${b.detail}</p>`).join("")}</div></details></div>`
         : "";
       // Cómo crece su pelo (del mapa de remolinos), con el detalle en el ⓘ.
