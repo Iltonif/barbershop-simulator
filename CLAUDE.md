@@ -472,6 +472,14 @@ las 3 fotos, en vez de medir ángulos.
   cualquier valor que llegue en `visagismo_profile`, así que estos 6
   campos se rellenan solos en cuanto el backend los devuelve, sin tocar
   el JS de renderizado.
+- **Ajuste de orden (sept 2026, feedback de Pedro tras probarlo con fotos
+  reales)**: `#results-section` (la nota de confianza de la IA + los
+  avisos) vivía justo debajo del botón "Analizar", ANTES de la sección
+  "3 Rasgos" -- se leía el comentario antes de ver a qué campos se
+  refería. Se movió (solo HTML, ningún cambio de JS: los `getElementById`
+  no dependen de la posición en el DOM) a después de la rejilla de
+  campos y de "Usa gafas"/notas, justo antes del botón "Guardar" --
+  ahora primero se ven los rasgos ya rellenados y debajo el porqué.
 
 Pendiente / no cubierto a propósito en `frontend/visagismo.html`: la
 página nueva solo cubre `facial_features_profile` (los campos de esta

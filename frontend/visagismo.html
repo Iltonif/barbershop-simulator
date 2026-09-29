@@ -221,11 +221,6 @@
     <button id="twin-btn" type="button" class="secondary"><span data-icon="box"></span>Crear gemelo 3D</button>
     -->
     <p class="field-hint" id="analyze-hint"><span data-icon="user-round"></span> Antes, abre la ficha del cliente (1).</p>
-
-    <div id="results-section">
-      <div id="anomaly-note-box"></div>
-      <ul id="warning-list" class="warning-list"></ul>
-    </div>
   </section>
 
   <form id="analysis-form" class="glass-card form-card" style="display:none;">
@@ -318,6 +313,11 @@
       <details class="info"><summary></summary><div class="info-body">Solo informativo: no cambia las recomendaciones de corte.</div></details>
     </div>
     <textarea id="anomalies-notes" rows="2" placeholder="Notas (opcional)" aria-label="Otras irregularidades observadas"></textarea>
+
+    <div id="results-section">
+      <div id="anomaly-note-box"></div>
+      <ul id="warning-list" class="warning-list"></ul>
+    </div>
 
     <button id="save-btn" type="submit"><span data-icon="save"></span>Guardar</button>
   </form>
