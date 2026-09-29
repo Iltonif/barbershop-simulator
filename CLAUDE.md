@@ -2308,6 +2308,39 @@ llegó a estar en el texto/PDF que Pedro pegó, no está cubierto aquí.
   `facial_features_profile` -- se guardan bajo el mismo `consent_history`
   que ya cubre esa ficha, no hace falta un consentimiento aparte (mismo
   razonamiento que ya se documenta para `VisagismoProfileIn` más arriba).
+- **Segunda entrega de Pedro (mismo día): capturas del vídeo + PDF
+  re-subido.** Tras entregar lo anterior, Pedro mandó 14 capturas de
+  pantalla (incluida una del propio YouTube, confirmando que el vídeo de
+  proporciones es "Human Face. How to draw a face with correct
+  proportions // VISUPLAS") y un PDF re-subido con el mismo nombre. El PDF
+  se cortaba exactamente en el mismo punto que el primero ("En las
+  corre..."): **no es un fallo de Pedro al copiar, el propio export de la
+  transcripción se corta ahí siempre** -- ese hueco concreto no tiene
+  arreglo, y no hay que volver a pedirle el mismo PDF esperando que
+  cambie. Lo que sí aportaban las capturas eran dos detalles que el texto
+  nombra pero no dibuja, y que se han incorporado a
+  `tools/generar_barba_bigote_guia.py` -> `proportions_diagram()` (sección
+  "Proporciones" de `guia-barba-bigote.html`):
+  - **Eje de simetría**: el vídeo marca la línea vertical central (una de
+    las 5 de la proporción) en rojo y sin discontinuar, aparte de las
+    otras 4, porque también sirve para comparar un lado de la cara con el
+    otro. Antes las 5 verticales se dibujaban todas igual; ahora la
+    central tiene su propia clase CSS (`.bb-guide-axis`).
+  - **Zona intelectual**: el vídeo resalta como banda propia el tramo de
+    la frente entre el nacimiento del pelo y las cejas. Es exactamente la
+    franja que ya pregunta `intellectual_zone_forehead` (usada en la
+    sección "Frente" de `beard_mustache_rules.py`) -- las capturas
+    confirman la definición visual de ese campo, no añaden ninguna regla
+    nueva. Se añadió como un rectángulo resaltado (`.bb-guide-zone`).
+  El resto de capturas (comparativa de proporción infantil por edades --
+  2, 6 y 12 años -- y detalles de trazo de ceja/frente) son material de
+  dibujo para un ilustrador, no de clasificación de un rostro adulto ya
+  formado: no aportan ninguna regla de barba/bigote o de forma de rostro
+  distinta de las que Pedro ya dio por texto, así que no se ha tocado
+  `_POR_FORMA` ni el resto del motor de reglas. Verificado visualmente con
+  una captura de Playwright de la tarjeta "Proporciones" (mismo criterio
+  del resto del módulo: no hay ángulo que comprobar, solo inspección
+  visual) y con la suite completa (140 tests, sin romper nada).
 
 ## Cómo trabajar en este repo
 

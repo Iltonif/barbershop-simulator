@@ -283,17 +283,45 @@ BEARDS = [
 
 # ---------------------------------------------------------------------
 # Metodología de proporciones (referencia educativa, PDF/vídeo de Pedro:
-# "VISAGISMO MASCULINO, tipos de rostros"). Es una técnica de dibujo y
-# clasificación manual -- se documenta tal cual, sin convertirla en una
-# medición automática sobre fotos (mismo criterio que el resto de rasgos
-# de visagismo, ver `app/pipeline/face_analysis.py`).
+# "VISAGISMO MASCULINO, tipos de rostros", canal Visuplas). Es una técnica
+# de dibujo y clasificación manual -- se documenta tal cual, sin
+# convertirla en una medición automática sobre fotos (mismo criterio que
+# el resto de rasgos de visagismo, ver `app/pipeline/face_analysis.py`).
+#
+# En sept 2026 Pedro mandó, además del texto/PDF de la transcripción (que
+# se corta siempre en el mismo punto -- "En las corre..." -- tanto en la
+# primera subida como en una segunda subida posterior: no es un fallo de
+# copiado suyo, el propio export se corta ahí, así que ese hueco concreto
+# de la transcripción no tiene arreglo y no hay que volver a pedírselo),
+# una serie de capturas del vídeo (incluida una del propio YouTube
+# confirmando título y canal) que ilustran dos detalles que el texto
+# nombra pero no dibuja, y que aquí sí se han incorporado al diagrama:
+#   - "Eje de simetría": la línea vertical central de las 5 no es una
+#     más -- el vídeo la marca aparte (en rojo, sin discontinuar) porque
+#     además de contar como una de las 5 líneas de la proporción sirve
+#     para comprobar la simetría bilateral del rostro.
+#   - "Zona intelectual": el tramo de la frente entre el nacimiento del
+#     pelo y las cejas, que el vídeo resalta como banda propia. Es
+#     exactamente la franja que ya pregunta `intellectual_zone_forehead`
+#     en `FacialHorizontalZonesRatioIn` (ver `beard_mustache_rules.py`,
+#     sección "Frente"): estas capturas confirman la definición visual de
+#     ese campo, no añaden ninguna corrección nueva.
+# Ninguna de las imágenes nuevas (incluida la comparativa de proporción
+# infantil por edades, 2/6/12 años) aporta una regla de barba/bigote o de
+# forma de rostro distinta de las que ya dio Pedro por texto -- son
+# material de dibujo, no de clasificación adulta -- así que no se ha
+# tocado `_POR_FORMA` ni el resto de `beard_mustache_rules.py`.
 # ---------------------------------------------------------------------
 
 def proportions_diagram():
-    verticals = [18, 34, 50, 66, 82]
+    verticals = [18, 34, 66, 82]  # el eje central (x=50) se dibuja aparte, ver abajo
     horizontals = [14, 33, 52, 71, 90]
-    lines = "".join(f'<line class="bb-guide-v" x1="{x}" y1="8" x2="{x}" y2="96"/>' for x in verticals)
+    axis_x = 50
+    forehead_top, forehead_bottom = 14, 33  # zona intelectual: nacimiento del pelo -> cejas
+    lines = f'<rect class="bb-guide-zone" x="20" y="{forehead_top}" width="60" height="{forehead_bottom - forehead_top}"/>'
+    lines += "".join(f'<line class="bb-guide-v" x1="{x}" y1="8" x2="{x}" y2="96"/>' for x in verticals)
     lines += "".join(f'<line class="bb-guide-h" x1="4" y1="{y}" x2="96" y2="{y}"/>' for y in horizontals)
+    lines += f'<line class="bb-guide-axis" x1="{axis_x}" y1="4" x2="{axis_x}" y2="98"/>'
     return (
         '<svg viewBox="0 0 100 100" class="bb-art bb-art-guide" role="img">'
         f'<ellipse class="bb-face" cx="50" cy="52" rx="27" ry="36"/>{lines}'
@@ -317,11 +345,15 @@ def main():
             "Técnica clásica de dibujo para clasificar la forma del rostro (de la guía de Pedro): 5 líneas "
             "verticales (central, una delante de cada oreja y una detrás de cada una) dividen la cara en "
             "\"dos unidades y media\"; 5 líneas horizontales (barbilla, base de la nariz, contorno del "
-            "nacimiento del pelo y arranque del cráneo) la dividen en \"tres unidades y media\". Un rostro "
-            "equilibrado en ambas proporciones es ovalado; si las horizontales predominan sobre las "
-            "verticales y la mandíbula/barbilla no se marcan, es redondo. Es una técnica de dibujo y "
-            "clasificación manual, no una medición automática -- en esta app la forma de rostro se sigue "
-            "marcando a mano (ficha o cuestionario), nunca detectada sola de una foto."
+            "nacimiento del pelo y arranque del cráneo) la dividen en \"tres unidades y media\". La línea "
+            "vertical central es también el eje de simetría (en rojo): además de contar como proporción, "
+            "sirve para comparar un lado de la cara con el otro. La franja de la frente entre el nacimiento "
+            "del pelo y las cejas (resaltada) es la \"zona intelectual\": es la misma zona que se marca como "
+            "pequeña, proporcional o ancha en la ficha del cliente. Un rostro equilibrado en ambas "
+            "proporciones es ovalado; si las horizontales predominan sobre las verticales y la "
+            "mandíbula/barbilla no se marcan, es redondo. Es una técnica de dibujo y clasificación manual, "
+            "no una medición automática -- en esta app la forma de rostro se sigue marcando a mano (ficha o "
+            "cuestionario), nunca detectada sola de una foto."
         ),
     )
     OUT.parent.mkdir(parents=True, exist_ok=True)
