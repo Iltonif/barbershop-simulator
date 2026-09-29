@@ -2545,6 +2545,85 @@ Verificado con la suite completa de backend (145 tests, incluida la nueva
 mano (`node -e "new Function(...)"` sobre cada `<script>` inline) que
 ningún HTML tocado quedó con un error de sintaxis tras los borrados.
 
+## Onboarding "medio forzado" de cliente y peluquero (sept 2026)
+
+Pedro: la primera vez que alguien use la web en la barbería (cliente o
+peluquero) tiene que saber qué hacer y en qué orden, "cargando si es
+necesario un cliente ficticio o ejemplos ficticios". Se preguntó con
+`AskUserQuestion` el formato, si era obligatorio o no, y qué hacer cuando
+un paso necesita algo que no existe en pantalla todavía; Pedro eligió las
+tres cosas que definen todo el diseño:
+
+- **Tour guiado sobre la interfaz real** (no un carrusel de pantallas
+  ilustrativas aparte): cada paso resalta un botón/zona de verdad de la
+  página con un recuadro con brillo.
+- **Obligatorio la primera vez** (no se puede saltar ni cerrar hasta
+  llegar al final del todo); después queda un botón "¿Cómo funciona?"
+  (cliente) / "Cómo funciona" (peluquero) para volver a verlo cuando
+  quieran -- ese repaso sí se puede cerrar en cualquier paso (✕ o tocando
+  fuera de la tarjeta).
+- **Nunca se inventa un cliente de prueba en la base de datos** ("solo
+  ilustrativo, sin tocar la base de datos"): si el paso explica algo que
+  no existe en ese momento en pantalla (p.ej. "Atender" cuando no hay
+  nadie esperando), la tarjeta se muestra centrada sin resaltar nada, en
+  vez de crear un cliente/entrada de lista ficticios. Si el elemento SÍ
+  existe de verdad en ese instante (alguien esperando de verdad), se
+  resalta el real.
+
+- **`frontend/assets/onboarding.js`** (motor reutilizable, nuevo):
+  `Onboarding.maybeRun(steps, { storageKey })` lo muestra solo si no se ha
+  visto antes en este navegador (no se puede cerrar hasta el último paso);
+  `Onboarding.replay(steps, { storageKey })` lo muestra siempre y sí se
+  puede cerrar en cualquier momento. Cada paso es
+  `{ selector?, icon, title, text }`: `selector` es opcional (CSS selector
+  de un elemento real de la página); si no se da, o el elemento no
+  existe/no es visible en ese momento
+  (`target.offsetParent !== null && rect.width > 0`), el paso se pinta
+  como tarjeta centrada sin resaltar nada -- así se cumple la tercera
+  decisión de Pedro sin ningún caso especial por página.
+  - El "resaltado" NO es un recorte/cutout real del fondo (se descartó el
+    truco típico de `box-shadow: 0 0 0 9999px` porque no bloquea clics
+    fuera del agujero de forma fiable): es un `.ob-overlay` a pantalla
+    completa (fondo oscuro semitransparente) que dimensiona Y bloquea
+    todos los clics por ser un elemento real encima de todo, más un
+    `.ob-highlight` (`pointer-events: none`) puramente decorativo dibujado
+    sobre el `getBoundingClientRect()` del elemento real.
+  - Progreso guardado en `localStorage` (por dispositivo/navegador, no por
+    cuenta): el PIN del peluquero es compartido entre todo el personal y
+    el cliente entra con su teléfono desde varios móviles con el tiempo,
+    así que "ya lo vio" solo puede comprobarse por dispositivo, no por
+    persona.
+  - Estilos en `frontend/assets/theme.css` (`.ob-overlay`, `.ob-highlight`,
+    `.ob-card`, etc.), siguiendo la misma convención que `.idle-overlay`/
+    `.idle-box` de `session.js`: el CSS de un componente reutilizable vive
+    en la hoja compartida, no inyectado desde JS.
+- **`frontend/cliente.html`**: enlace "Cómo funciona" en el menú superior
+  (`#help-btn`, un `<a>` para heredar el estilo de `nav.top-nav`, con
+  `e.preventDefault()`); `OB_CLIENTE_STEPS` resalta "Soy nuevo" (`#new-btn`)
+  y "Ya he venido" (`#back-btn`) de verdad y explica en tarjetas centradas
+  los pasos que en esa pantalla todavía no existen (cuestionario,
+  recomendaciones, espera de turno). Se dispara solo (`maybeRun`) al
+  llegar sin sesión (`storageKey: "ob_cliente_v1"`).
+- **`frontend/sala.html`**: botón "Cómo funciona" en `.top-actions`;
+  `OB_PELUQUERO_STEPS` resalta la sala de espera (`#list`) y el buscador
+  (`#q`) siempre, y "Atender"/"Terminado" (`[data-st="in_service"]`/
+  `[data-st="done"]`) solo si en ese momento hay de verdad alguien
+  esperando -- si la sala está vacía, esos dos pasos caen al fallback de
+  tarjeta centrada en vez de inventar un cliente en la lista. Se dispara
+  solo (`maybeRun`, `storageKey: "ob_peluquero_v1"`) tras `Session.
+  requireBarber()`, esperando (`await`) a que `loadWaiting()` termine de
+  pintar la lista antes de arrancar el tour, para darle a esos selectores
+  la mejor oportunidad de encontrar un elemento real si lo hay.
+- No se añadió onboarding a `peluquero.html` (la pantalla de PIN): no
+  necesita explicación, y la pantalla que de verdad hace falta explicar es
+  `sala.html`, la primera tras entrar.
+- Sin tests de backend que tocar (cambio 100% de frontend, ningún
+  endpoint ni dato nuevo). Verificado con `node -e "new Function(...)"`
+  sobre los `<script>` de `cliente.html`, `sala.html` y `onboarding.js`
+  (sin errores de sintaxis) y con la suite completa de backend
+  (145/145, sin relación con este cambio, solo para confirmar que no se
+  ha roto nada).
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

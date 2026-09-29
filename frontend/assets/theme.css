@@ -276,6 +276,27 @@ details.info > .info-body p:last-child { margin-bottom: 0; }
 .idle-box strong { font-size: 18px; }
 .idle-box span { color: var(--text-dim); font-size: 14px; }
 
+/* ------------------------------------------------------------------
+   Onboarding "medio forzado" de cliente/peluquero (assets/onboarding.js):
+   tour guiado que resalta un elemento real de la página (o, si no hay
+   nada real que resaltar en ese momento, una tarjeta centrada) con
+   botón "Siguiente"; obligatorio la primera vez, repetible después con
+   un botón de ayuda.
+   ------------------------------------------------------------------ */
+.ob-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(3, 4, 10, 0.72); display: flex;
+              align-items: center; justify-content: center; padding: 16px; }
+.ob-highlight { position: fixed; border-radius: 14px; border: 2px solid var(--accent-cyan);
+                box-shadow: 0 0 0 4px rgba(79, 227, 255, 0.22), 0 0 34px rgba(79, 227, 255, 0.35);
+                pointer-events: none; transition: top 0.2s, left 0.2s, width 0.2s, height 0.2s; }
+.ob-card { position: relative; max-width: 320px; padding: 20px 22px 16px; display: flex; flex-direction: column; gap: 8px; }
+.ob-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; }
+.ob-icon .ico { width: 26px; height: 26px; color: var(--accent-cyan); }
+.ob-title { margin: 4px 0 0; font-size: 16px; font-weight: 800; }
+.ob-text { margin: 0; font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
+.ob-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 10px; }
+.ob-step { font-size: 12px; color: var(--text-faint); font-weight: 700; }
+.ob-foot .ob-next { width: auto; margin: 0; }
+
 /* Piezas comunes del flujo cliente/peluquero */
 .big-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 @media (min-width: 720px) { .big-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

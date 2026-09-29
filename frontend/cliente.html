@@ -56,6 +56,7 @@
 <div class="page-shell">
   <nav class="top-nav" id="nav">
     <a href="inicio.html" id="home-link" aria-label="Inicio"><span data-icon="house"></span></a>
+    <a href="#" id="help-btn" class="keep-label"><span data-icon="circle-help"></span><span class="lbl">Cómo funciona</span></a>
   </nav>
 
   <!-- Sin sesión -->
@@ -140,7 +141,27 @@
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
 <script src="assets/qr.js"></script>
+<script src="assets/onboarding.js"></script>
 <script>
+  // Onboarding "medio forzado" (sept 2026): la primera vez que alguien
+  // entra aquí sin sesión, un tour rápido explica el orden de los pasos.
+  // "Soy nuevo"/"Ya he venido" son botones reales que se resaltan de
+  // verdad; los pasos siguientes (preguntas, recomendaciones, esperar
+  // turno) todavía no existen en esta pantalla, así que se ven como
+  // tarjeta centrada, sin inventar nada.
+  const OB_CLIENTE_STEPS = [
+    { icon: "sparkles", title: "Bienvenido", text: "Un repaso rápido de qué vas a hacer y en qué orden, antes de empezar." },
+    { selector: "#new-btn", icon: "user-plus", title: "Primera vez aquí", text: "Toca «Soy nuevo» para crear tu perfil: tu nombre, tu teléfono y unos permisos." },
+    { icon: "clipboard-list", title: "Cuéntanos tu pelo", text: "Después responderás unas preguntas rápidas con dibujos (forma de cara, tu pelo…) para afinarte las recomendaciones." },
+    { icon: "sparkles", title: "Elige tus cortes", text: "Verás recomendaciones para ti y el catálogo completo. Marca ♥ los que te gusten." },
+    { icon: "clock", title: "Espera tu turno", text: "Quedas apuntado en la lista de espera. El peluquero te avisará y abrirá tu ficha cuando te toque." },
+    { selector: "#back-btn", icon: "phone", title: "¿Ya eres cliente?", text: "La próxima vez entra con «Ya he venido»: solo tu teléfono, sin repetir el alta." },
+  ];
+  document.getElementById("help-btn").addEventListener("click", (e) => {
+    e.preventDefault();
+    Onboarding.replay(OB_CLIENTE_STEPS, { storageKey: "ob_cliente_v1" });
+  });
+
   const statusEl = document.getElementById("status");
   function say(kind, text) {
     const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
@@ -229,7 +250,11 @@
 
   (async () => {
     const me = await Session.optionalClient();
-    if (!me) { show("welcome"); return; }
+    if (!me) {
+      show("welcome");
+      Onboarding.maybeRun(OB_CLIENTE_STEPS, { storageKey: "ob_cliente_v1" });
+      return;
+    }
     await Session.requireClient();  // arranca la salida automática en la tablet
     document.getElementById("hello").textContent = `Hola, ${(me.display_name || "").split(" ")[0]}`;
     const chips = [`<span class="chip ok">${UI.icon("clock")}En lista de espera</span>`];

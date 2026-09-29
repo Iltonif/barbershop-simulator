@@ -71,6 +71,7 @@
       </div></details>
     </div>
     <div class="top-actions">
+      <button type="button" class="secondary btn-ico" id="help-btn"><span data-icon="circle-help"></span>Cómo funciona</button>
       <button type="button" class="secondary btn-ico" id="lock-btn"><span data-icon="lock"></span>Bloquear</button>
     </div>
   </div>
@@ -104,7 +105,28 @@
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
 <script src="assets/qr.js"></script>
+<script src="assets/onboarding.js"></script>
 <script>
+  // Onboarding "medio forzado" (sept 2026): la primera vez que un
+  // peluquero entra aquí (por dispositivo, no por PIN -- el PIN es
+  // compartido) un tour rápido explica el orden de trabajo con cada
+  // cliente. "Atender"/"Terminado" se resaltan de verdad SOLO si en ese
+  // momento hay alguien esperando de verdad; si la sala está vacía, esos
+  // pasos se ven como tarjeta centrada en vez de inventar un cliente de
+  // prueba en la lista.
+  const OB_PELUQUERO_STEPS = [
+    { icon: "list-checks", title: "Cómo funciona", text: "Un repaso rápido del orden de trabajo con cada cliente." },
+    { selector: "#list", icon: "clock", title: "Sala de espera", text: "Aquí aparecen los clientes esperando turno: se apuntan solos al entrar en la tablet o con su QR." },
+    { selector: "[data-st=\"in_service\"]", icon: "user-check", title: "Atender", text: "Toca «Atender» junto a un cliente: pasa a «en curso» y se abre su ficha automáticamente." },
+    { icon: "scissors", title: "En la ficha", text: "Verás su pelo, sus gustos y accesos a Remolinos, Visajismo y Recomendaciones." },
+    { icon: "wand-sparkles", title: "Simular corte", text: "Toca el banner «Simular corte» de la ficha para hacerle una foto y probar cortes sobre ella." },
+    { selector: "[data-st=\"done\"]", icon: "check", title: "Terminado", text: "Al acabar, pulsa «Terminado»: te preguntará si quieres guardar el corte de hoy con una foto del resultado." },
+    { selector: "#q", icon: "search", title: "Buscar cliente", text: "Aquí puedes buscar a cualquier cliente por nombre o teléfono para abrir su ficha o apuntarlo en la lista." },
+  ];
+  document.getElementById("help-btn").addEventListener("click", () => {
+    Onboarding.replay(OB_PELUQUERO_STEPS, { storageKey: "ob_peluquero_v1" });
+  });
+
   const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const initial = (n) => esc((n || "?").trim().charAt(0).toUpperCase());
   function ago(iso) {
@@ -230,10 +252,11 @@
 
   (async () => {
     await Session.requireBarber();
-    loadWaiting();
+    await loadWaiting();
     loadClients();
     loadDue();
     setInterval(() => loadWaiting(true), 15000);
+    Onboarding.maybeRun(OB_PELUQUERO_STEPS, { storageKey: "ob_peluquero_v1" });
   })();
 </script>
 </body>
