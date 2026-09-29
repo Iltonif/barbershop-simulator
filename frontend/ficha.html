@@ -168,7 +168,10 @@
     <h2 class="sec-title"><span data-icon="camera"></span>Foto para simular
       <details class="info"><summary></summary><div class="info-body">Foto de frente, con buena luz, mirando a la cámara y con la frente despejada. Se guarda en su ficha (con su permiso) para que pueda probar cortes él solo las próximas veces.</div></details>
     </h2>
-    <div class="photo-wrap">
+    <!-- Colapsado tras un banner por defecto: solo se despliega el formulario
+         entero (foto, permisos, botones) al pulsar "Simular corte". -->
+    <button type="button" class="tool" id="sim-banner" style="width:100%"><span data-icon="wand-sparkles"></span>Simular corte</button>
+    <div class="photo-wrap" id="photo-wrap" hidden>
       <div class="photo-box" id="photo-box"><span data-icon="user-round"></span></div>
       <div class="photo-actions">
         <div class="consent-line">
@@ -376,6 +379,10 @@
   q("del-photo").addEventListener("click", async () => {
     try { await api(`/api/clients/${id}/simulation-photo`, { method: "DELETE" }); await reload(); say("ok", "Foto borrada"); }
     catch (err) { say("warn", err.message); }
+  });
+  q("sim-banner").addEventListener("click", () => {
+    q("sim-banner").hidden = true;
+    q("photo-wrap").hidden = false;
   });
 
   // Estado en la sala de espera: la entrada de hoy de este cliente.
