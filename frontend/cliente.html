@@ -35,6 +35,7 @@
   .consents .head-row { gap: 8px; flex-wrap: nowrap; }
   .consents .checkbox-row { margin: 0; flex: 1; }
   .consents .req { color: var(--accent-cyan); font-weight: 700; }
+  .consents .checkbox-row:has(input:disabled) { opacity: 0.45; }
   .back-row { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
   .back-row button { width: auto; margin: 0; }
   #status { margin: 12px 0; min-height: 1px; }
@@ -65,6 +66,7 @@
         Mientras esperas, crea tu perfil: mira el catálogo, guarda los cortes que te gusten y recibe recomendaciones para ti. La próxima vez entras solo con tu teléfono.
       </div></details>
     </div>
+    <p class="page-sub">Este es tu perfil de <strong>cliente</strong>. Si eres el peluquero, entra desde el acceso del peluquero, no desde aquí.</p>
     <div class="choice">
       <button type="button" id="new-btn"><span data-icon="user-plus"></span>Soy nuevo</button>
       <button type="button" id="back-btn" class="secondary"><span data-icon="phone"></span>Ya he venido</button>
@@ -81,7 +83,7 @@
     <label class="field" for="reg-name">Nombre</label>
     <input type="text" id="reg-name" autocomplete="given-name" />
     <label class="field" for="reg-phone">Teléfono</label>
-    <input type="text" id="reg-phone" inputmode="tel" autocomplete="tel" placeholder="612 345 678" />
+    <input type="text" id="reg-phone" inputmode="numeric" autocomplete="tel" maxlength="9" placeholder="612345678" />
     <div class="consents">
       <div class="head-row">
         <label class="checkbox-row"><input type="checkbox" id="c-history" /><span>Guardar mis datos para recomendarme cortes <span class="req">*</span></span></label>
@@ -96,7 +98,7 @@
         </div></details>
       </div>
       <div class="head-row">
-        <label class="checkbox-row"><input type="checkbox" id="c-sim" /><span>Enviar esa foto para generar las simulaciones</span></label>
+        <label class="checkbox-row"><input type="checkbox" id="c-sim" disabled /><span>Enviar esa foto para generar las simulaciones</span></label>
         <details class="info"><summary></summary><div class="info-body" id="sim-info">
           Para ver un corte sobre tu foto, se envía a un servicio externo de edición de imagen, que devuelve la simulación. No se guarda allí.
         </div></details>
@@ -109,7 +111,7 @@
   <section id="login" class="glass-card form-card" hidden>
     <h2 class="step-title" style="margin:0 0 4px;">Entra con tu teléfono</h2>
     <label class="field" for="login-phone">Teléfono</label>
-    <input type="text" id="login-phone" inputmode="tel" autocomplete="tel" placeholder="612 345 678" />
+    <input type="text" id="login-phone" inputmode="numeric" autocomplete="tel" maxlength="9" placeholder="612345678" />
     <button type="button" id="login-btn"><span data-icon="chevron-right"></span>Entrar</button>
     <div class="back-row"><button type="button" class="secondary icon-btn" data-back aria-label="Volver"><span data-icon="chevron-left"></span></button></div>
   </section>
@@ -156,6 +158,25 @@
   document.getElementById("back-btn").addEventListener("click", () => { statusEl.innerHTML = ""; show("login"); });
   document.querySelectorAll("[data-back]").forEach((b) => b.addEventListener("click", () => { statusEl.innerHTML = ""; show("welcome"); }));
 
+  // Teléfono: exactamente 9 dígitos (se filtra lo que no sea número al vuelo).
+  ["reg-phone", "login-phone"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/\D/g, "").slice(0, 9);
+    });
+  });
+
+  // No se puede pedir enviar la foto a simular si aún no se va a guardar
+  // ninguna foto (en el registro el cliente todavía no tiene foto: la hará
+  // el peluquero en su primera visita).
+  const cPhoto = document.getElementById("c-photo");
+  const cSim = document.getElementById("c-sim");
+  function syncSimCheckbox() {
+    cSim.disabled = !cPhoto.checked;
+    if (!cPhoto.checked) cSim.checked = false;
+  }
+  cPhoto.addEventListener("change", syncSimCheckbox);
+  syncSimCheckbox();
+
   // A quién se envía la foto, según lo que tenga configurado la barbería.
   fetch("/api/simulate/providers").then((r) => r.json()).then((providers) => {
     if (providers.length) {
@@ -175,7 +196,7 @@
     const name = document.getElementById("reg-name").value.trim();
     const phone = document.getElementById("reg-phone").value.trim();
     if (!name) return say("warn", "Escribe tu nombre");
-    if (!phone) return say("warn", "Escribe tu teléfono");
+    if (!/^\d{9}$/.test(phone)) return say("warn", "El teléfono debe tener 9 dígitos");
     if (!document.getElementById("c-history").checked) return say("warn", "Para crear tu perfil hay que aceptar la primera casilla");
     say("busy", "Creando…");
     try {
@@ -193,7 +214,7 @@
 
   async function doLogin() {
     const phone = document.getElementById("login-phone").value.trim();
-    if (!phone) return say("warn", "Escribe tu teléfono");
+    if (!/^\d{9}$/.test(phone)) return say("warn", "El teléfono debe tener 9 dígitos");
     say("busy", "Entrando…");
     try {
       await post("/api/me/login", { phone });

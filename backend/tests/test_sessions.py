@@ -124,6 +124,19 @@ class SessionFlowTest(unittest.TestCase):
         self.assertEqual(TestClient(self.app).post("/api/me/register", json={
             "display_name": "Otro", "phone": "612345678", "consent_history": True}).status_code, 409)
 
+    def test_phone_must_be_exactly_9_digits(self):
+        # Ni menos (item 2, sept 2026: "9 números como máximo y mínimo") ni más.
+        short = TestClient(self.app).post("/api/me/register", json={
+            "display_name": "Corto", "phone": "12345678", "consent_history": True})
+        self.assertEqual(short.status_code, 422)
+        long_ = TestClient(self.app).post("/api/me/register", json={
+            "display_name": "Largo", "phone": "1234567890", "consent_history": True})
+        self.assertEqual(long_.status_code, 422)
+        ok = TestClient(self.app).post("/api/me/register", json={
+            "display_name": "Justo", "phone": "612345678", "consent_history": True})
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(TestClient(self.app).post("/api/me/login", json={"phone": "1234567890"}).status_code, 422)
+
     def test_client_simulation_daily_cap(self):
         cid = self._register().json()["id"]
         self._barber_login()
@@ -177,6 +190,43 @@ class SessionFlowTest(unittest.TestCase):
         self.assertEqual(len(after), 4)
         self.assertFalse(any(h["has_photo"] for h in after))
         self.assertFalse(list((Path(self.tmp.name) / "photos").rglob("*.jpg")))
+
+    def test_request_catalog_style_not_yet_in_history(self):
+        """"Quiero este" desde el catálogo/recomendaciones (item 8, sept
+        2026): a diferencia de "quiero repetir este" (history_id, un corte
+        ya hecho), aquí el cliente pide un corte que todavía no tiene en su
+        historial. Mutuamente excluyente con history_id."""
+        cid = self._register().json()["id"]
+        self._barber_login()
+        styles = self.client_tab.get("/api/styles").json()
+        style_id = styles[0]["id"]
+
+        r = self.client_tab.put("/api/me/request", json={"style_id": style_id})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["style_id"], style_id)
+
+        waiting = self.barber.get("/api/waiting").json()
+        self.assertEqual(waiting[0]["requested"]["style_id"], style_id)
+        self.assertIsNone(waiting[0]["requested"]["notes"])
+
+        # Corte inexistente: 404, no se guarda nada.
+        self.assertEqual(self.client_tab.put("/api/me/request", json={"style_id": "no-existe"}).status_code, 404)
+
+        # Mutuamente excluyente con "quiero repetir este": pedir uno del
+        # historial quita la petición de un corte de catálogo (se comprueba
+        # directo en el repositorio, porque _waiting_out prioriza
+        # requested_history_id y no se vería en la respuesta de la API).
+        from app.db import repository
+        self.barber.post(f"/api/clients/{cid}/history", data={"style_name": "Corte libre"})
+        history_id = self.client_tab.get("/api/me/history").json()[0]["id"]
+        self.client_tab.put("/api/me/request", json={"history_id": history_id})
+        entry = repository.get_waiting_entry_today(cid)
+        self.assertEqual(entry.requested_history_id, history_id)
+        self.assertIsNone(entry.requested_style_id)
+
+        # Quitar la petición (ambos vacíos).
+        self.client_tab.put("/api/me/request", json={})
+        self.assertIsNone(self.barber.get("/api/waiting").json()[0]["requested"])
 
     def test_custom_style_added_from_the_picker(self):
         # Corte que el peluquero añade desde el selector cuando no lo

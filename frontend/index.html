@@ -47,12 +47,11 @@
   .consent-row { margin: 8px 0 12px; }
   .consent-row .checkbox-row { margin: 0; }
   .engine-row { margin: 4px 0 6px; }
-  .seg { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-  .seg button { width: auto; min-height: 38px; margin: 0; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
-                background: var(--glass); color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px; }
-  .seg button[aria-checked="true"] { background: linear-gradient(120deg, var(--accent-blue), #7a5cff); color: #fff; border-color: transparent; }
-  .seg button:hover { transform: none; box-shadow: none; }
+  .provider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .provider-row label { margin: 0; font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+  #provider-select { width: auto; flex: 1; min-height: 40px; }
   .engine-off { margin: 4px 0 10px; }
+  #simulate-form > button[type="submit"] { min-height: 56px; font-size: 16px; font-weight: 800; margin-top: 6px; }
   #results { max-width: 720px; margin: 4px 0 14px; }
   .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
   .result-tile { margin: 0; position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--glass-border);
@@ -134,7 +133,10 @@
     <!-- Motor de simulación: solo aparece si hay algún proveedor configurado
          en el servidor (GET /api/simulate/providers). -->
     <div id="engine-row" class="engine-row" hidden>
-      <div class="seg" id="provider-seg" role="radiogroup" aria-label="Motor de simulación"></div>
+      <div class="provider-row">
+        <label for="provider-select">Motor</label>
+        <select id="provider-select" aria-label="Motor de simulación"></select>
+      </div>
       <div class="head-row consent-row">
         <label class="checkbox-row">
           <input type="checkbox" id="consent-photo" />
@@ -150,7 +152,7 @@
       </div></details>
     </div>
 
-    <button type="submit"><span data-icon="wand-sparkles"></span>Generar</button>
+    <button type="submit"><span data-icon="wand-sparkles"></span>Simular corte</button>
   </form>
 
   <section id="results" hidden>
@@ -204,22 +206,22 @@
     let providers = [];        // [{id, label, company}] con clave configurada
     let selected = null;       // id del proveedor o "compare"
 
-    function renderProviderSeg() {
-      const seg = document.getElementById("provider-seg");
-      const options = providers.map((p) => ({ id: p.id, label: p.label, icon: "wand-sparkles" }));
-      if (providers.length > 1) options.push({ id: "compare", label: "Comparar", icon: "layout-grid" });
-      seg.innerHTML = options.map((o) =>
-        `<button type="button" role="radio" aria-checked="${o.id === selected}" data-id="${o.id}">${UI.icon(o.icon)}${o.label}</button>`
-      ).join("");
-      seg.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
-        selected = b.dataset.id;
-        renderProviderSeg();
-      }));
+    // Desplegable del motor (item 11, sept 2026): antes eran varios
+    // botones en fila; con un solo proveedor no hace falta desplegable
+    // (nada que elegir), así que la fila entera se oculta.
+    function renderProviderSelect() {
+      const row = document.querySelector(".provider-row");
+      const select = document.getElementById("provider-select");
+      const options = providers.map((p) => ({ id: p.id, label: p.label }));
+      if (providers.length > 1) options.push({ id: "compare", label: "Comparar los dos" });
+      row.hidden = options.length < 2;
+      select.innerHTML = options.map((o) => `<option value="${o.id}" ${o.id === selected ? "selected" : ""}>${o.label}</option>`).join("");
       const companies = providers.map((p) => p.company).join(" y ");
       document.getElementById("consent-info").textContent =
         `Para simular el corte, su foto se envía a ${companies}. No se guarda en este sistema. ` +
         "Hace falta su permiso cada vez, aparte del de su ficha.";
     }
+    document.getElementById("provider-select").addEventListener("change", (e) => { selected = e.target.value; });
 
     async function loadProviders() {
       try {
@@ -232,7 +234,7 @@
       document.getElementById("engine-off").hidden = providers.length > 0;
       if (providers.length) {
         selected = providers[0].id;
-        renderProviderSeg();
+        renderProviderSelect();
       }
     }
 

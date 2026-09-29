@@ -118,6 +118,20 @@
     loadWaiting();
   }
 
+  // "Atender": pasa a en curso y abre ya su ficha (item 9). "Terminado": NO
+  // se marca como terminado aquí -- se abre antes registrar-corte.html para
+  // preguntar si se registra el corte de hoy con foto (item 10); esa página
+  // es la que hace el PATCH a "done" al acabar, igual que ya hacía
+  // ficha.html con su botón "Terminado".
+  async function onAction(id, status, clientId) {
+    if (status === "in_service") {
+      await setStatus(id, status);
+      location.href = `ficha.html?client_id=${encodeURIComponent(clientId)}&w=${encodeURIComponent(id)}`;
+    } else {
+      location.href = `registrar-corte.html?client_id=${encodeURIComponent(clientId)}&w=${encodeURIComponent(id)}`;
+    }
+  }
+
   async function loadWaiting(background = false) {
     const res = await fetch("/api/waiting", background ? { headers: { "X-Background": "1" } } : undefined);
     if (!res.ok) return;
@@ -134,11 +148,13 @@
         w.has_hair_texture ? chip("scissors", "Pelo", "ok") : chip("scissors", "Falta pelo", "warn"),
         c.has_simulation_photo ? chip("camera", "Foto", "ok") : chip("camera", c.consent_save_photo ? "Falta foto" : "Sin permiso foto", "warn"),
         c.liked_styles.length ? chip("heart", String(c.liked_styles.length)) : "",
-        w.requested ? `<span class="chip req">${UI.icon("repeat")}Quiere repetir: ${esc(w.requested.style_name || "un corte")}</span>` : "",
+        w.requested
+          ? `<span class="chip req">${UI.icon("repeat")}${w.requested.id.startsWith("style:") ? "Quiere probar" : "Quiere repetir"}: ${esc(w.requested.style_name || "un corte")}</span>`
+          : "",
       ].join("");
       const action = w.status === "waiting"
-        ? `<button type="button" data-st="in_service" data-id="${w.id}">Atender</button>`
-        : `<button type="button" class="secondary" data-st="done" data-id="${w.id}">Terminado</button>`;
+        ? `<button type="button" data-st="in_service" data-id="${w.id}" data-client="${c.id}">Atender</button>`
+        : `<button type="button" class="secondary" data-st="done" data-id="${w.id}" data-client="${c.id}">Terminado</button>`;
       return `<div class="glass-card w-card ${w.status}">
         <a class="avatar" href="ficha.html?client_id=${encodeURIComponent(c.id)}&w=${w.id}">${initial(c.display_name)}</a>
         <a class="w-main" href="ficha.html?client_id=${encodeURIComponent(c.id)}&w=${w.id}" style="text-decoration:none;color:inherit">
@@ -149,7 +165,7 @@
         <div class="w-actions">${action}</div>
       </div>`;
     }).join("");
-    list.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => setStatus(b.dataset.id, b.dataset.st)));
+    list.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => onAction(b.dataset.id, b.dataset.st, b.dataset.client)));
   }
 
   let allClients = [];

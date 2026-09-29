@@ -62,6 +62,12 @@ class WaitingEntry:
     updated_at: str
     status: str
     requested_history_id: str | None = None
+    # "Quiero este" desde el catálogo/recomendaciones: el cliente pide un
+    # estilo del catálogo que todavía NO tiene en su historial (a diferencia
+    # de `requested_history_id`, que repite un corte que ya se hizo). Los
+    # dos son mutuamente excluyentes: fijar uno borra el otro (ver
+    # `repository.set_requested_history`/`set_requested_style`).
+    requested_style_id: str | None = None
 
 
 @dataclass

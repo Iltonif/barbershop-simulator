@@ -371,9 +371,21 @@ def get_waiting_entry_today(client_id: str) -> WaitingEntry | None:
 
 
 def set_requested_history(entry_id: str, history_id: str | None) -> None:
+    """Fija (o quita, con None) "quiero repetir este corte" (uno del
+    historial). Mutuamente excluyente con `set_requested_style`: pedir uno
+    quita el otro, para no dejar dos peticiones contradictorias a la vez."""
     with get_connection() as conn:
-        conn.execute("UPDATE waiting SET requested_history_id = ?, updated_at = ? WHERE id = ?",
+        conn.execute("UPDATE waiting SET requested_history_id = ?, requested_style_id = NULL, updated_at = ? WHERE id = ?",
                      (history_id, _now(), entry_id))
+
+
+def set_requested_style(entry_id: str, style_id: str | None) -> None:
+    """Fija (o quita, con None) "quiero este corte" del catálogo/
+    recomendaciones, sin que esté todavía en el historial del cliente.
+    Mutuamente excluyente con `set_requested_history` (ver ahí)."""
+    with get_connection() as conn:
+        conn.execute("UPDATE waiting SET requested_style_id = ?, requested_history_id = NULL, updated_at = ? WHERE id = ?",
+                     (style_id, _now(), entry_id))
 
 
 # --- Historial de cortes -----------------------------------------------------

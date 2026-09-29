@@ -69,7 +69,7 @@ def _client_out(client) -> ClientOut:
 
 def _validate_phone(phone: str) -> str:
     normalized = repository.normalize_phone(phone)
-    if len(normalized) < 9:
+    if len(normalized) != 9:
         raise HTTPException(status_code=422, detail="Escribe un teléfono válido (9 cifras).")
     return normalized
 
@@ -112,6 +112,16 @@ def _waiting_out(entry) -> WaitingOut | None:
     if entry.requested_history_id:
         record = repository.get_haircut(client.id, entry.requested_history_id)
         requested = _haircut_out(record) if record else None
+    elif entry.requested_style_id:
+        style = get_style_by_id_anywhere(entry.requested_style_id)
+        if style:
+            # No es un corte ya hecho (no hay id de historial real ni
+            # foto): se construye un HaircutOut "sintético" solo para que
+            # sala.html/ficha.html puedan mostrarlo igual que un corte
+            # repetido, con la técnica del estilo elegido.
+            requested = HaircutOut(id=f"style:{style.id}", created_at=entry.updated_at, style_id=style.id,
+                                   style_name=style.name, notes=None, reference_image=style.reference_image,
+                                   photo_path=None)
     return WaitingOut(
         id=entry.id, status=entry.status, created_at=entry.created_at, client=_client_out(client),
         is_new=not client.hair_texture_override and not client.simulation_photo_path,
@@ -511,19 +521,30 @@ def my_delete_haircut(record_id: str, request: Request):
 @router.get("/me/request")
 def my_request(request: Request):
     entry = repository.get_waiting_entry_today(_me(request).id)
-    return {"in_waiting": bool(entry), "history_id": entry.requested_history_id if entry else None}
+    return {
+        "in_waiting": bool(entry),
+        "history_id": entry.requested_history_id if entry else None,
+        "style_id": entry.requested_style_id if entry else None,
+    }
 
 
 @router.put("/me/request")
 def my_set_request(payload: HaircutRequestIn, request: Request):
-    """"Quiero repetir este": el cliente elige un corte de su historial y el
-    peluquero lo ve en la sala de espera y en su ficha."""
+    """"Quiero repetir este" (history_id, un corte ya hecho) o "Quiero este"
+    (style_id, un corte del catálogo/recomendaciones que todavía no se ha
+    hecho): el peluquero lo ve en la sala de espera y en la ficha (ver
+    `_waiting_out`). Mandar ambos vacíos quita la petición."""
     client = _me(request)
     if payload.history_id and repository.get_haircut(client.id, payload.history_id) is None:
         raise HTTPException(status_code=404, detail="Ese corte no está en tu historial")
+    if payload.style_id and get_style_by_id_anywhere(payload.style_id) is None:
+        raise HTTPException(status_code=404, detail="Corte no encontrado en el catálogo")
     entry = repository.get_waiting_entry_today(client.id) or repository.check_in(client.id)
-    repository.set_requested_history(entry.id, payload.history_id)
-    return {"in_waiting": True, "history_id": payload.history_id}
+    if payload.style_id:
+        repository.set_requested_style(entry.id, payload.style_id)
+    else:
+        repository.set_requested_history(entry.id, payload.history_id)
+    return {"in_waiting": True, "history_id": payload.history_id, "style_id": payload.style_id}
 
 
 # --- Cuándo toca volver (ver pipeline/maintenance.py) ---

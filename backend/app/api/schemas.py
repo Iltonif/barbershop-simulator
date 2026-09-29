@@ -513,7 +513,11 @@ class HaircutOut(BaseModel):
 
 
 class HaircutRequestIn(BaseModel):
-    history_id: str | None = None  # None = quitar la petición
+    history_id: str | None = None  # repetir un corte ya hecho (de su historial)
+    # Pedir un corte del catálogo/recomendaciones que todavía no tiene en su
+    # historial (item 8, sept 2026). Mutuamente excluyente con history_id:
+    # mandar uno quita el otro (ver `session_routes.my_set_request`).
+    style_id: str | None = None
 
 
 class WaitingOut(BaseModel):
@@ -524,7 +528,8 @@ class WaitingOut(BaseModel):
     is_new: bool  # primera visita (sin datos del peluquero todavía)
     questionnaire_done: bool
     has_hair_texture: bool
-    # Corte del historial que el cliente ha pedido repetir hoy.
+    # Corte que el cliente ha pedido para hoy: uno de su historial (repetir)
+    # o uno del catálogo que todavía no se ha hecho (ver `HaircutRequestIn`).
     requested: HaircutOut | None = None
 
 

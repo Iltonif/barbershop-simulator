@@ -49,8 +49,14 @@
   .slot-check { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%;
                 background: var(--ok); color: #05260f; display: none !important; }
   .slot-check .ico { width: 16px; height: 16px; stroke-width: 3; }
+  .slot-delete { position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border-radius: 50%; margin: 0; min-height: 0;
+                 padding: 0; align-items: center; justify-content: center; background: rgba(8, 10, 18, 0.75); color: #fff;
+                 border: none; display: none !important; }
+  .slot-delete:hover { transform: none; box-shadow: none; background: rgba(220, 60, 60, 0.85); }
+  .slot-delete .ico { width: 15px; height: 15px; }
   .photo-slot.done .slot-tile { border-style: solid; border-color: rgba(52, 211, 153, 0.6); }
   .photo-slot.done .slot-check { display: inline-flex !important; }
+  .photo-slot.done .slot-delete { display: inline-flex !important; }
   .slot-label { font-size: 12.5px; font-weight: 700; color: var(--text-dim); }
   .slot-actions { display: flex; gap: 8px; }
   .slot-actions .cam-btn, .slot-actions .gallery-btn {
@@ -196,6 +202,7 @@
           <div class="slot-tile" data-frame="frontal">
             <img class="photo-preview" id="preview-frontal" alt="" />
             <span class="slot-check" aria-hidden="true" data-icon="check"></span>
+            <button type="button" class="slot-delete" data-slot="frontal" aria-label="Borrar foto: Frontal"><span data-icon="trash-2"></span></button>
           </div>
           <span class="slot-label">Frontal</span>
           <div class="slot-actions">
@@ -209,6 +216,7 @@
           <div class="slot-tile" data-frame="izq">
             <img class="photo-preview" id="preview-izq" alt="" />
             <span class="slot-check" aria-hidden="true" data-icon="check"></span>
+            <button type="button" class="slot-delete" data-slot="izq" aria-label="Borrar foto: Perfil izq."><span data-icon="trash-2"></span></button>
           </div>
           <span class="slot-label">Perfil izq.</span>
           <div class="slot-actions">
@@ -222,6 +230,7 @@
           <div class="slot-tile" data-frame="dcha">
             <img class="photo-preview" id="preview-dcha" alt="" />
             <span class="slot-check" aria-hidden="true" data-icon="check"></span>
+            <button type="button" class="slot-delete" data-slot="dcha" aria-label="Borrar foto: Perfil dcho."><span data-icon="trash-2"></span></button>
           </div>
           <span class="slot-label">Perfil dcho.</span>
           <div class="slot-actions">
@@ -471,6 +480,18 @@
       });
     }
 
+    // Borrar una foto ya hecha, por si ha salido mal y hay que repetirla.
+    function clearSlot(slot) {
+      captured[slot] = null;
+      document.getElementById(SLOTS[slot].input).value = "";
+      showPreview(slot, null);
+      document.getElementById(`status-${slot}`).textContent = "";
+      refreshPhotoStep();
+    }
+    document.querySelectorAll(".slot-delete").forEach((btn) => {
+      btn.addEventListener("click", () => clearSlot(btn.dataset.slot));
+    });
+
     function fillFormFromFeatures(features, forehead) {
       const f = features || {};
       document.getElementById("profile-type").value = f.profile_type || "";
@@ -537,6 +558,24 @@
       aiGateSection.style.display = "none";
       searchSection.style.display = "";
       photosCard.style.display = "";
+    }
+
+    // Tras guardar el perfil de rasgos, se cierra solo esta ficha y se
+    // vuelve al paso de buscar/crear cliente, lista para el siguiente.
+    function closeClientSection() {
+      currentClient = null;
+      fullVisagismoProfile = {};
+      analysisForm.style.display = "none";
+      resultsSection.style.display = "none";
+      photosCard.style.display = "";
+      searchSection.style.display = "";
+      document.getElementById("client-name").value = "";
+      document.getElementById("consent").checked = false;
+      document.getElementById("analyze-hint").style.display = "";
+      for (const slot of Object.keys(SLOTS)) clearSlot(slot);
+      markStep(1, false);
+      markStep(2, false);
+      markStep(3, false);
     }
 
     function openClient(client) {
@@ -757,10 +796,10 @@
           say("warn", `No se pudo guardar: ${err.detail || res.statusText}`);
           return;
         }
-        const client = await res.json();
-        applyClientToPage(client);
-        markStep(3, true);
         say("ok", "Guardado");
+        // Se cierra sola tras un instante, para que se vea la confirmación
+        // antes de volver al paso de buscar/crear cliente.
+        setTimeout(closeClientSection, 900);
       } catch (e) {
         say("warn", `Sin conexión: ${e.message}`);
       }

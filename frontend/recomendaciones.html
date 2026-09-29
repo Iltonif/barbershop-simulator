@@ -102,6 +102,9 @@
   .simulate-btn { margin-top: 10px; background: rgba(79, 227, 255, 0.14); border-color: rgba(79, 227, 255, 0.35); color: var(--accent-cyan); font-weight: 700; }
   .simulate-btn:hover { background: rgba(79, 227, 255, 0.22); }
   .simulate-btn .ico { color: var(--accent-cyan); }
+  .card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .request-btn { margin-top: 10px; border: none; cursor: pointer; font-weight: 700; }
+  .request-btn[aria-pressed="true"] { background: rgba(52, 211, 153, 0.16); border-color: rgba(52, 211, 153, 0.4); color: #86e6c4; }
   @media (max-width: 640px) {
     .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .card img, .no-photo { height: 170px; }
@@ -265,6 +268,12 @@
       return flat;
     }
 
+    // "Quiero este": mientras el cliente espera, puede pedir un corte de
+    // sus recomendaciones que todavía no tiene en su historial, para que el
+    // peluquero lo vea ya elegido al abrir su ficha (ver /api/me/request,
+    // item 8). Solo para el propio cliente -- el peluquero no "pide" cortes
+    // desde la ficha de otro.
+    let chosenStyleId = null;
     function renderStyleCard({ rec, familyLabel }) {
       const s = rec.style;
       const card = document.createElement("div");
@@ -273,6 +282,10 @@
         ? `<img src="${s.reference_image}" alt="${s.name}" loading="lazy" />`
         : `<div class="no-photo">${UI.icon("image")}</div>`;
       const familyHint = familyLabel ? `<p class="family-hint">${UI.icon("images")}Parecido a: ${familyLabel}</p>` : "";
+      const requestHtml = barberMode ? "" : (() => {
+        const active = chosenStyleId === s.id;
+        return `<button type="button" class="chip request-btn" data-request="${s.id}" aria-pressed="${active}">${UI.icon(active ? "check" : "repeat")}${active ? "Pedido" : "Quiero este"}</button>`;
+      })();
       card.innerHTML = `
         ${photoHtml}
         <div class="card-body">
@@ -280,7 +293,10 @@
           ${familyHint}
           ${cutBadgesHtml(s)}
           ${whyChipsHtml(rec)}
-          <a class="chip simulate-btn" href="${simulateHref(s.id)}">${UI.icon("wand-sparkles")}Simular corte</a>
+          <div class="card-actions">
+            <a class="chip simulate-btn" href="${simulateHref(s.id)}">${UI.icon("wand-sparkles")}Simular corte</a>
+            ${requestHtml}
+          </div>
         </div>
       `;
       return card;
@@ -326,10 +342,35 @@
         statusEl.innerHTML = `<span class="warning">${UI.icon("triangle-alert")}Sin conexión: ${e.message}</span>`;
         return;
       }
+      if (!barberMode) {
+        try { chosenStyleId = (await (await fetch("/api/me/request")).json()).style_id || null; } catch (e) { /* no crítico */ }
+      }
       render(client, data);
     }
 
+    // Se guardan para volver a pintar la rejilla al pulsar "Quiero este",
+    // sin tener que repetir las llamadas de load().
+    let lastClient = null, lastData = null;
+
+    async function requestStyle(styleId) {
+      const next = chosenStyleId === styleId ? null : styleId;
+      try {
+        const res = await fetch("/api/me/request", {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ style_id: next }),
+        });
+        if (!res.ok) return;
+        chosenStyleId = next;
+        if (lastClient && lastData) render(lastClient, lastData);
+      } catch (e) { /* sin conexión: se queda como estaba */ }
+    }
+    gridEl.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("[data-request]");
+      if (btn) requestStyle(btn.dataset.request);
+    });
+
     function render(client, data) {
+      lastClient = client;
+      lastData = data;
       const name = client.display_name || "Cliente";
       const chip = (icon, text, extra = "") => `<span class="chip${extra}">${UI.icon(icon)}${text}</span>`;
       const quiz = ficha("cuestionario.html");

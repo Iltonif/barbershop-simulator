@@ -111,13 +111,8 @@
     color: var(--text-main);
   }
   .family-hint { margin: 0 0 10px; font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+  .family-hint .ico { width: 13px; height: 13px; flex: none; }
   .card-body h3 { margin-bottom: 8px; }
-
-  .cut-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-  .cut-item { border-top: 1px solid var(--glass-border); padding-top: 12px; }
-  .cut-item:first-child { border-top: none; padding-top: 0; }
-  .cut-name { font-size: 13.5px; font-weight: 600; margin-bottom: 5px; color: var(--text-main); }
-  .cut-desc { margin: 0 0 7px; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 
   .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
   .badge {
@@ -128,13 +123,6 @@
   .badge.fade { background: rgba(52, 211, 153, 0.15); color: #86e6c4; border-color: rgba(52, 211, 153, 0.3); }
   .badge .ico { width: 11px; height: 11px; margin-right: 3px; vertical-align: -1px; }
   .source { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
-
-  .card details > summary {
-    cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--accent-cyan);
-    padding-top: 10px; list-style: none;
-  }
-  .card details > summary::-webkit-details-marker { display: none; }
-  .card details[open] > summary { margin-bottom: 8px; }
 
   /* --- Lightbox / zoom -------------------------------------------------- */
   .lightbox {
@@ -192,8 +180,12 @@
     transition: background 0.2s, transform 0.2s;
   }
   .lightbox-close .ico { width: 18px; height: 18px; }
+  .lightbox-actions { display: flex; flex-wrap: wrap; gap: 10px; }
   .try-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 9px 16px; border-radius: 999px;
-             background: linear-gradient(120deg, var(--accent-blue), #7a5cff); color: #fff; text-decoration: none; font-weight: 700; font-size: 13px; }
+             background: linear-gradient(120deg, var(--accent-blue), #7a5cff); color: #fff; text-decoration: none; font-weight: 700; font-size: 13px;
+             border: none; cursor: pointer; }
+  .try-btn.secondary { background: var(--glass); color: var(--text-main); border: 1px solid var(--glass-border); }
+  .try-btn.secondary[aria-pressed="true"] { background: rgba(52, 211, 153, 0.16); color: #86e6c4; border-color: rgba(52, 211, 153, 0.4); }
   .lb-hair { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--text-faint); font-size: 12.5px; }
   .lightbox-close:hover { background: rgba(5, 6, 15, 0.85); transform: scale(1.06); }
 
@@ -261,7 +253,10 @@
     <div class="lightbox-caption">
       <h3 id="lightbox-title"></h3>
       <p id="lightbox-desc"></p>
-      <a id="lightbox-try" class="try-btn" href="index.html"><span data-icon="wand-sparkles"></span>Probar en un cliente</a>
+      <div class="lightbox-actions">
+        <a id="lightbox-try" class="try-btn" href="index.html"><span data-icon="wand-sparkles"></span>Probar en un cliente</a>
+        <button type="button" id="lightbox-request" class="try-btn secondary" hidden></button>
+      </div>
     </div>
   </div>
 </div>
@@ -310,7 +305,6 @@
       corte_tazon_bowl_rizado: "Corte tazón (bowl cut) — pelo rizado",
     };
 
-    const MAX_VISIBLE_PER_FAMILY = 4;
     let allStyles = [];
 
     const ZOOM_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -328,57 +322,30 @@
       return `<div class="badges">${badges.join("")}</div>`;
     }
 
-    function cutItemHtml(s) {
-      return `
-        <li class="cut-item">
-          <div class="cut-name">${s.name}</div>
-          ${cutBadgesHtml(s)}
-
-        </li>
-      `;
-    }
-
-    function renderFamilyCard(family) {
+    // Una tarjeta por corte (no se apilan varios cortes dentro de una misma
+    // tarjeta): si comparte foto/familia con otros, se le añade un pequeño
+    // "Parecido a: <familia>" -- mismo patrón ya usado en
+    // recomendaciones.html (ver renderStyleCard/orderWithFamiliesAdjacent
+    // de esa página, que es la referencia para este cambio).
+    function renderStyleCard(style, familyLabel) {
       const card = document.createElement("div");
       card.className = "card";
 
-      const photoHtml = family.referenceImage
-        ? `<div class="card-photo" data-img="${family.referenceImage}" data-title="${family.label}" data-desc="${(family.items[0] && family.items[0].description) || ""}" data-hair="${((family.items[0] && family.items[0].suitable_hair_types) || []).join(",")}" data-id="${family.items[0] ? family.items[0].id : ""}">
-             <img src="${family.referenceImage}" alt="Foto de referencia: ${family.label}" loading="lazy" />
+      const photoHtml = style.reference_image
+        ? `<div class="card-photo" data-img="${style.reference_image}" data-title="${style.name}" data-desc="${style.description || ""}" data-hair="${(style.suitable_hair_types || []).join(",")}" data-id="${style.id}">
+             <img src="${style.reference_image}" alt="Foto: ${style.name}" loading="lazy" />
              <span class="zoom-hint">${UI.icon("zoom-in")}</span>
            </div>`
         : `<div class="card-photo" style="cursor:default;"><div class="no-photo">${UI.icon("image")}</div></div>`;
 
-      const visible = family.items.slice(0, MAX_VISIBLE_PER_FAMILY);
-      const rest = family.items.slice(MAX_VISIBLE_PER_FAMILY);
-
-      // Un corte por foto (lo normal): solo nombre y etiquetas; la
-      // descripción se lee al ampliar la foto. Si varios comparten foto, se
-      // listan sus nombres y el resto va plegado.
-      if (family.items.length === 1) {
-        card.innerHTML = `
-          ${photoHtml}
-          <div class="card-body">
-            <h3>${family.label}</h3>
-            ${cutBadgesHtml(family.items[0])}
-          </div>
-        `;
-        return card;
-      }
-      const visibleHtml = visible.map(cutItemHtml).join("");
-      const restHtml = rest.length
-        ? `<details><summary>+${rest.length}</summary>
-             <ul class="cut-list">${rest.map(cutItemHtml).join("")}</ul>
-           </details>`
-        : "";
+      const familyHint = familyLabel ? `<p class="family-hint">${UI.icon("images")}Parecido a: ${familyLabel}</p>` : "";
 
       card.innerHTML = `
         ${photoHtml}
         <div class="card-body">
-          <h3>${family.label}</h3>
-          <p class="family-hint">${UI.icon("scissors")}${family.items.length}</p>
-          <ul class="cut-list">${visibleHtml}</ul>
-          ${restHtml}
+          <h3>${style.name}</h3>
+          ${familyHint}
+          ${cutBadgesHtml(style)}
         </div>
       `;
       return card;
@@ -411,6 +378,21 @@
       return Array.from(families.values());
     }
 
+    // Aplana las familias en una única lista, en el mismo orden (familias
+    // juntas), y adjunta a cada corte la etiqueta de su familia SOLO cuando
+    // tiene hermanos (para no mostrar "Parecido a: <su propio nombre>" en
+    // un corte que va solo).
+    function orderWithFamiliesAdjacent(styles) {
+      const families = groupByFamily(styles);
+      const flat = [];
+      for (const family of families) {
+        for (const s of family.items) {
+          flat.push({ style: s, familyLabel: family.items.length > 1 ? family.label : null });
+        }
+      }
+      return flat;
+    }
+
     function applyFiltersAndRender() {
       for (const sel of [hairSelect, lengthSelect, fadeSelect]) sel.classList.toggle("active", !!sel.value);
       document.getElementById("clear-filters").hidden = !(hairSelect.value || lengthSelect.value || fadeSelect.value);
@@ -431,14 +413,14 @@
         return;
       }
 
-      const families = groupByFamily(filtered);
+      const ordered = orderWithFamiliesAdjacent(filtered);
       statusEl.textContent = `${filtered.length} cortes`;
       gridEl.innerHTML = "";
-      for (const family of families) {
-        const card = renderFamilyCard(family);
+      for (const entry of ordered) {
+        const card = renderStyleCard(entry.style, entry.familyLabel);
         // Cliente con sesión: corazón para guardar el corte en favoritos.
-        if (viewer === "cliente" && family.items.length === 1) {
-          card.querySelector(".card-photo").insertAdjacentHTML("beforeend", Session.heartHtml(family.items[0].id));
+        if (viewer === "cliente") {
+          card.querySelector(".card-photo").insertAdjacentHTML("beforeend", Session.heartHtml(entry.style.id));
         }
         gridEl.appendChild(card);
       }
@@ -499,6 +481,35 @@
       if (lastFocusedEl && lastFocusedEl.focus) lastFocusedEl.focus();
     }
 
+    // "Quiero este": mientras el cliente espera, puede pedir desde aquí un
+    // corte que todavía no tiene en su historial, para que el peluquero lo
+    // vea ya elegido al abrir su ficha (ver /api/me/request, item 8). Solo
+    // para el cliente con sesión -- el peluquero no "pide" cortes.
+    let chosenStyleId = null;
+    const requestBtn = document.getElementById("lightbox-request");
+    function renderRequestBtn(styleId) {
+      if (viewer !== "cliente") { requestBtn.hidden = true; return; }
+      const active = chosenStyleId === styleId;
+      requestBtn.hidden = false;
+      requestBtn.dataset.styleId = styleId;
+      requestBtn.setAttribute("aria-pressed", active ? "true" : "false");
+      requestBtn.innerHTML = `${UI.icon(active ? "check" : "repeat")}${active ? "Pedido" : "Quiero este"}`;
+    }
+    async function requestStyle(styleId) {
+      const next = chosenStyleId === styleId ? null : styleId;
+      try {
+        const res = await fetch("/api/me/request", {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ style_id: next }),
+        });
+        if (!res.ok) return;
+        chosenStyleId = next;
+        renderRequestBtn(styleId);
+      } catch (e) { /* sin conexión: se queda como estaba */ }
+    }
+    requestBtn.addEventListener("click", () => {
+      if (requestBtn.dataset.styleId) requestStyle(requestBtn.dataset.styleId);
+    });
+
     gridEl.addEventListener("click", (ev) => {
       const photo = ev.target.closest(".card-photo[data-img]");
       if (!photo) return;
@@ -509,6 +520,7 @@
       tryBtn.hidden = !viewer;
       tryBtn.href = viewer === "cliente" ? `probar.html?style=${sid}` : `index.html?style=${sid}`;
       tryBtn.lastChild.textContent = viewer === "cliente" ? "Probar en mí" : "Probar en un cliente";
+      renderRequestBtn(photo.dataset.id || "");
       openLightbox(photo.dataset.img, photo.dataset.title, photo.dataset.desc, (photo.dataset.hair || "").split(",").filter(Boolean));
     });
 
@@ -528,6 +540,7 @@
         viewer = "cliente";
         Session.setLikes(me.liked_styles);
         document.querySelector('nav a[aria-label="Inicio"]').href = "cliente.html";
+        try { chosenStyleId = (await (await fetch("/api/me/request")).json()).style_id || null; } catch (e) { /* no crítico */ }
       } else if (Session.isQr()) {
         document.querySelector('nav a[aria-label="Inicio"]').href = "cliente.html";
       } else {

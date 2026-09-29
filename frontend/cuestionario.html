@@ -41,8 +41,7 @@
   .nav-row { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; gap: 10px; }
   .nav-row button { width: auto; margin: 0; }
   .nav-row .icon-btn { width: 44px; }
-  .skip { background: none; border: none; color: var(--text-faint); font-weight: 600; font-size: 13px; padding: 10px; min-height: 0; }
-  .skip:hover { transform: none; box-shadow: none; color: var(--text-dim); }
+  button.opt.opt-skip { color: var(--text-dim); }
   .inline-form { display: flex; gap: 8px; }
   .inline-form input { flex: 1; min-width: 0; }
   .inline-form button { width: auto; margin: 0; white-space: nowrap; }
@@ -75,7 +74,6 @@
     <div id="question"></div>
     <div class="nav-row">
       <button type="button" class="secondary icon-btn" id="back-btn" aria-label="Pregunta anterior"><span data-icon="chevron-left"></span></button>
-      <button type="button" class="skip" id="skip-btn">No lo sé</button>
     </div>
   </section>
 
@@ -209,6 +207,17 @@
     melena: lengthArt([{ shape: '<path d="M50 11 C82 11 87 44 90 100 L10 100 C13 44 18 11 50 11 Z"/>', H: 35, B: 100 }]),
   };
 
+  // "No lo sé": persona con los brazos abiertos (mismo estilo de línea que
+  // el resto de dibujos: SVG 100x100, trazo del color de acento).
+  const SHRUG_ART = `<svg class="art" viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="50" cy="21" r="11"/>
+    <path d="M50 32 V66"/>
+    <path d="M50 40 C40 40 32 30 23 18"/>
+    <path d="M50 40 C60 40 68 30 77 18"/>
+    <path d="M50 66 L35 90"/>
+    <path d="M50 66 L65 90"/>
+  </svg>`;
+
   // ---- Preguntas ----
   const FACE_TO_GEOMETRY = { ovalada: "oval", redonda: "round", cuadrada: "square", alargada: "rectangular_elongated",
                              diamante: "diamond", triangular: "triangle", triangular_invertida: "heart" };
@@ -256,13 +265,14 @@
     void box.offsetWidth;
     box.innerHTML = `<h2 class="q-title">${q.title}</h2><div class="options${q.cols === 3 ? " cols-3" : ""}">${q.options.map(([v, label, art]) =>
       `<button type="button" class="opt" data-v="${v}" aria-pressed="${answers[q.key] === v}">${art}<span>${label}</span></button>`
-    ).join("")}</div>`;
-    box.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => {
+    ).join("")}<button type="button" class="opt opt-skip" data-skip="1">${SHRUG_ART}<span>No lo sé</span></button></div>`;
+    box.querySelectorAll(".opt[data-v]").forEach((b) => b.addEventListener("click", () => {
       const raw = b.dataset.v;
       answers[q.key] = q.key === "visits" ? Number(raw) : raw;
-      box.querySelectorAll(".opt").forEach((o) => o.setAttribute("aria-pressed", o === b));
+      box.querySelectorAll(".opt[data-v]").forEach((o) => o.setAttribute("aria-pressed", o === b));
       setTimeout(next, 220);   // se ve la selección y pasa sola a la siguiente
     }));
+    box.querySelector(".opt-skip").addEventListener("click", () => { delete answers[q.key]; next(); });
     document.getElementById("back-btn").style.visibility = step === 0 ? "hidden" : "visible";
   }
 
@@ -280,7 +290,6 @@
     document.getElementById("summary").innerHTML = chips || '<span class="chip">Sin respuestas</span>';
   }
 
-  document.getElementById("skip-btn").addEventListener("click", () => { delete answers[QUESTIONS[step].key]; next(); });
   document.getElementById("back-btn").addEventListener("click", () => { if (step > 0) { step--; renderQuestion(); } });
   document.getElementById("edit-btn").addEventListener("click", () => {
     document.getElementById("done").hidden = true;

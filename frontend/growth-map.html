@@ -19,7 +19,11 @@
 <title>Mapa de remolinos y dirección del pelo</title>
 <link rel="stylesheet" href="assets/theme.css" />
 <style>
-  .page-shell { max-width: 760px; }
+  /* Ancho ampliado (era 760px) y el maniquí bastante más grande (ver
+     #three-canvas más abajo): para dibujar remolinos bien con el dedo en
+     iPad/pantalla táctil hace falta más superficie, no solo más ancho
+     (item 12, sept 2026). */
+  .page-shell { max-width: 980px; }
   .page-head { margin-bottom: 18px; }
   .form-card { padding: 18px 20px 20px; }
   .inline-form { display: flex; gap: 8px; }
@@ -75,9 +79,15 @@
   #canvas-wrap { position: relative; }
   #three-canvas {
     border: 1px solid var(--glass-border); border-radius: 12px; display: block;
-    touch-action: none; width: 100%; height: 560px; cursor: grab;
+    touch-action: none; width: 100%; height: min(720px, 76vh); min-height: 520px; cursor: grab;
   }
   #canvas-wrap.drawing #three-canvas { cursor: crosshair; }
+  /* iPad y tablets en general (por encima del móvil, por debajo de un
+     escritorio grande): el maniquí ocupa casi toda la altura visible para
+     poder dibujar remolinos con el dedo con precisión (item 12). */
+  @media (min-width: 601px) and (max-width: 1080px) {
+    #three-canvas { height: min(820px, 82vh); min-height: 600px; }
+  }
   /* Vistas rápidas, abajo; pelo sí/no arriba a la izquierda */
   .views { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 4px;
            background: rgba(8, 10, 18, 0.82); border: 1px solid var(--glass-border); border-radius: 999px; padding: 4px; }

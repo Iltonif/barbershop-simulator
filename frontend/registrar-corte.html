@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#05060f" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cortes Simulador" />
+<title>Registrar corte de hoy</title>
+<link rel="stylesheet" href="assets/theme.css" />
+<style>
+  /* Se abre al pulsar "Terminado" en sala.html/ficha.html (item 10, sept
+     2026): antes este formulario vivía como una sección más dentro de
+     ficha.html (#log-sec); ahora es su propia página, para que quede claro
+     que es el paso final de la visita, con cuántas fotos hay ya guardadas
+     del cliente. El estado de la sala de espera pasa a "done" SOLO al salir
+     de aquí (Guardar y terminar / Terminar sin guardar), nunca antes. */
+  .page-shell { max-width: 640px; }
+  .page-head { margin-bottom: 6px; }
+  .sec { padding: 18px 20px 20px; margin-bottom: 16px; position: relative; z-index: 5; }
+  .sec-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; margin: 0 0 12px; }
+  .sec-title .ico { color: var(--accent-cyan); }
+  .log-grid { display: flex; gap: 14px; flex-wrap: wrap; }
+  .log-photo { width: 140px; aspect-ratio: 3 / 4; border-radius: 14px; border: 1.5px dashed var(--glass-border); overflow: hidden;
+               display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0;
+               color: var(--text-dim); font-size: 12.5px; cursor: pointer; text-align: center; padding: 8px; }
+  .log-photo .ico { width: 30px; height: 30px; color: var(--accent-cyan); }
+  .log-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+  .log-photo.has { padding: 0; border-style: solid; border-color: rgba(52, 211, 153, 0.6); }
+  .log-fields { flex: 1; min-width: 220px; }
+  .log-fields label { margin-top: 0; }
+  .log-fields input, .log-fields select { margin-bottom: 10px; }
+  .log-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .log-actions button { width: auto; margin: 0; }
+  .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .back-link { display: block; margin-top: 14px; text-align: center; color: var(--text-faint); font-size: 13px; }
+  #status { margin: 10px 0; min-height: 1px; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <nav class="top-nav">
+    <a id="ficha-link" href="ficha.html" title="Ficha del cliente"><span data-icon="arrow-left"></span><span class="lbl">Ficha</span></a>
+  </nav>
+
+  <div class="head-row page-head">
+    <h1 class="page-title">Corte de hoy</h1>
+    <details class="info"><summary></summary><div class="info-body">
+      Al pulsar "Terminado" se registra (o no) el corte de hoy y el cliente pasa a "terminado" en la sala de espera.
+    </div></details>
+  </div>
+  <p class="page-sub" id="subtitle"></p>
+
+  <section class="glass-card sec" id="log-sec">
+    <h2 class="sec-title"><span data-icon="scissors"></span>¿Registrar el corte con foto?</h2>
+    <div class="log-grid">
+      <label class="log-photo" for="log-photo-input" id="log-photo-box"><span data-icon="camera"></span><span>Foto del resultado</span></label>
+      <input type="file" id="log-photo-input" accept="image/*" capture="environment" class="visually-hidden" />
+      <div class="log-fields">
+        <label for="log-style-picker">Corte</label>
+        <div id="log-style-picker"></div>
+        <input type="text" id="log-free" placeholder="¿Cuál? (si no está en el catálogo)" hidden />
+        <label for="log-notes">Notas</label>
+        <textarea id="log-notes" rows="3" maxlength="500" placeholder="Máquina, números, largos, producto…"></textarea>
+      </div>
+    </div>
+    <p class="hint" id="log-photo-hint"></p>
+    <div class="log-actions">
+      <button type="button" id="log-save"><span data-icon="save"></span>Guardar y terminar</button>
+      <button type="button" class="secondary" id="log-skip"><span data-icon="check"></span>Terminar sin guardar</button>
+    </div>
+    <a class="back-link" id="back-link" href="#">Volver a la ficha sin terminar</a>
+  </section>
+
+  <div id="status" role="status"></div>
+</div>
+
+<script src="assets/ui.js"></script>
+<script src="assets/session.js"></script>
+<script src="assets/style-picker.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const id = params.get("client_id");
+  const waitingId = params.get("w");
+  const q = (s) => document.getElementById(s);
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const statusEl = q("status");
+  function say(kind, text) {
+    const icon = { ok: "circle-check", warn: "triangle-alert", busy: "loader-circle" }[kind];
+    statusEl.innerHTML = `<div class="status-line ${kind}">${UI.icon(icon, kind === "busy" ? "spin" : "")}<span>${text}</span></div>`;
+  }
+  async function api(url, opts = {}) {
+    const res = await fetch(url, opts);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    return data;
+  }
+
+  let client = null;
+  let logPhoto = null;
+  let logStylePicker = null;
+
+  async function finishWaiting() {
+    if (waitingId) {
+      await api(`/api/waiting/${waitingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "done" }) });
+    }
+    location.href = "sala.html";
+  }
+
+  q("log-photo-input").addEventListener("change", (e) => {
+    logPhoto = e.target.files[0] || null;
+    if (logPhoto) {
+      q("log-photo-box").className = "log-photo has";
+      q("log-photo-box").innerHTML = `<img src="${URL.createObjectURL(logPhoto)}" alt="" />`;
+    }
+    e.target.value = "";
+  });
+  q("log-skip").addEventListener("click", finishWaiting);
+  q("log-save").addEventListener("click", async () => {
+    const isOtro = logStylePicker && logStylePicker.getExtra() === "__otro";
+    const styleId = logStylePicker ? logStylePicker.getValue() : null;
+    const free = q("log-free").value.trim();
+    if (!isOtro && !styleId) { say("warn", "Elige el corte o escribe cuál ha sido"); return; }
+    if (isOtro && !free) { say("warn", "Elige el corte o escribe cuál ha sido"); return; }
+    const fd = new FormData();
+    if (isOtro) fd.append("style_name", free); else fd.append("style_id", styleId);
+    if (q("log-notes").value.trim()) fd.append("notes", q("log-notes").value.trim());
+    if (logPhoto) fd.append("photo", logPhoto);
+    say("busy", "Guardando…");
+    try {
+      await api(`/api/clients/${id}/history`, { method: "POST", body: fd });
+      say("ok", "Corte guardado en su historial");
+      await finishWaiting();
+    } catch (e) { say("warn", e.message); }
+  });
+
+  (async () => {
+    if (!id) { say("warn", "Falta el cliente"); return; }
+    await Session.requireBarber();
+    q("ficha-link").href = `ficha.html?client_id=${encodeURIComponent(id)}`;
+    q("back-link").href = `ficha.html?client_id=${encodeURIComponent(id)}${waitingId ? `&w=${encodeURIComponent(waitingId)}` : ""}`;
+    try {
+      client = await api(`/api/clients/${id}`);
+      const history = await api(`/api/clients/${id}/history`);
+      const photoCount = history.filter((h) => h.has_photo).length;
+      q("subtitle").textContent = photoCount
+        ? `${client.display_name || "Este cliente"} · ya tienes ${photoCount} foto${photoCount === 1 ? "" : "s"} guardada${photoCount === 1 ? "" : "s"} de él.`
+        : `${client.display_name || "Este cliente"} · todavía no tienes fotos suyas guardadas.`;
+
+      // El corte que haya pedido hoy (repetir uno de su historial, o
+      // probar uno del catálogo que aún no tenía) se preselecciona, igual
+      // que hacía ficha.html antes de mover aquí este formulario.
+      let requested = null;
+      if (waitingId) {
+        try {
+          const waiting = await api("/api/waiting");
+          const w = waiting.find((x) => x.id === waitingId) || waiting.find((x) => x.client.id === id);
+          requested = w ? w.requested : null;
+        } catch (e) { /* no crítico */ }
+      }
+      const liked = new Set(client.liked_styles || []);
+      const first = [requested && requested.style_id, ...liked].filter(Boolean);
+      const styles = await api("/api/styles");
+      const ordered = [...styles.filter((s) => first.includes(s.id)), ...styles.filter((s) => !first.includes(s.id))]
+        .map((s) => (liked.has(s.id) ? { ...s, name: `♥ ${s.name}` } : s));
+      logStylePicker = StylePicker.mount(q("log-style-picker"), {
+        styles: ordered,
+        allowCreate: true,
+        placeholder: "Busca un corte…",
+        extraActions: [{ id: "__otro", label: "Otro (uso puntual, no se guarda en el catálogo)", icon: "pen-line" }],
+        onChange: () => { q("log-free").hidden = true; },
+        onExtraAction: () => { q("log-free").hidden = false; q("log-free").focus(); },
+      });
+      if (requested && requested.style_id) logStylePicker.selectById(requested.style_id);
+      if (requested && requested.notes) q("log-notes").value = requested.notes;
+
+      q("log-photo-hint").textContent = client.consent_save_photo ? "" : "Sin permiso del cliente para guardar fotos: se guarda el corte y las notas, sin foto.";
+      q("log-photo-box").style.display = client.consent_save_photo ? "" : "none";
+    } catch (e) { say("warn", e.message); }
+  })();
+</script>
+</body>
+</html>

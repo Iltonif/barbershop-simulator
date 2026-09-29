@@ -2439,6 +2439,112 @@ llegó a estar en el texto/PDF que Pedro pegó, no está cubierto aquí.
     cada icono ambiguo por separado, y con la suite completa (140 tests,
     sin romper nada -- este cambio no toca ningún archivo de `backend/`).
 
+## Doce detalles de la web (sept 2026)
+
+Lista de 12 ajustes que Pedro pidió de golpe (capturas de `cliente.html` y
+`catalogo.html` + una lista numerada), la mayoría de UI pero con dos
+cambios de esquema. Se listan en el mismo orden en que los pidió.
+
+1. **Dejar claro que el perfil cliente es el del cliente**: subtítulo
+   `.page-sub` (clase ya existía en `theme.css`, sin usar en ningún sitio)
+   bajo el título de `cliente.html#welcome`, aclarando que al escanear el
+   QR se entra en el perfil del cliente.
+2. **Teléfono a exactamente 9 dígitos**: `maxlength="9"` +
+   `inputmode="numeric"` + filtro de no-dígitos en `#reg-phone`/
+   `#login-phone` (`cliente.html`), y en el backend `_validate_phone()`
+   (`session_routes.py`) pasa de `len(normalized) < 9` a `!= 9`.
+3. **"No lo sé" del mismo tamaño**: en `cuestionario.html`, deja de ser un
+   link de texto aparte (`.skip`) y pasa a ser un `button.opt` más dentro
+   de la rejilla de opciones (mismo tamaño que el resto), con un dibujo
+   propio de una persona con los brazos abiertos (`SHRUG_ART`, mismo
+   lenguaje visual -- SVG 100x100, `stroke="currentColor"` -- que
+   `FACE_ART`/`HAIR_ART`/etc.; no se usó ningún icono de `ui.js` porque no
+   hay ninguno de "brazos abiertos"/accesibilidad en ese set y arriesgarse
+   a inventar un `path` de Lucide podía salir mal).
+4. **Borrar una foto de visajismo ya hecha**: botón `trash-2` en la
+   esquina de cada una de las 3 casillas de foto (`visagismo.html`),
+   visible solo cuando esa casilla tiene foto (`.photo-slot.done
+   .slot-delete`); nueva función `clearSlot(slot)`.
+5. **Guardar rasgos cierra la ficha sola**: `visagismo.html`, nueva función
+   `closeClientSection()` (resetea las 3 fotos, el buscador de cliente y
+   los 3 pasos) llamada 900ms después de un "Guardado" en el formulario de
+   rasgos, para que el peluquero pase directo al siguiente cliente sin
+   tocar nada más.
+6. **Casilla de "enviar foto para simular" antes de tener foto**: en
+   `cliente.html`, `#c-sim` empieza deshabilitada y se deshabilita/
+   desmarca sola mientras `#c-photo` no esté marcada (con `#c-photo`
+   marcada más tarde por el peluquero en su primera visita) -- antes se
+   podía marcar sin sentido durante el alta, cuando el cliente todavía no
+   tiene ninguna foto.
+7. **Catálogo: una tarjeta por corte, no apiladas**: `catalogo.html` tenía
+   su propio `renderFamilyCard` que metía varios cortes dentro de la misma
+   tarjeta con un "+N" plegado -- justo el patrón que `recomendaciones.html`
+   ya había dejado atrás (ver "Recomendaciones: simular corte desde la
+   tarjeta..." más arriba). Se sustituye por el mismo patrón de esa página:
+   `renderStyleCard`/`orderWithFamiliesAdjacent`, una tarjeta por corte y
+   un aviso "Parecido a: `<familia>`" cuando comparte foto/familia con
+   otros. Se borra el CSS/JS que ya no se usa (`cut-list`, `cut-item`,
+   `MAX_VISIBLE_PER_FAMILY`, `cutItemHtml`, `renderFamilyCard`).
+8. **El cliente manda un corte del catálogo al peluquero mientras
+   espera**: antes solo existía "quiero repetir este" sobre un corte YA
+   hecho (`waiting.requested_history_id`, ver "Historial de cortes del
+   cliente"). Se añade una columna hermana `waiting.requested_style_id`
+   (migración en `database.py`, campo en `WaitingEntry`) para pedir un
+   corte del catálogo que el cliente **todavía no se ha hecho**. Son
+   mutuamente excluyentes: `repository.set_requested_history`/
+   `set_requested_style` limpian la otra columna al fijar la suya.
+   `HaircutRequestIn` (`schemas.py`) gana un `style_id` opcional junto al
+   `history_id` que ya tenía; `PUT /api/me/request` acepta cualquiera de
+   los dos (o ninguno, para quitar la petición) y `GET /api/me/request`
+   devuelve ambos. `_waiting_out()` construye, cuando hay
+   `requested_style_id`, un `HaircutOut` "sintético" con `id="style:<id>"`
+   (sin foto ni fecha real) para que `sala.html`/`ficha.html` lo muestren
+   igual que un corte repetido -- ambos comprueban ese prefijo para decir
+   "Quiere probar" en vez de "Quiere repetir". Botón "Quiero este"/"Pedido"
+   (mismo patrón que ya usaba `mis-cortes.html` con `history_id`) añadido
+   en el lightbox de `catalogo.html` y en cada tarjeta de
+   `recomendaciones.html` (solo para el cliente, no en modo peluquero).
+   Tests: `test_request_catalog_style_not_yet_in_history` en
+   `test_sessions.py`.
+9. **"Atender" abre la ficha sola**: `sala.html`, el botón ya no se queda
+   en la propia sala tras el PATCH a `in_service` -- ahora navega a
+   `ficha.html?client_id=...&w=...` justo después.
+10. **"Terminado" pregunta antes por una foto, en su propia página**: el
+    formulario "Corte de hoy" vivía como una sección más dentro de
+    `ficha.html` (`#log-sec`, con su botón "Registrar corte de hoy" en
+    Historial y otra apertura automática al pulsar "Terminado"). Pedro
+    pidió que fuera una página aparte y que esa página dijera cuántas
+    fotos hay ya guardadas de ese cliente. Se creó
+    **`frontend/registrar-corte.html`** (mismo formulario/lógica que
+    tenía `#log-sec`: `StylePicker`, foto opcional, notas, preselección
+    del corte pedido) y se borró la sección, el botón y las funciones
+    `openLog`/`finishWaiting` de `ficha.html`. El estado de la sala
+    (`waiting.status`) pasa a `"done"` solo al salir de esa página
+    ("Guardar y terminar" o "Terminar sin guardar"), nunca antes; hay
+    también un enlace "Volver a la ficha sin terminar" para el clic
+    accidental. Tanto `sala.html` como `ficha.html` navegan ahí en vez de
+    marcar "done" directamente.
+11. **"Simular corte" como botón grande con desplegable**: en `index.html`
+    (la única página de simular), el botón de enviar pasa de "Generar" a
+    "Simular corte" con más tamaño (`min-height: 56px`, `font-size: 16px`),
+    y la fila de proveedores (antes botones en pastilla, `.seg`) pasa a un
+    `<select id="provider-select">` -- un desplegable real, oculto cuando
+    solo hay un proveedor configurado (no hay nada que elegir).
+12. **Maniquí de remolinos más grande para iPad**: `growth-map.html`
+    tenía `#three-canvas` a una altura fija de 560px (o 62vh en móvil,
+    ≤600px) -- una tablet como iPad (768-1024px) caía en el rango de
+    escritorio con esa altura fija, demasiado pequeña para dibujar
+    remolinos con el dedo con precisión. Se amplía a `min(720px, 76vh)`
+    en general y se añade un rango específico de tablet (601-1080px) a
+    `min(820px, 82vh)`; el ancho de página también sube de 760px a 980px.
+    `resizeRenderer()` ya escuchaba `resize` y lee el tamaño real del
+    canvas, así que no hizo falta tocar el JS del render 3D.
+
+Verificado con la suite completa de backend (145 tests, incluida la nueva
+`test_phone_must_be_exactly_9_digits` para el punto 2) y comprobando a
+mano (`node -e "new Function(...)"` sobre cada `<script>` inline) que
+ningún HTML tocado quedó con un error de sintaxis tras los borrados.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

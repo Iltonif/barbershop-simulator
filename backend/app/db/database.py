@@ -151,6 +151,11 @@ _MIGRATIONS = [
     ("clients", "avatar3d_at", "TEXT"),
     # Medidas calculadas sobre esa malla (ver mesh_metrics.py).
     ("clients", "avatar3d_metrics", "TEXT"),
+    # "Quiero este" desde el catálogo/recomendaciones (sept 2026, item 8 de
+    # Pedro): el cliente pide un estilo mientras espera SIN que esté aún en
+    # su historial -- a diferencia de `requested_history_id`, que repite un
+    # corte ya hecho. Ver `repository.set_requested_style`.
+    ("waiting", "requested_style_id", "TEXT"),
 ]
 
 
