@@ -35,6 +35,20 @@ class HaircutStyle:
     # referencia de stock (ver scripts/assign_photos.py): varios cortes del
     # catálogo comparten familia y por tanto la misma reference_image.
     style_family: str | None = None
+    # Formas de cara para las que ESTE corte concreto viene recomendado por
+    # su propia ficha de origen (sept 2026: documento aportado por Pedro con
+    # 5 cortes con nombre, cada uno con su recomendación explícita de forma
+    # de cara -- ver recommender._efecto_forma_cara_especifica). Es distinto
+    # de las reglas generales de `recommender._efecto_forma_cara` (que
+    # razonan por atributos del corte -- largo, fade, familia -- para
+    # cualquier corte del catálogo): esto es la recomendación tal cual la
+    # trae la fuente de ese corte en concreto, sin inferir nada. Valores
+    # esperados: los mismos que `ClientProfile.face_shape_override`
+    # ("ovalada"|"redonda"|"cuadrada"|"alargada"|"diamante"|"triangular"|
+    # "triangular_invertida"). `None`/lista vacía si el corte no trae esa
+    # recomendación (la inmensa mayoría del catálogo, importado sin ese
+    # dato).
+    recommended_face_shapes: list[str] | None = None
 
 
 _CAMPOS_VALIDOS = {f.name for f in fields(HaircutStyle)}

@@ -71,12 +71,56 @@ class TestLoadCatalogSchemaDrift(unittest.TestCase):
         self.assertIsNone(catalogo[0].reference_image)
 
     def test_catalogo_real_sigue_cargando_sin_perder_entradas(self):
-        # Regresión de que el propio catálogo real del proyecto (102
-        # cortes en app/pipeline/catalog_data/styles.json, tras fusionar
-        # dos duplicados exactos del import de Esquire -- sept 2026) sigue
-        # cargando bien tras mover su ubicación fuera de data/.
+        # Regresión de que el propio catálogo real del proyecto (106
+        # cortes en app/pipeline/catalog_data/styles.json: 102 tras
+        # fusionar dos duplicados exactos del import de Esquire, más 4
+        # cortes con nombre propio añadidos en sept 2026 desde un
+        # documento aportado por Pedro -- ver TestRecommendedFaceShapes
+        # más abajo) sigue cargando bien tras mover su ubicación fuera de
+        # data/.
         catalogo = load_catalog()
-        self.assertEqual(len(catalogo), 102)
+        self.assertEqual(len(catalogo), 106)
+
+
+class TestRecommendedFaceShapes(unittest.TestCase):
+    """5 cortes con nombre propio (sept 2026, documento aportado por Pedro:
+    fade clásico, corte texturizado con flequillo, buzz cut, pompadour
+    moderno, crop francés), cada uno con su recomendación de forma de cara
+    tal cual la trae ese documento -- ver `HaircutStyle.recommended_face_shapes`
+    y `recommender._efecto_forma_cara_especifica`. Estos tests fijan los
+    datos del catálogo, no el efecto sobre la puntuación (eso lo cubre
+    `test_growth.py::NamedStyleFaceShapeTest`)."""
+
+    ESPERADOS = {
+        "fade-clasico": ["redonda", "ovalada", "cuadrada"],
+        "corte-texturizado-flequillo": ["alargada", "ovalada"],
+        "buzz-cut": ["ovalada", "cuadrada"],
+        "pompadour-moderno": ["ovalada", "cuadrada", "alargada"],
+        "crop-frances": ["alargada", "ovalada"],
+    }
+
+    def test_los_5_cortes_existen_con_su_recomendacion(self):
+        catalogo = {s.id: s for s in load_catalog()}
+        for style_id, formas in self.ESPERADOS.items():
+            with self.subTest(style_id=style_id):
+                self.assertIn(style_id, catalogo)
+                self.assertEqual(catalogo[style_id].recommended_face_shapes, formas)
+
+    def test_buzz_cut_no_perdio_su_ficha_original_al_actualizarlo(self):
+        # "Buzz cut" ya existía en el catálogo antes de este documento --
+        # solo se le añade recommended_face_shapes, sin tocar el resto.
+        catalogo = {s.id: s for s in load_catalog()}
+        buzz = catalogo["buzz-cut"]
+        self.assertEqual(buzz.name, "Buzz cut")
+        self.assertEqual(buzz.fade_type, "ninguno")
+        self.assertEqual(buzz.length_top_mm, 6)
+
+    def test_el_resto_del_catalogo_no_trae_esta_recomendacion(self):
+        # La inmensa mayoría del catálogo se importó sin este dato -- no se
+        # ha inventado ninguna recomendación para el resto de cortes.
+        catalogo = load_catalog()
+        con_recomendacion = [s.id for s in catalogo if s.recommended_face_shapes]
+        self.assertCountEqual(con_recomendacion, self.ESPERADOS.keys())
 
 
 class TestCustomStyles(unittest.TestCase):
@@ -105,7 +149,7 @@ class TestCustomStyles(unittest.TestCase):
         # p.ej. tests que llaman a `recommend_styles`/`load_full_catalog`
         # de forma aislada sin arrancar la app entera (ver test_growth.py).
         self.assertEqual(load_custom_styles(), [])
-        self.assertEqual(len(load_full_catalog()), 102)
+        self.assertEqual(len(load_full_catalog()), 106)
 
     def test_corte_propio_se_combina_con_el_catalogo_base(self):
         database.init_db()
@@ -125,12 +169,12 @@ class TestCustomStyles(unittest.TestCase):
         self.assertIsNone(propios[0].reference_image)
 
         completo = load_full_catalog()
-        self.assertEqual(len(completo), 103)  # 102 del catálogo base + 1 propio
+        self.assertEqual(len(completo), 107)  # 106 del catálogo base + 1 propio
         self.assertIn(style_id, {s.id for s in completo})
         self.assertEqual(get_style_by_id_anywhere(style_id).name, "Corte de prueba")
         # El catálogo base a secas no se entera -- lo usan los tests/scripts
         # que necesitan aislarse de la base de datos.
-        self.assertEqual(len(load_catalog()), 102)
+        self.assertEqual(len(load_catalog()), 106)
 
 
 if __name__ == "__main__":

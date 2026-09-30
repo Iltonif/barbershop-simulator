@@ -2767,6 +2767,90 @@ recomendaciones, catálogo, registrar corte de hoy).
   ficheros tocados, más la suite completa de backend (145/145, sin
   relación con este cambio, solo para confirmar que no se ha roto nada).
 
+## 4 cortes nuevos con recomendación de forma de cara por corte concreto (sept 2026)
+
+Pedro pasó un `.docx` con 5 cortes con nombre y ficha propia (fade clásico,
+corte texturizado con flequillo, buzz cut, pompadour moderno, crop
+francés), cada uno con un párrafo propio diciendo para qué forma de cara
+va especialmente bien, más ~18 páginas de capturas de pantalla de un
+documento de Scribd de otro autor ("Catálogo de Cortes de Cabello
+Masculinos", subido por *Camilo Romero*): fotos de desconocidos agrupadas
+por forma de cara (ovalado/cuadrado/rectangular/redondo, parcial) y tipo
+de pelo (liso/rizado), sin ningún nombre ni descripción por foto.
+
+Se preguntó a Pedro qué hacer con cada parte (`AskUserQuestion`):
+
+- **Las capturas de Scribd se descartaron del todo**, tal como eligió
+  Pedro. No hay forma de sacar de ahí cortes con nombre real sin inventar
+  cuál es cada uno (son fotos de desconocidos, sin ninguna etiqueta), y
+  tampoco se pueden copiar esas fotos al catálogo: no son de Pedro, no
+  tienen licencia confirmada, y el proyecto ya había descartado antes
+  fuentes de fotos en esta misma situación (ver "Revisión del catálogo:
+  descripciones reales, deduplicado y fotos fuera" más arriba, y el resto
+  del historial de licencias de este documento — Figaro-1k, TurboSquid,
+  Sketchfab).
+- **Los 5 cortes con nombre sí se integraron**, y Pedro pidió además que
+  el motor de recomendación los priorice de verdad para esas formas de
+  cara, no solo que quedaran como texto en el catálogo.
+
+**Catálogo** (`catalog_data/styles.json`, 102 → 106 cortes): "Buzz cut" ya
+existía (id `buzz-cut`) y solo se le añadió la recomendación; los otros 4
+son entradas nuevas (`fade-clasico`, `corte-texturizado-flequillo`,
+`pompadour-moderno`, `crop-frances`) con descripción propia (no el párrafo
+literal del documento, reescrita en el mismo estilo breve que el resto del
+catálogo) y `source` apuntando al documento de Pedro, para poder auditar
+de dónde sale el dato (mismo criterio que el `source` de la importación de
+Esquire). `style_family`: los dos cortes de flequillo texturizado/undercut
+(corte texturizado con flequillo, crop francés) entran en la familia ya
+existente `fade_undercut_textura`; pompadour moderno entra en
+`tupe_pompadour_clasico` (ya existía, junto al tupé clásico de Esquire);
+fade clásico estrena familia propia (`fade_clasico_recto`, sin hermanos)
+porque no encajaba bien en ninguna de las ya existentes.
+
+**Campo nuevo en el catálogo** (`HaircutStyle.recommended_face_shapes:
+list[str] | None`, `style_catalog.py`): formas de cara para las que ESE
+corte en concreto viene recomendado, tal cual las trae su ficha de origen.
+Es deliberadamente distinto de la regla general de forma de cara que ya
+existía (`recommender._efecto_forma_cara`, por atributos del corte —
+largo/fade/familia — basada en guías de barbería genéricas, documentada
+arriba en "Recomendaciones explicadas"): ese campo nuevo es la
+recomendación explícita de un corte en particular, sin inferir nada. Solo
+lo tienen estos 5 cortes; el resto de los 106 sigue sin él (`None`), y
+`load_catalog()` sigue ignorando cualquier clave que no reconozca —
+ningún corte antiguo se rompe por no tenerlo.
+
+**Regla nueva en el recomendador**
+(`recommender._efecto_forma_cara_especifica`): si la forma de cara del
+cliente está en `recommended_face_shapes` del corte, suma una razón a
+favor ("Recomendado para su rostro"). Convive con la regla general sin
+intentar resolver conflictos a mano — mismo criterio que el resto del
+motor ("ninguna señal descarta, solo prioriza", ver el docstring de
+`recommender.py`). Hay un caso real de esto: "Pompadour moderno" trae
+"alargada" en su recomendación (su ficha dice que "aporta altura y ayuda a
+equilibrar las proporciones" en cara alargada), pero la regla general ya
+avisaba en contra de dar más altura arriba con cara alargada para toda la
+familia tupé/pompadour (fuentes de barbería genéricas, ver
+`_nota_forma_cara`). Se deja que las dos señales convivan (un aviso
+general + una razón a favor específica) en vez de suprimir una: el barbero
+ve las dos y decide, documentado explícitamente en el propio código para
+que no parezca un bug si alguien lo nota.
+
+**Nada nuevo en el frontend**: la razón nueva sale sola en
+`recomendaciones.html` (ya pinta `reasons`/`warnings` de forma genérica,
+ver "Recomendaciones explicadas" más arriba) sin tocar ni una línea de esa
+página.
+
+Tests: `tests/test_style_catalog.py::TestRecommendedFaceShapes` (los 5
+cortes existen con la lista correcta, que "buzz cut" no perdió su ficha
+original al actualizarlo, que el resto del catálogo no tiene esta
+recomendación inventada) y
+`tests/test_growth.py::NamedStyleFaceShapeTest` (el efecto solo se activa
+si la forma de cara está en la lista del corte, que convive con el aviso
+general en el caso de pompadour moderno + alargada, y que llega hasta
+`recommend_styles` con el catálogo real). Contadores de tamaño de catálogo
+actualizados en el resto de `test_style_catalog.py` (102→106, 103→107).
+Suite completa: 151/151.
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

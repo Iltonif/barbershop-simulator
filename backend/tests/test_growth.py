@@ -10,7 +10,7 @@ from app.pipeline import growth_analysis as ga
 from app.pipeline import maintenance
 from app.pipeline.combined_rules import evaluate_combined
 from app.pipeline.growth_rules import evaluate_growth
-from app.pipeline.recommender import recommend_styles
+from app.pipeline.recommender import _efecto_forma_cara, _efecto_forma_cara_especifica, recommend_styles
 from app.pipeline.style_catalog import HaircutStyle
 
 
@@ -163,6 +163,54 @@ class CombinedRulesTest(unittest.TestCase):
         )
         raya = next(r for r in recs if "raya lateral" in r.style.name.lower())
         self.assertTrue(any(e.label == "Asimetría a favor del crecimiento" for e in raya.reasons))
+
+
+class NamedStyleFaceShapeTest(unittest.TestCase):
+    """Recomendación de forma de cara para 5 cortes CONCRETOS del catálogo
+    (sept 2026, documento aportado por Pedro) -- ver
+    `HaircutStyle.recommended_face_shapes` y
+    `recommender._efecto_forma_cara_especifica`. A diferencia de
+    `CombinedRulesTest`/`_efecto_forma_cara` (reglas GENERALES por
+    atributos del corte), esto es la recomendación explícita que trae la
+    ficha de un corte en particular, sin inferir nada por sus atributos."""
+
+    def test_boost_solo_si_la_forma_de_cara_esta_en_la_lista_del_corte(self):
+        st = style(name="Fade clásico", recommended_face_shapes=["redonda", "ovalada", "cuadrada"])
+        efecto = _efecto_forma_cara_especifica(st, "redonda")
+        self.assertIsNotNone(efecto)
+        self.assertEqual(efecto.label, "Recomendado para su rostro")
+        self.assertLess(efecto.score, 0)  # negativo = razón a favor
+        self.assertIn("redondos", efecto.detail)
+        # Forma de cara fuera de la lista, sin forma de cara, o corte sin
+        # esa recomendación en absoluto: no se activa.
+        self.assertIsNone(_efecto_forma_cara_especifica(st, "alargada"))
+        self.assertIsNone(_efecto_forma_cara_especifica(st, None))
+        self.assertIsNone(_efecto_forma_cara_especifica(style(name="Otro corte"), "redonda"))
+
+    def test_convive_con_el_aviso_general_para_pompadour_moderno_alargada(self):
+        # Contradicción conocida y deliberada (ver el comentario en
+        # recommender.py): "Pompadour moderno" trae "alargada" en su
+        # propia recomendación, pero la regla general avisa en contra de
+        # dar más altura con cara alargada para toda la familia
+        # tupé/pompadour. Las dos señales conviven -- no se resuelve a
+        # mano -- así que un corte de esa familia con esa recomendación
+        # saca a la vez un aviso general Y una razón a favor específica.
+        st = style(name="Pompadour moderno", style_family="tupe_pompadour_clasico",
+                   fade_type="bajo", length_top_mm=70, recommended_face_shapes=["ovalada", "cuadrada", "alargada"])
+        general = _efecto_forma_cara(st, "alargada")
+        especifico = _efecto_forma_cara_especifica(st, "alargada")
+        self.assertIsNotNone(general)
+        self.assertGreater(general.score, 0)  # positivo = aviso
+        self.assertIsNotNone(especifico)
+        self.assertLess(especifico.score, 0)  # negativo = razón a favor
+
+    def test_llega_hasta_recommend_styles_con_el_catalogo_real(self):
+        recs = recommend_styles("liso", face_shape="redonda")
+        fade_clasico = next(r for r in recs if r.style.id == "fade-clasico")
+        self.assertTrue(any(e.label == "Recomendado para su rostro" for e in fade_clasico.reasons))
+        # Un corte del catálogo real sin esta recomendación no la saca.
+        clasico_raya = next(r for r in recs if r.style.id == "clasico-raya")
+        self.assertFalse(any(e.label == "Recomendado para su rostro" for e in clasico_raya.reasons))
 
 
 class MaintenanceTest(unittest.TestCase):

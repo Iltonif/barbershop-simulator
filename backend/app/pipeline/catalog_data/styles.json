@@ -30,7 +30,11 @@
       "afro"
     ],
     "reference_image": null,
-    "style_family": "buzz_corto_uniforme"
+    "style_family": "buzz_corto_uniforme",
+    "recommended_face_shapes": [
+      "ovalada",
+      "cuadrada"
+    ]
   },
   {
     "id": "clasico-raya",
@@ -1729,5 +1733,90 @@
     "length_category": "largo",
     "source": "Esquire España, \"100 peinados de hombre modernos y actuales para 2023\" (https://www.esquire.com/es/cuidados-hombre/g36528457/peinados-hombre-modernos-actuales/), puesto #100 del ranking",
     "style_family": "melena_larga"
+  },
+  {
+    "id": "fade-clasico",
+    "name": "Fade clásico",
+    "description": "Degradado clásico en laterales y nuca con la parte superior peinada y algo más larga; sobrio y versátil.",
+    "length_top_mm": 40,
+    "length_sides_mm": 3,
+    "length_back_mm": 3,
+    "fade_type": "medio",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": null,
+    "source": "Recomendación de forma de cara según documento aportado por Pedro (sept 2026): cinco cortes con nombre y ficha propia, cada uno con su recomendación explícita de forma de cara.",
+    "style_family": "fade_clasico_recto",
+    "recommended_face_shapes": [
+      "redonda",
+      "ovalada",
+      "cuadrada"
+    ]
+  },
+  {
+    "id": "corte-texturizado-flequillo",
+    "name": "Corte texturizado con flequillo",
+    "description": "Textura en la parte superior con flequillo marcado y fade alto en los laterales; look actual y fácil de peinar a diario.",
+    "length_top_mm": 70,
+    "length_sides_mm": 3,
+    "length_back_mm": 3,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": null,
+    "source": "Recomendación de forma de cara según documento aportado por Pedro (sept 2026): cinco cortes con nombre y ficha propia, cada uno con su recomendación explícita de forma de cara.",
+    "style_family": "fade_undercut_textura",
+    "recommended_face_shapes": [
+      "alargada",
+      "ovalada"
+    ]
+  },
+  {
+    "id": "pompadour-moderno",
+    "name": "Pompadour moderno",
+    "description": "Pompadour con volumen hacia arriba y hacia atrás, adaptable en distintos largos y acabados: más pulido o más desenfadado.",
+    "length_top_mm": 70,
+    "length_sides_mm": 8,
+    "length_back_mm": 8,
+    "fade_type": "bajo",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado"
+    ],
+    "reference_image": null,
+    "source": "Recomendación de forma de cara según documento aportado por Pedro (sept 2026): cinco cortes con nombre y ficha propia, cada uno con su recomendación explícita de forma de cara.",
+    "style_family": "tupe_pompadour_clasico",
+    "recommended_face_shapes": [
+      "ovalada",
+      "cuadrada",
+      "alargada"
+    ]
+  },
+  {
+    "id": "crop-frances",
+    "name": "Crop francés",
+    "description": "Flequillo corto y texturizado con laterales muy cortos o rapados (fade alto); estilo desenfadado y moderno con un toque europeo.",
+    "length_top_mm": 40,
+    "length_sides_mm": 2,
+    "length_back_mm": 2,
+    "fade_type": "alto",
+    "suitable_hair_types": [
+      "liso",
+      "ondulado",
+      "rizado"
+    ],
+    "reference_image": null,
+    "source": "Recomendación de forma de cara según documento aportado por Pedro (sept 2026): cinco cortes con nombre y ficha propia, cada uno con su recomendación explícita de forma de cara.",
+    "style_family": "fade_undercut_textura",
+    "recommended_face_shapes": [
+      "alargada",
+      "ovalada"
+    ]
   }
 ]

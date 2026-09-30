@@ -26,6 +26,18 @@ adicionales del perfil, todas opcionales:
   cara redonda + raya natural, o entradas + remolino en la frente): ver
   `combined_rules.py` para el porqué de un módulo aparte y qué combinaciones
   concretas cubre.
+- La recomendación de forma de cara que trae la propia ficha de un corte
+  CONCRETO (`HaircutStyle.recommended_face_shapes`, ver
+  `_efecto_forma_cara_especifica`): a diferencia de la regla general de
+  forma de cara de arriba (por atributos del corte), esta es la
+  recomendación explícita de un corte en particular según su fuente de
+  origen (sept 2026: documento aportado por Pedro con 5 cortes con nombre
+  propio -- fade clásico, corte texturizado con flequillo, buzz cut,
+  pompadour moderno, crop francés -- cada uno con su recomendación de
+  forma de cara). Puede convivir con un aviso general de la regla de
+  arriba para el mismo corte (ver la nota en el propio código sobre
+  "Pompadour moderno" + cara alargada): no se resuelve a mano, el barbero
+  ve las dos señales.
 
 Ninguna señal descarta cortes: todas los avisan/priorizan y los mueven
 arriba o abajo en la lista, con una nota explicando el motivo, para que
@@ -123,6 +135,49 @@ def _nota_forma_cara(style: HaircutStyle, face_shape: str | None) -> str | None:
     return None
 
 
+# Formas de cara recomendadas para 5 cortes CONCRETOS del catálogo, tal
+# cual las trae su propia ficha de origen (sept 2026: documento aportado
+# por Pedro con nombre + descripción + recomendación de forma de cara por
+# corte -- ver `HaircutStyle.recommended_face_shapes` y la nota de
+# `source` de cada uno en catalog_data/styles.json). A diferencia de
+# `_efecto_forma_cara` (una regla GENERAL por atributos -- largo, fade,
+# familia -- que se aplica a cualquier corte del catálogo, basada en guías
+# de barbería genéricas), esta es la recomendación explícita que trae la
+# ficha de ESE corte en particular: no se infiere nada, solo se mira si la
+# forma de cara del cliente está en la lista.
+#
+# OJO, contradicción conocida y deliberada: "Pompadour moderno" trae
+# "alargada" en su lista (su ficha dice que "aporta altura y ayuda a
+# equilibrar las proporciones" en cara alargada), pero
+# `_nota_forma_cara` avisa en contra de dar más altura arriba con cara
+# alargada para toda la familia tupé/pompadour (fuentes de barbería
+# genéricas). Se deja que las dos señales convivan -- un aviso general y
+# una razón a favor específica de este corte -- en vez de resolverlo a
+# mano: el barbero ve las dos y decide, mismo criterio que ya se sigue en
+# el resto del motor de reglas (ninguna señal descarta, solo prioriza).
+_FACE_SHAPE_LABELS_ADJ = {
+    "ovalada": "ovalados",
+    "redonda": "redondos",
+    "cuadrada": "cuadrados",
+    "alargada": "alargados",
+    "diamante": "diamante",
+    "triangular": "triangulares",
+    "triangular_invertida": "triangulares invertidos",
+}
+
+
+def _efecto_forma_cara_especifica(style: HaircutStyle, face_shape: str | None) -> Effect | None:
+    if not face_shape or not style.recommended_face_shapes:
+        return None
+    if face_shape not in style.recommended_face_shapes:
+        return None
+    etiqueta = _FACE_SHAPE_LABELS_ADJ.get(face_shape, face_shape)
+    return Effect(
+        BOOST_SUAVE, "Recomendado para su rostro",
+        f"Este corte está recomendado especialmente para rostros {etiqueta}.",
+    )
+
+
 def _desempate(weeks: tuple[int, int]) -> int:
     """Entre cortes con la misma puntuación, primero los de retoque más
     frecuente (evita que el cliente alargue demasiado las visitas). Cada
@@ -164,7 +219,8 @@ def recommend_styles(
     recomendaciones = []
     for style in compatibles:
         weeks = maintenance.weeks_for_style(style)
-        effects = [e for e in (_efecto_forma_cara(style, face_shape),) if e]
+        effects = [e for e in (_efecto_forma_cara(style, face_shape),
+                                _efecto_forma_cara_especifica(style, face_shape)) if e]
         effects += growth_rules.evaluate_growth(style, growth)
         effects += trait_rules.evaluate_traits(style, visagismo_profile)
         effects += visagismo_rules.evaluate_profile(style, visagismo_profile).effects
