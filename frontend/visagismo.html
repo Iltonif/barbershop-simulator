@@ -140,6 +140,7 @@
     <a id="growth-map-link" href="growth-map.html" title="Remolinos"><span data-icon="compass"></span><span class="lbl">Remolinos</span></a>
     <a id="recomendaciones-link" href="recomendaciones.html" title="Recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Recomendaciones</span></a>
     <a id="quiz-link" href="cuestionario.html" title="Cuestionario del cliente"><span data-icon="clipboard-list"></span><span class="lbl">Cuestionario</span></a>
+    <a href="#" id="help-btn" class="keep-label"><span data-icon="circle-help"></span><span class="lbl">Cómo funciona</span></a>
     <a class="nav-help keep-label" href="guia-visagismo.html#fotos"><span data-icon="circle-help"></span><span class="lbl">Ayuda</span></a>
   </nav>
   <div class="head-row">
@@ -187,7 +188,7 @@
     <button id="ai-gate-skip" type="button" class="secondary"><span data-icon="hand"></span>Seguir sin IA (rellenar a mano)</button>
   </section>
 
-  <section id="photos-card" class="glass-card form-card"
+  <section id="photos-card" class="glass-card form-card">
     <div class="head-row step-head">
       <h2 class="step-title"><span class="step-num" id="step-num-2">2</span>Fotos</h2>
       <details class="info"><summary></summary><div class="info-body">
@@ -397,12 +398,32 @@
 
   <script src="assets/ui.js"></script>
   <script src="assets/session.js"></script>
+  <script src="assets/onboarding.js"></script>
   <script>Session.requireBarber(); document.addEventListener("DOMContentLoaded", Session.fichaLink);</script>
   <script>
     // Ruta relativa: ver nota igual en index.html/growth-map.html — el
     // backend sirve este HTML como estático, así que /api siempre resuelve
     // al mismo origen (localhost, IP local en la barbería o dominio real).
     const API_BASE = "/api";
+
+    // Onboarding propio de esta página (sept 2026, dividido por página).
+    // Distinto de "Ayuda" (guia-visagismo.html, cómo hacer las fotos bien):
+    // esto es un repaso rápido de los 3 pasos de la propia pantalla.
+    // "Rasgos"/"Guardar" viven en un formulario oculto hasta abrir un
+    // cliente, así que esos pasos caen al fallback de tarjeta centrada
+    // hasta entonces, sin inventar ningún dato.
+    const OB_VISAGISMO_STEPS = [
+      { icon: "scan-face", title: "Visajismo", text: "Se hace en 3 pasos: cliente, fotos y rasgos de su cara." },
+      { selector: "#search-section", icon: "user-check", title: "1. Cliente", text: "Busca o crea aquí la ficha del cliente." },
+      { selector: "#photos-card", icon: "camera", title: "2. Fotos", text: "Hazle 3 fotos con la cámara con marco: frontal y dos de perfil. Se analizan al momento, no se guardan." },
+      { selector: "#analysis-form", icon: "wand-sparkles", title: "3. Rasgos", text: "Analiza sus fotos y corrige a mano lo que haga falta; algunos rasgos los juzga la IA si el cliente dio su permiso." },
+      { selector: "#save-btn", icon: "save", title: "Guardar", text: "Guarda los rasgos en su ficha y cierra el cliente para pasar al siguiente." },
+    ];
+    document.getElementById("help-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      Onboarding.replay(OB_VISAGISMO_STEPS, { storageKey: "ob_visagismo_v1" });
+    });
+    Onboarding.maybeRun(OB_VISAGISMO_STEPS, { storageKey: "ob_visagismo_v1" });
 
     const statusEl = document.getElementById("status");
     // Mensajes de estado cortos, con icono (ok / warn / busy).

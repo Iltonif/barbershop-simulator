@@ -119,6 +119,7 @@
     <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
     <a href="catalogo.html" title="Catálogo"><span data-icon="layout-grid"></span><span class="lbl">Catálogo</span></a>
     <a id="growth-map-link" href="growth-map.html" title="Remolinos"><span data-icon="compass"></span><span class="lbl">Remolinos</span></a>
+    <a href="#" id="help-btn" class="keep-label"><span data-icon="circle-help"></span><span class="lbl">Cómo funciona</span></a>
   </nav>
 
   <div class="head-row page-head">
@@ -137,6 +138,7 @@
 
   <script src="assets/ui.js"></script>
   <script src="assets/session.js"></script>
+  <script src="assets/onboarding.js"></script>
   <script>
     // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
     // estaba antes): el backend sirve este mismo HTML como estático (ver
@@ -317,6 +319,29 @@
       return `${base}${sep}style=${encodeURIComponent(styleId)}`;
     }
 
+    // Un único tour, con texto ajustado a quién lo ve (el peluquero mirando
+    // la ficha de un cliente, o el propio cliente en "Para ti"): el paso de
+    // "Quiero este" solo tiene sentido para el cliente, así que se añade
+    // aparte en vez de resaltar un botón que en modo peluquero no existe.
+    const OB_RECOMENDACIONES_STEPS = [
+      { icon: "sparkles", title: "Recomendaciones", text: barberMode
+          ? "Cortes del catálogo ordenados para este cliente: tipo de pelo, forma de cara, remolinos y lo que ha contado."
+          : "Cortes del catálogo ordenados para ti: tu tipo de pelo, tu forma de cara, tus remolinos y lo que respondiste." },
+      { selector: "#subtitle", icon: "user-round", title: barberMode ? "Su perfil" : "Tu perfil", text: barberMode
+          ? "Sus datos de un vistazo; toca «Cuestionario» si falta alguno."
+          : "Tus datos de un vistazo; toca «Mi perfil» si falta alguno." },
+      { selector: "#beard", icon: "scissors", title: "Barba y bigote", text: "Consejo de barba y bigote según el rostro, cuando lo hay." },
+      { selector: ".grid .why", icon: "check", title: "Por qué encaja", text: "Verde = a favor, ámbar = aviso; el ⓘ de cada corte explica cada etiqueta." },
+      { selector: ".simulate-btn", icon: "wand-sparkles", title: "Simular corte", text: `Prueba ese corte sobre ${barberMode ? "su" : "tu"} foto guardada.` },
+    ];
+    if (!barberMode) {
+      OB_RECOMENDACIONES_STEPS.push({ selector: ".request-btn", icon: "repeat", title: "Quiero este", text: "Márcalo para que el peluquero lo vea al abrir tu ficha, mientras esperas." });
+    }
+    document.getElementById("help-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      Onboarding.replay(OB_RECOMENDACIONES_STEPS, { storageKey: "ob_recomendaciones_v1" });
+    });
+
     async function load() {
       let client, data;
       try {
@@ -422,7 +447,7 @@
       }
     }
 
-    load();
+    load().then(() => Onboarding.maybeRun(OB_RECOMENDACIONES_STEPS, { storageKey: "ob_recomendaciones_v1" }));
   </script>
 </body>
 </html>

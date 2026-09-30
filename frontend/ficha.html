@@ -90,6 +90,7 @@
   <nav class="top-nav">
     <a href="sala.html" title="Sala de espera"><span data-icon="arrow-left"></span><span class="lbl">Sala</span></a>
     <a href="catalogo.html" title="Catálogo"><span data-icon="layout-grid"></span><span class="lbl">Catálogo</span></a>
+    <a href="#" id="help-btn" class="keep-label"><span data-icon="circle-help"></span><span class="lbl">Cómo funciona</span></a>
   </nav>
 
   <div class="top-row">
@@ -105,39 +106,91 @@
   <!-- "Quiero repetir este": lo elige el cliente en "Mis cortes" -->
   <section class="glass-card sec request" id="request-sec" hidden></section>
 
-  <section class="glass-card sec">
-    <h2 class="sec-title"><span data-icon="history"></span>Historial de cortes<span class="n" id="hist-n"></span></h2>
-    <div class="hist" id="hist"></div>
-  </section>
+  <!-- Capas (sept 2026, a petición de Pedro: "consecución de capas
+       lógica", pocas opciones a la vez, con libertad para saltar de una
+       capa a otra). Una abierta cada vez, ver assets/layers.js. Orden:
+       Perfil (leer) -> Pelo y herramientas (analizar) -> Simular corte
+       (actuar) -> Historial (consultar). -->
+  <div class="layers" id="layers">
+    <section class="glass-card layer" data-layer="perfil">
+      <button type="button" class="layer-head">
+        <span class="ico" data-icon="clipboard-list"></span><span>Perfil</span>
+        <span class="chev" data-icon="chevron-right"></span>
+      </button>
+      <div class="layer-body">
+        <div class="sec-title"><span data-icon="clipboard-list"></span>Lo que ha contado<a class="n" id="quiz-link" href="#">Editar</a></div>
+        <div class="chips" id="answers"></div>
+        <div id="likes-sec" hidden style="margin-top:16px">
+          <div class="sec-title"><span data-icon="heart"></span>Le gustan<span class="n" id="likes-n"></span></div>
+          <div class="likes" id="likes"></div>
+        </div>
+      </div>
+    </section>
 
-  <!-- Lo que ha rellenado el cliente -->
-  <section class="glass-card sec">
-    <h2 class="sec-title"><span data-icon="clipboard-list"></span>Lo que ha contado<a class="n" id="quiz-link" href="#">Editar</a></h2>
-    <div class="chips" id="answers"></div>
-  </section>
+    <!-- Lo técnico del peluquero -->
+    <section class="glass-card layer" data-layer="pelo">
+      <button type="button" class="layer-head">
+        <span class="ico" data-icon="scissors"></span><span>Pelo y herramientas</span>
+        <span class="chev" data-icon="chevron-right"></span>
+      </button>
+      <div class="layer-body" hidden>
+        <div class="sec-title">Tipo de pelo
+          <details class="info"><summary></summary><div class="info-body">Lo que marques aquí manda sobre lo que dijo el cliente, y filtra sus recomendaciones.</div></details>
+        </div>
+        <div class="pelo-row" id="pelo"></div>
+        <p class="hint" id="pelo-hint"></p>
+        <div class="tools">
+          <a class="tool" id="t-visajismo" href="#"><span data-icon="scan-face"></span>Visajismo</a>
+          <a class="tool" id="t-remolinos" href="#"><span data-icon="compass"></span>Remolinos<span class="state" id="s-remolinos"></span></a>
+          <a class="tool" id="t-recs" href="#"><span data-icon="sparkles"></span>Recomendaciones</a>
+        </div>
+        <div class="mani">
+          <iframe id="mani-frame" title="Maniquí del cliente" loading="lazy"></iframe>
+          <a class="chip mani-edit" id="mani-edit" href="#"><span data-icon="pen-line"></span>Editar maniquí</a>
+        </div>
+      </div>
+    </section>
 
-  <section class="glass-card sec" id="likes-sec" hidden>
-    <h2 class="sec-title"><span data-icon="heart"></span>Le gustan<span class="n" id="likes-n"></span></h2>
-    <div class="likes" id="likes"></div>
-  </section>
+    <section class="glass-card layer" data-layer="simular">
+      <button type="button" class="layer-head">
+        <span class="ico" data-icon="camera"></span><span>Foto para simular</span>
+        <span class="chev" data-icon="chevron-right"></span>
+      </button>
+      <div class="layer-body" hidden>
+        <div class="sec-title">
+          <details class="info"><summary></summary><div class="info-body">Foto de frente, con buena luz, mirando a la cámara y con la frente despejada. Se guarda en su ficha (con su permiso) para que pueda probar cortes él solo las próximas veces.</div></details>
+          <span>Cómo hacer la foto</span>
+        </div>
+        <div class="photo-wrap" id="photo-wrap">
+          <div class="photo-box" id="photo-box"><span data-icon="user-round"></span></div>
+          <div class="photo-actions">
+            <div class="consent-line">
+              <label class="checkbox-row"><input type="checkbox" id="c-photo" /><span>Permiso para guardar su foto</span></label>
+            </div>
+            <div class="consent-line">
+              <label class="checkbox-row"><input type="checkbox" id="c-sim" /><span>Permiso para enviarla a simular</span></label>
+              <details class="info"><summary></summary><div class="info-body" id="sim-info">Márcalo solo si el cliente te lo dice ahora. La foto se envía al servicio de simulación configurado.</div></details>
+            </div>
+            <label class="btn" for="photo-input" id="photo-btn"><span data-icon="camera"></span>Hacer foto</label>
+            <input type="file" id="photo-input" accept="image/*" capture="user" class="visually-hidden" />
+            <a class="tool" id="t-probar" href="#"><span data-icon="wand-sparkles"></span>Probar cortes</a>
+            <button type="button" class="secondary" id="del-photo" hidden><span data-icon="trash-2"></span>Borrar foto</button>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <!-- Lo técnico del peluquero -->
-  <section class="glass-card sec">
-    <h2 class="sec-title"><span data-icon="scissors"></span>Tipo de pelo
-      <details class="info"><summary></summary><div class="info-body">Lo que marques aquí manda sobre lo que dijo el cliente, y filtra sus recomendaciones.</div></details>
-    </h2>
-    <div class="pelo-row" id="pelo"></div>
-    <p class="hint" id="pelo-hint"></p>
-    <div class="tools">
-      <a class="tool" id="t-visajismo" href="#"><span data-icon="scan-face"></span>Visajismo</a>
-      <a class="tool" id="t-remolinos" href="#"><span data-icon="compass"></span>Remolinos<span class="state" id="s-remolinos"></span></a>
-      <a class="tool" id="t-recs" href="#"><span data-icon="sparkles"></span>Recomendaciones</a>
-    </div>
-    <div class="mani">
-      <iframe id="mani-frame" title="Maniquí del cliente" loading="lazy"></iframe>
-      <a class="chip mani-edit" id="mani-edit" href="#"><span data-icon="pen-line"></span>Editar maniquí</a>
-    </div>
-  </section>
+    <section class="glass-card layer" data-layer="historial">
+      <button type="button" class="layer-head">
+        <span class="ico" data-icon="history"></span><span>Historial de cortes</span>
+        <span class="n" id="hist-n"></span>
+        <span class="chev" data-icon="chevron-right"></span>
+      </button>
+      <div class="layer-body" hidden>
+        <div class="hist" id="hist"></div>
+      </div>
+    </section>
+  </div>
 
   <!-- Gemelo digital 3D: OCULTO A PROPÓSITO (sept 2026, decisión de Pedro)
        hasta pulir los servicios de los que depende (Tripo sin probar contra
@@ -163,35 +216,12 @@
 
   -->
 
-
-  <section class="glass-card sec">
-    <h2 class="sec-title"><span data-icon="camera"></span>Foto para simular
-      <details class="info"><summary></summary><div class="info-body">Foto de frente, con buena luz, mirando a la cámara y con la frente despejada. Se guarda en su ficha (con su permiso) para que pueda probar cortes él solo las próximas veces.</div></details>
-    </h2>
-    <!-- Colapsado tras un banner por defecto: solo se despliega el formulario
-         entero (foto, permisos, botones) al pulsar "Simular corte". -->
-    <button type="button" class="tool" id="sim-banner" style="width:100%"><span data-icon="wand-sparkles"></span>Simular corte</button>
-    <div class="photo-wrap" id="photo-wrap" hidden>
-      <div class="photo-box" id="photo-box"><span data-icon="user-round"></span></div>
-      <div class="photo-actions">
-        <div class="consent-line">
-          <label class="checkbox-row"><input type="checkbox" id="c-photo" /><span>Permiso para guardar su foto</span></label>
-        </div>
-        <div class="consent-line">
-          <label class="checkbox-row"><input type="checkbox" id="c-sim" /><span>Permiso para enviarla a simular</span></label>
-          <details class="info"><summary></summary><div class="info-body" id="sim-info">Márcalo solo si el cliente te lo dice ahora. La foto se envía al servicio de simulación configurado.</div></details>
-        </div>
-        <label class="btn" for="photo-input" id="photo-btn"><span data-icon="camera"></span>Hacer foto</label>
-        <input type="file" id="photo-input" accept="image/*" capture="user" class="visually-hidden" />
-        <a class="tool" id="t-probar" href="#"><span data-icon="wand-sparkles"></span>Probar cortes</a>
-        <button type="button" class="secondary" id="del-photo" hidden><span data-icon="trash-2"></span>Borrar foto</button>
-      </div>
-    </div>
-  </section>
 </div>
 
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
+<script src="assets/layers.js"></script>
+<script src="assets/onboarding.js"></script>
 <script>
   const params = new URLSearchParams(location.search);
   const id = params.get("client_id");
@@ -205,6 +235,28 @@
   }
   const chip = (icon, text, cls = "") => `<span class="chip ${cls}">${UI.icon(icon)}${esc(text)}</span>`;
   const with_id = (page) => `${page}?client_id=${encodeURIComponent(id)}`;
+
+  // Capas (sept 2026): una abierta a la vez, se puede saltar a cualquiera.
+  Layers.init(q("layers"));
+
+  // Onboarding "medio forzado" (sept 2026), dividido por página: este es
+  // el propio de la ficha, distinto del de la sala. Resalta la cabecera
+  // de cada capa (siempre visible, no depende de datos) y, cuando existe,
+  // el botón Atender/Terminado -- si nadie espera hoy, ese paso cae solo
+  // al fallback de tarjeta centrada del motor (assets/onboarding.js), sin
+  // inventar ningún estado.
+  const OB_FICHA_STEPS = [
+    { icon: "user-round", title: "Ficha del cliente", text: "Se organiza en capas: toca la cabecera de cada una para abrirla. Solo queda una abierta a la vez, pero puedes saltar a cualquiera cuando quieras." },
+    { selector: "#wait-btn", icon: "scissors", title: "Atender / Terminado", text: "Si hoy está en la sala de espera, aquí lo atiendes o marcas que has terminado." },
+    { selector: '.layer[data-layer="perfil"] .layer-head', icon: "clipboard-list", title: "Perfil", text: "Lo que el cliente contó de sí mismo al darse de alta y los cortes que le gustan." },
+    { selector: '.layer[data-layer="pelo"] .layer-head', icon: "scissors", title: "Pelo y herramientas", text: "Marca aquí su tipo de pelo y entra a Visajismo, Remolinos o Recomendaciones." },
+    { selector: '.layer[data-layer="simular"] .layer-head', icon: "camera", title: "Foto para simular", text: "Aquí le haces la foto (con permiso) y pruebas cortes sobre ella." },
+    { selector: '.layer[data-layer="historial"] .layer-head', icon: "history", title: "Historial de cortes", text: "Los cortes que ya le has hecho, con foto y notas." },
+  ];
+  q("help-btn").addEventListener("click", (e) => {
+    e.preventDefault();
+    Onboarding.replay(OB_FICHA_STEPS, { storageKey: "ob_ficha_v1" });
+  });
 
   const LABELS = {
     hair_pattern_shape: { straight: "Liso", wavy: "Ondulado", curly: "Rizado", coily: "Afro" },
@@ -380,11 +432,6 @@
     try { await api(`/api/clients/${id}/simulation-photo`, { method: "DELETE" }); await reload(); say("ok", "Foto borrada"); }
     catch (err) { say("warn", err.message); }
   });
-  q("sim-banner").addEventListener("click", () => {
-    q("sim-banner").hidden = true;
-    q("photo-wrap").hidden = false;
-  });
-
   // Estado en la sala de espera: la entrada de hoy de este cliente.
   async function currentWaiting() {
     const list = await api("/api/waiting");
@@ -428,6 +475,7 @@
       client = await api(`/api/clients/${id}`);
       await renderWaiting();
       await reload();
+      Onboarding.maybeRun(OB_FICHA_STEPS, { storageKey: "ob_ficha_v1" });
     } catch (e) { say("warn", e.message); }
   })();
 </script>

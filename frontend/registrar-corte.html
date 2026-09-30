@@ -44,6 +44,7 @@
 <div class="page-shell">
   <nav class="top-nav">
     <a id="ficha-link" href="ficha.html" title="Ficha del cliente"><span data-icon="arrow-left"></span><span class="lbl">Ficha</span></a>
+    <a href="#" id="help-btn" class="keep-label"><span data-icon="circle-help"></span><span class="lbl">Cómo funciona</span></a>
   </nav>
 
   <div class="head-row page-head">
@@ -81,6 +82,7 @@
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
 <script src="assets/style-picker.js"></script>
+<script src="assets/onboarding.js"></script>
 <script>
   const params = new URLSearchParams(location.search);
   const id = params.get("client_id");
@@ -102,6 +104,18 @@
   let client = null;
   let logPhoto = null;
   let logStylePicker = null;
+
+  const OB_REGISTRAR_STEPS = [
+    { icon: "scissors", title: "Corte de hoy", text: "Es el último paso de la visita: aquí registras (o no) el corte y cierras su turno." },
+    { selector: "#log-photo-box", icon: "camera", title: "Foto del resultado", text: "Toca para hacerla con la cámara. Si el cliente no dio permiso para guardar fotos, no aparece." },
+    { selector: "#log-style-picker", icon: "search", title: "Corte", text: "Busca el corte en el catálogo, o usa «Otro» para uno puntual que no quieras añadir al catálogo general." },
+    { selector: "#log-save", icon: "save", title: "Guardar y terminar", text: "Guarda el corte en su historial y lo pasa a «terminado» en la sala de espera." },
+    { selector: "#log-skip", icon: "check", title: "Terminar sin guardar", text: "Cierra su turno sin registrar ningún corte." },
+  ];
+  q("help-btn").addEventListener("click", (e) => {
+    e.preventDefault();
+    Onboarding.replay(OB_REGISTRAR_STEPS, { storageKey: "ob_registrar_v1" });
+  });
 
   async function finishWaiting() {
     if (waitingId) {
@@ -179,6 +193,7 @@
 
       q("log-photo-hint").textContent = client.consent_save_photo ? "" : "Sin permiso del cliente para guardar fotos: se guarda el corte y las notas, sin foto.";
       q("log-photo-box").style.display = client.consent_save_photo ? "" : "none";
+      Onboarding.maybeRun(OB_REGISTRAR_STEPS, { storageKey: "ob_registrar_v1" });
     } catch (e) { say("warn", e.message); }
   })();
 </script>

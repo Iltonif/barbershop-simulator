@@ -129,6 +129,7 @@
     <a href="sala.html" title="Sala de espera"><span data-icon="users"></span><span class="lbl">Sala</span></a>
     <a href="index.html" title="Simular corte"><span data-icon="wand-sparkles"></span><span class="lbl">Simular</span></a>
     <a id="visagismo-link" href="visagismo.html" title="Visajismo"><span data-icon="scan-face"></span><span class="lbl">Visajismo</span></a>
+    <a href="#" id="help-btn" class="keep-label"><span data-icon="circle-help"></span><span class="lbl">Cómo funciona</span></a>
   </nav>
 
   <div class="head-row page-head">
@@ -259,6 +260,7 @@
 
   <script src="assets/ui.js"></script>
   <script src="assets/session.js"></script>
+  <script src="assets/onboarding.js"></script>
   <script>Session.requireBarber(); document.addEventListener("DOMContentLoaded", Session.fichaLink);</script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -1025,6 +1027,24 @@
     // ?embed=1: vista solo del maniquí para la ficha (sin dibujar).
     const EMBED = new URLSearchParams(location.search).get("embed") === "1";
     if (EMBED) { document.body.classList.add("embed"); resizeRenderer(); }
+
+    // Onboarding propio de esta página (sept 2026, dividido por página a
+    // petición de Pedro): no se muestra en modo ?embed=1 (esa vista, dentro
+    // de la ficha, es solo un visor sin controles propios).
+    const OB_REMOLINOS_STEPS = [
+      { icon: "compass", title: "Remolinos", text: "Aquí marcas hacia dónde crece el pelo del cliente. Cada botón de abajo hace una cosa distinta." },
+      { selector: '.toolbar-btn[data-mode="arrow"]', icon: "pen-line", title: "Flecha", text: "Desliza el dedo sobre el pelo en el sentido en que crece: queda una flecha y el maniquí se peina solo." },
+      { selector: '.toolbar-btn[data-mode="whorl-cw"]', icon: "rotate-cw", title: "Remolinos", text: "Con Horario/Antihorario, toca donde está el remolino. Borrar quita la flecha o el remolino que toques." },
+      { selector: "#hair-toggle", icon: "waves", title: "Pelo", text: "Enseña u oculta el pelo ya peinado según las flechas, para ver el efecto real." },
+      { selector: "#views", icon: "rotate-3d", title: "Vistas", text: "Cambia de ángulo rápido, o usa Girar para arrastrar la cabeza a mano." },
+      { selector: "#save-btn", icon: "save", title: "Guardar", text: "Guarda el mapa en la ficha del cliente." },
+    ];
+    document.getElementById("help-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      Onboarding.replay(OB_REMOLINOS_STEPS, { storageKey: "ob_remolinos_v1" });
+    });
+    if (!EMBED) Onboarding.maybeRun(OB_REMOLINOS_STEPS, { storageKey: "ob_remolinos_v1" });
+
     setMode("none");
     loadHeadModel()
       .then(() => { buildHair(); animate(); return loadClientFromUrl(); })

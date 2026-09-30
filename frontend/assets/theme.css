@@ -308,6 +308,14 @@ details.info > .info-body p:last-child { margin-bottom: 0; }
 .big-tile .ico { width: 38px; height: 38px; stroke-width: 1.6; color: var(--accent-cyan); }
 .big-tile.locked { opacity: 0.55; }
 .big-tile .tile-note { font-size: 11.5px; font-weight: 500; color: var(--text-dim); }
+/* Acción principal destacada por encima de las capas (sept 2026, espacio
+   del cliente): una sola tarjeta ancha en vez de un mosaico, para que
+   quede claro cuál es el siguiente paso recomendado antes de explorar
+   el resto con libertad. */
+.primary-tile { aspect-ratio: auto; flex-direction: row; justify-content: flex-start; width: 100%; min-height: 64px;
+                margin-bottom: 14px; gap: 14px; background: linear-gradient(120deg, var(--accent-blue), #7a5cff);
+                border-color: transparent; font-size: 16px; }
+.primary-tile .ico { width: 26px; height: 26px; color: #fff; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 13px;
         background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-main); text-decoration: none; }
 .chip .ico { color: var(--accent-cyan); width: 15px; height: 15px; }
@@ -357,3 +365,25 @@ details.info > .info-body p:last-child { margin-bottom: 0; }
 .sp-c-err { color: var(--warning); }
 .sp-c-actions { display: flex; gap: 8px; margin-top: 14px; }
 .sp-c-actions button { width: auto; flex: 1; margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ------------------------------------------------------------------
+   Acordeón progresivo (ficha.html, cliente.html: sept 2026, a petición
+   de Pedro -- "consecución de capas lógica", pocas opciones a la vez,
+   con libertad para saltar de una capa a otra sin forzar un orden).
+   Una capa abierta cada vez: pulsar su cabecera la abre y cierra las
+   demás. Ver assets/layers.js. Reutiliza el mismo lenguaje visual que
+   .glass-card, solo cambia cómo se revela el contenido.
+   ------------------------------------------------------------------ */
+.layers { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.layer { padding: 0; overflow: hidden; }
+.layer-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 16px 18px; margin: 0;
+              background: transparent; border: none; border-radius: 16px; color: var(--text-main);
+              font-size: 15px; font-weight: 700; font-family: inherit; text-align: left; cursor: pointer; }
+.layer-head:hover { background: var(--glass-strong); box-shadow: none; transform: none; }
+.layer-head .ico { color: var(--accent-cyan); flex: none; }
+.layer-head .n { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--text-dim); }
+.layer-head .chev { flex: none; width: 18px; height: 18px; color: var(--text-faint); transition: transform 0.2s; }
+.layer[data-open="true"] .layer-head .chev { transform: rotate(90deg); }
+.layer-body { padding: 0 18px 18px; }
+.layer-body[hidden] { display: none; }
+.layer-body .sec-title { margin-top: 0; }

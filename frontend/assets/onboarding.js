@@ -29,10 +29,14 @@
        -> lo muestra siempre (botón "¿Cómo funciona?"); se puede cerrar
           en cualquier momento (✕ o tocando fuera de la tarjeta).
 
-   Cada paso: { selector?, icon, title, text }. `selector` es opcional
-   (CSS selector de un elemento real de la página); si no se da, o el
-   elemento no existe/no es visible en ese momento, el paso se muestra
-   como tarjeta centrada sin resaltar nada. */
+   Cada paso: { selector?, icon, title, text, beforeShow? }. `selector`
+   es opcional (CSS selector de un elemento real de la página); si no se
+   da, o el elemento no existe/no es visible en ese momento, el paso se
+   muestra como tarjeta centrada sin resaltar nada. `beforeShow`, opcional,
+   es una función sin argumentos que se ejecuta justo antes de calcular la
+   posición del paso -- se usa para abrir la capa del acordeón (ver
+   assets/layers.js) donde vive el `selector` de ese paso, cuando el botón
+   a resaltar está dentro de una capa que puede estar plegada. */
 (function () {
   function isDone(key) {
     try { return localStorage.getItem(key) === "1"; } catch (e) { return false; }
@@ -100,6 +104,9 @@
     function renderStep() {
       const step = steps[i];
       const last = i === steps.length - 1;
+      if (typeof step.beforeShow === "function") {
+        try { step.beforeShow(); } catch (e) { /* no bloquea el tour por un fallo aquí */ }
+      }
       overlay.innerHTML = "";
       card = document.createElement("div");
       card.className = "ob-card glass-card";

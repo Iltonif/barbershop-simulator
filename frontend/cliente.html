@@ -117,7 +117,9 @@
     <div class="back-row"><button type="button" class="secondary icon-btn" data-back aria-label="Volver"><span data-icon="chevron-left"></span></button></div>
   </section>
 
-  <!-- Con sesión -->
+  <!-- Con sesión: acción principal siempre a la vista, y el resto en dos
+       capas (sept 2026, "un poco de libertad, pero sin tantas opciones a
+       la vez") -- se puede abrir cualquiera de las dos cuando quieras. -->
   <section id="home" hidden>
     <div class="hello-row">
       <div>
@@ -126,12 +128,34 @@
       </div>
       <button type="button" class="secondary logout-btn btn-ico" id="logout-btn"><span data-icon="log-out"></span>Salir</button>
     </div>
-    <div class="big-tiles">
-      <a class="big-tile" href="recomendaciones.html"><span data-icon="sparkles"></span>Para ti</a>
-      <a class="big-tile" href="catalogo.html"><span data-icon="layout-grid"></span>Catálogo</a>
-      <a class="big-tile" id="try-tile" href="probar.html"><span data-icon="wand-sparkles"></span>Probar cortes<span class="tile-note" id="try-note"></span></a>
-      <a class="big-tile" id="cuts-tile" href="mis-cortes.html"><span data-icon="history"></span>Mis cortes<span class="tile-note" id="cuts-note"></span></a>
-      <a class="big-tile" href="cuestionario.html"><span data-icon="clipboard-list"></span>Mi perfil</a>
+
+    <a class="big-tile primary-tile" href="recomendaciones.html" id="rec-tile"><span data-icon="sparkles"></span>Para ti</a>
+
+    <div class="layers" id="home-layers">
+      <section class="glass-card layer" data-layer="explorar">
+        <button type="button" class="layer-head">
+          <span class="ico" data-icon="layout-grid"></span><span>Explorar</span>
+          <span class="chev" data-icon="chevron-right"></span>
+        </button>
+        <div class="layer-body">
+          <div class="big-tiles">
+            <a class="big-tile" href="catalogo.html"><span data-icon="layout-grid"></span>Catálogo</a>
+            <a class="big-tile" id="try-tile" href="probar.html"><span data-icon="wand-sparkles"></span>Probar cortes<span class="tile-note" id="try-note"></span></a>
+          </div>
+        </div>
+      </section>
+      <section class="glass-card layer" data-layer="cuenta">
+        <button type="button" class="layer-head">
+          <span class="ico" data-icon="user-round"></span><span>Tu cuenta</span>
+          <span class="chev" data-icon="chevron-right"></span>
+        </button>
+        <div class="layer-body" hidden>
+          <div class="big-tiles">
+            <a class="big-tile" id="cuts-tile" href="mis-cortes.html"><span data-icon="history"></span>Mis cortes<span class="tile-note" id="cuts-note"></span></a>
+            <a class="big-tile" href="cuestionario.html"><span data-icon="clipboard-list"></span>Mi perfil</a>
+          </div>
+        </div>
+      </section>
     </div>
   </section>
 
@@ -141,18 +165,26 @@
 <script src="assets/ui.js"></script>
 <script src="assets/session.js"></script>
 <script src="assets/qr.js"></script>
+<script src="assets/layers.js"></script>
 <script src="assets/onboarding.js"></script>
 <script>
-  // Onboarding "medio forzado" (sept 2026): la primera vez que alguien
-  // entra aquí sin sesión, un tour rápido explica el orden de los pasos.
-  // "Soy nuevo"/"Ya he venido" son botones reales que se resaltan de
-  // verdad; los pasos siguientes (preguntas, recomendaciones, esperar
-  // turno) todavía no existen en esta pantalla, así que se ven como
-  // tarjeta centrada, sin inventar nada.
+  // Capas del espacio del cliente (sept 2026): una abierta a la vez, se
+  // puede saltar a cualquiera. La acción principal ("Para ti") queda
+  // siempre a la vista, fuera de las capas.
+  Layers.init(document.getElementById("home-layers"));
+
+  // Onboarding "medio forzado" (sept 2026, ajustado a petición de Pedro:
+  // ya no se dispara al llegar a la bienvenida, sino justo al pulsar «Soy
+  // nuevo», cuando aparece el formulario de alta -- es el momento en que
+  // de verdad importa explicar el orden). El formulario y su botón de
+  // guardar son reales y se resaltan de verdad; los pasos siguientes
+  // (preguntas, recomendaciones, esperar turno) todavía no existen en esta
+  // pantalla, así que se ven como tarjeta centrada, sin inventar nada.
   const OB_CLIENTE_STEPS = [
-    { icon: "sparkles", title: "Bienvenido", text: "Un repaso rápido de qué vas a hacer y en qué orden, antes de empezar." },
-    { selector: "#new-btn", icon: "user-plus", title: "Primera vez aquí", text: "Toca «Soy nuevo» para crear tu perfil: tu nombre, tu teléfono y unos permisos." },
-    { icon: "clipboard-list", title: "Cuéntanos tu pelo", text: "Después responderás unas preguntas rápidas con dibujos (forma de cara, tu pelo…) para afinarte las recomendaciones." },
+    { icon: "user-plus", title: "Vamos a crear tu perfil", text: "Solo tardarás un momento: tu nombre, tu teléfono y aceptar los permisos." },
+    { selector: ".consents", icon: "shield-check", title: "Estos permisos", text: "La primera casilla es obligatoria; el resto son opcionales y puedes cambiarlas luego cuando quieras." },
+    { selector: "#reg-btn", icon: "check", title: "Crear mi perfil", text: "Al guardar pasas directo a un cuestionario rápido con dibujos para afinar tus recomendaciones." },
+    { icon: "clipboard-list", title: "Cuéntanos tu pelo", text: "Preguntas rápidas con dibujos (forma de cara, tu pelo…) para afinarte las recomendaciones." },
     { icon: "sparkles", title: "Elige tus cortes", text: "Verás recomendaciones para ti y el catálogo completo. Marca ♥ los que te gusten." },
     { icon: "clock", title: "Espera tu turno", text: "Quedas apuntado en la lista de espera. El peluquero te avisará y abrirá tu ficha cuando te toque." },
     { selector: "#back-btn", icon: "phone", title: "¿Ya eres cliente?", text: "La próxima vez entra con «Ya he venido»: solo tu teléfono, sin repetir el alta." },
@@ -175,7 +207,11 @@
   if (Session.isQr()) document.getElementById("qr-card").hidden = true;
   document.getElementById("qr-card").addEventListener("click", () => QR.zoom());
 
-  document.getElementById("new-btn").addEventListener("click", () => { statusEl.innerHTML = ""; show("register"); });
+  document.getElementById("new-btn").addEventListener("click", () => {
+    statusEl.innerHTML = "";
+    show("register");
+    Onboarding.maybeRun(OB_CLIENTE_STEPS, { storageKey: "ob_cliente_v1" });
+  });
   document.getElementById("back-btn").addEventListener("click", () => { statusEl.innerHTML = ""; show("login"); });
   document.querySelectorAll("[data-back]").forEach((b) => b.addEventListener("click", () => { statusEl.innerHTML = ""; show("welcome"); }));
 
@@ -252,7 +288,6 @@
     const me = await Session.optionalClient();
     if (!me) {
       show("welcome");
-      Onboarding.maybeRun(OB_CLIENTE_STEPS, { storageKey: "ob_cliente_v1" });
       return;
     }
     await Session.requireClient();  // arranca la salida automática en la tablet

@@ -2668,6 +2668,105 @@ tres cosas que definen todo el diseño:
   (145/145, sin relación con este cambio, solo para confirmar que no se
   ha roto nada).
 
+## Ficha y espacio del cliente en capas; onboarding propio por página (sept 2026)
+
+Pedro, viendo la ficha del cliente y el espacio del cliente con demasiadas
+opciones a la vez: "hazlo muy intuitivo, que tenga un canal conductor, que
+no te de tantísimas opciones, que sea más minimalista, y que sea una
+consecución de capas lógica" para ambas pantallas, más dos cambios de
+onboarding: que el tour del cliente aparezca solo al pulsar "Soy nuevo"
+(no nada más llegar a la bienvenida), y que el onboarding del peluquero
+deje de ser solo el de la sala de espera y pase a tener un tour PROPIO en
+cada página/herramienta, resaltando lo real de esa página. Se preguntó con
+`AskUserQuestion` el patrón de capas, qué es "el perfil del cliente", y el
+alcance del onboarding por página; Pedro eligió: acordeón progresivo (una
+capa abierta a la vez, salto libre entre capas, sin orden forzado),
+`cliente.html` (su espacio principal, no el cuestionario), y todas las
+páginas de herramientas (sala, ficha, remolinos, visajismo,
+recomendaciones, catálogo, registrar corte de hoy).
+
+- **`frontend/assets/layers.js`** (nuevo): acordeón progresivo reutilizable.
+  `Layers.init(container, opts)` abre la primera capa (o `opts.open`) y
+  pliega el resto; clicar cualquier `.layer-head` la abre y cierra las
+  demás, sin orden forzado -- exactamente lo que pidió Pedro ("libertad...
+  sin forzar un orden estricto"). `Layers.open(container, key)` es pública
+  para que otro código (el onboarding) pueda abrir una capa a mano antes de
+  resaltar algo dentro. CSS en `theme.css` (`.layers`, `.layer`,
+  `.layer-head`, `.layer-body`), reutilizando el lenguaje visual de
+  `.glass-card` -- reutiliza el icono `chevron-right` ya existente,
+  rotado 90° cuando la capa está abierta, para no tocar `ui.js`.
+- **`frontend/ficha.html`** reorganizada en 4 capas con hilo conductor
+  "leer → analizar → actuar → consultar": Perfil (lo que ha contado +
+  favoritos), Pelo y herramientas (tipo de pelo, Visajismo/Remolinos/
+  Recomendaciones, maniquí incrustado), Foto para simular (todo el
+  formulario de foto, sin el antiguo botón `#sim-banner` que quedaba
+  redundante una vez que la propia capa colapsa la sección) e Historial de
+  cortes (con su contador en la propia cabecera de la capa). El botón
+  Atender/Terminado se queda fuera de las capas, siempre visible arriba.
+- **`frontend/cliente.html`** (espacio principal del cliente): una sola
+  tarjeta ancha siempre visible ("Para ti", clase nueva `.primary-tile` en
+  `theme.css`) como acción principal recomendada, y debajo dos capas con
+  libertad para explorar: Explorar (Catálogo, Probar cortes) y Tu cuenta
+  (Mis cortes, Mi perfil). El onboarding de "Soy nuevo" se dispara ahora al
+  pulsar ese botón (`Onboarding.maybeRun` movido del `if (!me)` de llegada
+  al listener de `#new-btn`) en vez de nada más entrar a la bienvenida, y
+  sus pasos se reescribieron para narrar el alta (permisos, cuestionario,
+  recomendaciones, espera de turno) en vez de resaltar "Soy nuevo"/"Ya he
+  venido" desde fuera.
+- **`onboarding.js`** gana un campo opcional por paso, `beforeShow` (función
+  sin argumentos, ejecutada antes de posicionar/resaltar): pensado para
+  abrir una capa del acordeón con `Layers.open()` antes de resaltar algo
+  que viva dentro de una capa colapsada. Añadido para dejarlo disponible,
+  pero ningún paso de esta tanda lo necesita todavía (todos los pasos
+  apuntan a `.layer-head`, que siempre está visible esté la capa abierta o
+  no) -- queda listo por si algún tour futuro necesita resaltar contenido
+  DENTRO de una capa.
+- **Onboarding propio en cada página de herramientas** (mismo patrón en
+  las 7: un `<a id="help-btn">` en el `<nav>`, un array `OB_<PAGINA>_STEPS`
+  con selectores REALES (nunca datos inventados -- si el elemento no existe
+  en ese momento, la tarjeta cae centrada sin resaltar nada, mismo criterio
+  que el onboarding original de `sala.html`/`cliente.html`), `Onboarding.
+  replay(...)` en el clic de "Cómo funciona" y `Onboarding.maybeRun(...)`
+  disparado una vez, con su propio `storageKey`):
+  - `ficha.html` (`ob_ficha_v1`): Atender/Terminado, y las 4 cabeceras de
+    capa.
+  - `growth-map.html`/Remolinos (`ob_remolinos_v1`): flecha, remolinos,
+    pelo, vistas, guardar -- disparo con `if (!EMBED)`, porque esta página
+    se incrusta sin controles dentro de `ficha.html` (maniquí) y
+    `gemelo.html`.
+  - `visagismo.html` (`ob_visagismo_v1`): los 3 pasos (cliente, fotos,
+    rasgos) + guardar; se dispara sin esperar a que se abra un cliente
+    (igual que ya hacía el resto de la página), así que los pasos que
+    apuntan a `#analysis-form`/`#save-btn` (ocultos hasta abrir cliente)
+    usan el fallback centrado hasta entonces.
+  - `recomendaciones.html` (`ob_recomendaciones_v1`): página con doble
+    uso (peluquero con `?client_id=`, o el propio cliente en "Para ti") --
+    un único array con texto que cambia según `barberMode` ("su perfil" vs
+    "tu perfil", etc.) y un paso final ("Quiero este") que solo se añade
+    en modo cliente. Se dispara con `load().then(...)`, tras terminar de
+    pintar la rejilla (a diferencia de las páginas de arriba, aquí los
+    pasos apuntan a contenido que llega de la API, no solo a controles
+    estáticos).
+  - `catalogo.html` (`ob_catalogo_v1`): otra página de triple uso (cliente/
+    peluquero/nadie) -- `buildObCatalogoSteps()` genera el array según
+    `viewer`, con los pasos de "Probar"/"Quiero este" del lightbox solo
+    cuando aplican; se dispara tras `await load()`.
+  - `registrar-corte.html` (`ob_registrar_v1`): foto, selector de corte
+    (con "Otro"), Guardar y terminar, Terminar sin guardar.
+- **Bug preexistente arreglado de paso en `visagismo.html`** (no pedido por
+  Pedro, encontrado al mirar dónde meter el botón de ayuda): a
+  `<section id="photos-card" class="glass-card form-card"` le faltaba el
+  `>` de cierre, así que el `<div class="head-row step-head">` siguiente lo
+  interpretaba el parser como si fueran más atributos de la propia
+  `<section>` en vez de un hijo real -- rompía en silencio el `flex` de esa
+  cabecera interna. Un carácter, de bajo riesgo, corregido al pasar.
+- Sin tests de backend que tocar (cambio 100% de frontend, ningún endpoint
+  ni dato nuevo). Verificado archivo a archivo con `node -e "new
+  Function(...)"` sobre cada `<script>` inline (sin errores de sintaxis) y
+  sin ids duplicados (`grep -o 'id="..."' | sort | uniq -c`) en los 7
+  ficheros tocados, más la suite completa de backend (145/145, sin
+  relación con este cambio, solo para confirmar que no se ha roto nada).
+
 ## Cómo trabajar en este repo
 
 - Instala dependencias: `pip install -r requirements.txt` (usa un entorno virtual).

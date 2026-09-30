@@ -203,6 +203,7 @@
     <a href="inicio.html" aria-label="Inicio"><span data-icon="house"></span></a>
     <a href="index.html" title="Simular corte"><span data-icon="wand-sparkles"></span><span class="lbl">Simular</span></a>
     <a href="recomendaciones.html" title="Mis recomendaciones"><span data-icon="sparkles"></span><span class="lbl">Recomendaciones</span></a>
+    <a href="#" id="help-btn" class="keep-label"><span data-icon="circle-help"></span><span class="lbl">Cómo funciona</span></a>
   </nav>
 
   <div class="head-row page-head">
@@ -263,6 +264,7 @@
 
   <script src="assets/ui.js"></script>
   <script src="assets/session.js"></script>
+  <script src="assets/onboarding.js"></script>
   <script>
     // Ruta RELATIVA a propósito (no "http://localhost:8000/api" fijo, como
     // estaba antes): el backend sirve este mismo HTML como estático (ver
@@ -532,8 +534,30 @@
       if (ev.key === "Escape" && lightboxEl.classList.contains("open")) closeLightbox();
     });
 
-    // Quién mira el catálogo: cliente con sesión, peluquero o nadie.
+    // Quién mira el catálogo: cliente con sesión, peluquero o nadie. El
+    // tour cambia según quién es (el peluquero no "pide" cortes, un
+    // visitante anónimo no ve ni "Probar" ni "Quiero este"), así que se
+    // construye con una función en vez de un array fijo.
     let viewer = null;
+    function buildObCatalogoSteps() {
+      const steps = [
+        { icon: "layout-grid", title: "Catálogo", text: "Todos los cortes de la barbería, con foto real. Filtra o toca una foto para ampliarla." },
+        { selector: ".filters", icon: "sliders-horizontal", title: "Filtros", text: "Filtra por tipo de pelo, largo o degradado; el botón de al lado los quita todos." },
+        { selector: ".card-photo", icon: "zoom-in", title: "Ampliar", text: "Toca la foto para verla grande, leer la descripción y ver para qué tipos de pelo vale." },
+      ];
+      if (viewer === "cliente") {
+        steps.push({ selector: "#lightbox-try", icon: "wand-sparkles", title: "Probar en mí", text: "Con la foto ampliada, pruébalo sobre tu propia foto guardada." });
+        steps.push({ selector: "#lightbox-request", icon: "repeat", title: "Quiero este", text: "Márcalo para que el peluquero lo vea al abrir tu ficha, mientras esperas." });
+      } else if (viewer === "peluquero") {
+        steps.push({ selector: "#lightbox-try", icon: "wand-sparkles", title: "Probar en un cliente", text: "Con la foto ampliada, abre el simulador con este corte ya elegido." });
+      }
+      return steps;
+    }
+    document.getElementById("help-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      Onboarding.replay(buildObCatalogoSteps(), { storageKey: "ob_catalogo_v1" });
+    });
+
     (async () => {
       const me = await Session.optionalClient();
       if (me) {
@@ -546,7 +570,8 @@
       } else {
         try { if ((await (await fetch("/api/barber/session")).json()).logged_in) viewer = "peluquero"; } catch (e) { /* anónimo */ }
       }
-      load();
+      await load();
+      Onboarding.maybeRun(buildObCatalogoSteps(), { storageKey: "ob_catalogo_v1" });
     })();
   </script>
 </body>
